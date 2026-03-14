@@ -5,8 +5,8 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>GeoBingo benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
+	<string>Gotcha! benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GeoBingo benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
+	<string>Gotcha! benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
 </dict>
 </plist>

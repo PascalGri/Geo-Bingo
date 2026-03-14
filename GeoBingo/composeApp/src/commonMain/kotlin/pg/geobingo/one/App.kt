@@ -5,13 +5,13 @@ import androidx.compose.runtime.remember
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.ui.screens.*
-import pg.geobingo.one.ui.theme.GeoBingoTheme
+import pg.geobingo.one.ui.theme.GotchaTheme
 
 @Composable
 fun App() {
     val gameState = remember { GameState() }
 
-    GeoBingoTheme {
+    GotchaTheme {
         when (gameState.currentScreen) {
             Screen.HOME -> HomeScreen(gameState)
             Screen.CREATE_GAME -> CreateGameScreen(gameState)

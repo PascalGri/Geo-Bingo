@@ -54,7 +54,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun GeoBingoTheme(content: @Composable () -> Unit) {
+fun GotchaTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColorScheme,
         content = content

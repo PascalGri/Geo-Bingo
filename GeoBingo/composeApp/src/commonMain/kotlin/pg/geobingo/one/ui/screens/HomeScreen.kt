@@ -95,7 +95,7 @@ fun HomeScreen(gameState: GameState) {
 
             Spacer(Modifier.height(12.dp))
             Text(
-                "GeoBingo v1.0",
+                "Gotcha! v1.0",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outlineVariant
             )

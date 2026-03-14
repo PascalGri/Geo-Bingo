@@ -1,4 +1,4 @@
-rootProject.name = "GeoBingo"
+rootProject.name = "Gotcha"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
