@@ -10,11 +10,11 @@ import kotlinx.cinterop.readBytes
 import org.jetbrains.skia.Image
 import platform.UIKit.UIApplication
 import platform.UIKit.UIImage
+import platform.UIKit.UIImageJPEGRepresentation
 import platform.UIKit.UIImagePickerController
 import platform.UIKit.UIImagePickerControllerDelegateProtocol
 import platform.UIKit.UIImagePickerControllerOriginalImage
-import platform.UIKit.UIImagePickerControllerSourceTypeCamera
-import platform.UIKit.UIImagePickerControllerSourceTypePhotoLibrary
+import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.darwin.NSObject
 
@@ -32,8 +32,10 @@ private class ImagePickerDelegate :
     ) {
         picker.dismissViewControllerAnimated(true, completion = null)
         val image = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
-        val jpegData = image?.jpegData(compressionQuality = 0.85)
-        val bytes = jpegData?.bytes?.readBytes(jpegData.length.toInt())
+        val jpegData = image?.let { UIImageJPEGRepresentation(it, 0.85) }
+        val bytes = jpegData?.let { data ->
+            data.bytes?.readBytes(data.length.toInt())
+        }
         onResult?.invoke(bytes)
     }
 
@@ -54,9 +56,9 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
                 delegate.onResult = { bytes -> currentOnResult.value(bytes) }
 
                 val sourceType = if (
-                    UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceTypeCamera)
-                ) UIImagePickerControllerSourceTypeCamera
-                else UIImagePickerControllerSourceTypePhotoLibrary
+                    UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera)
+                ) UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera
+                else UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypePhotoLibrary
 
                 val picker = UIImagePickerController()
                 picker.sourceType = sourceType
