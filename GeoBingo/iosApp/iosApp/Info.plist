@@ -4,5 +4,9 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>GeoBingo benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GeoBingo benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
 </dict>
 </plist>

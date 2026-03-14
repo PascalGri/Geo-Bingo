@@ -66,6 +66,13 @@ class GameState {
         if (!isCaptured(playerId, categoryId)) {
             toggleCapture(playerId, categoryId)
         }
+        // End game if this player has now photographed every category
+        if (isGameRunning && selectedCategories.isNotEmpty()) {
+            val playerPhotos2 = updated[playerId] ?: emptyMap()
+            if (selectedCategories.all { it.id in playerPhotos2 }) {
+                endGame()
+            }
+        }
     }
 
     fun getPhoto(playerId: String, categoryId: String): ByteArray? =
