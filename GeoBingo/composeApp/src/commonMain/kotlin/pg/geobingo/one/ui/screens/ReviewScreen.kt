@@ -16,8 +16,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.data.getCategoryIcon
 import pg.geobingo.one.game.*
 import pg.geobingo.one.platform.toImageBitmap
 
@@ -246,7 +251,12 @@ private fun VoteCaptureRow(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Text(category.emoji, fontSize = 26.sp)
+                    Icon(
+                        imageVector = getCategoryIcon(category.id),
+                        contentDescription = category.name,
+                        modifier = Modifier.size(28.dp),
+                        tint = player.color
+                    )
                 }
             }
 
@@ -277,11 +287,11 @@ private fun VoteCaptureRow(
                     .clickable { onToggle() },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (isApproved) "✓" else "✕",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isApproved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = if (isApproved) Icons.Default.Check else Icons.Default.Close,
+                    contentDescription = if (isApproved) "Bestätigt" else "Ablehnen",
+                    modifier = Modifier.size(18.dp),
+                    tint = if (isApproved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

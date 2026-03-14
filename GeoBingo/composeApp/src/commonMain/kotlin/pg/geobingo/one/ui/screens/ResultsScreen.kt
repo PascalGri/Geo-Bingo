@@ -4,7 +4,11 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.*
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +46,8 @@ fun ResultsScreen(gameState: GameState) {
                         shape = RoundedCornerShape(27.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
+                        Icon(Icons.Default.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Nochmal spielen", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -65,7 +71,12 @@ fun ResultsScreen(gameState: GameState) {
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("🏆", fontSize = 52.sp)
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            modifier = Modifier.size(56.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             winner.name,
@@ -117,7 +128,6 @@ fun ResultsScreen(gameState: GameState) {
 
 @Composable
 private fun PodiumSection(ranked: List<Pair<Player, Int>>) {
-    val medals = listOf("🥇", "🥈", "🥉")
     val heights = listOf(88.dp, 66.dp, 50.dp)
     val podiumOrder = when (ranked.size) {
         1 -> listOf(ranked[0] to 0)
@@ -136,7 +146,16 @@ private fun PodiumSection(ranked: List<Pair<Player, Int>>) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                Text(medals.getOrElse(rank) { "" }, fontSize = 18.sp)
+                Text(
+                    text = when (rank) { 0 -> "1." ; 1 -> "2."; else -> "3." },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = when (rank) {
+                        0 -> MaterialTheme.colorScheme.primary
+                        1 -> MaterialTheme.colorScheme.outline
+                        else -> MaterialTheme.colorScheme.secondary
+                    }
+                )
                 Spacer(Modifier.height(4.dp))
                 Box(
                     modifier = Modifier.size(36.dp).clip(CircleShape).background(player.color),
@@ -206,9 +225,15 @@ private fun RankCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = when (rank) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$rank" },
-                    fontSize = if (rank <= 3) 16.sp else 12.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "$rank",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when (rank) {
+                        1 -> MaterialTheme.colorScheme.primary
+                        2 -> MaterialTheme.colorScheme.outline
+                        3 -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
             }
 

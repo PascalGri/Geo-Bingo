@@ -2,10 +2,13 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -24,7 +27,12 @@ fun HomeScreen(gameState: GameState) {
         ) {
             Spacer(Modifier.height(80.dp))
 
-            Text("📍", fontSize = 72.sp)
+            Icon(
+                imageVector = Icons.Default.PinDrop,
+                contentDescription = null,
+                modifier = Modifier.size(72.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
 
             Spacer(Modifier.height(24.dp))
 
@@ -55,13 +63,13 @@ fun HomeScreen(gameState: GameState) {
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    FeatureItem("👥  2–8 Spieler in einer Runde")
+                    FeatureItem(Icons.Default.Group, "2–8 Spieler in einer Runde")
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    FeatureItem("🗂️  Kategorien frei wählen")
+                    FeatureItem(Icons.Default.GridView, "Kategorien frei wählen")
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    FeatureItem("📸  Fotos mit der Kamera aufnehmen")
+                    FeatureItem(Icons.Default.CameraAlt, "Fotos mit der Kamera aufnehmen")
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    FeatureItem("🗳️  Abstimmen & Punkte zählen")
+                    FeatureItem(Icons.Default.HowToVote, "Abstimmen & Punkte zählen")
                 }
             }
 
@@ -97,10 +105,19 @@ fun HomeScreen(gameState: GameState) {
 }
 
 @Composable
-private fun FeatureItem(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface
-    )
+private fun FeatureItem(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }

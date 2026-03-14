@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.*
 
@@ -277,7 +280,12 @@ private fun CategorySelectCard(category: Category, isSelected: Boolean, onClick:
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = category.emoji, fontSize = 24.sp)
+            Icon(
+                imageVector = getCategoryIcon(category.id),
+                contentDescription = category.name,
+                modifier = Modifier.size(26.dp),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = category.name,

@@ -23,8 +23,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.data.getCategoryIcon
 import pg.geobingo.one.game.*
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
@@ -280,7 +284,6 @@ private fun BingoCategoryCard(
                 verticalArrangement = Arrangement.Center
             ) {
                 if (thumbnail != null) {
-                    // Show photo thumbnail
                     Image(
                         bitmap = thumbnail,
                         contentDescription = null,
@@ -290,7 +293,12 @@ private fun BingoCategoryCard(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Text(text = category.emoji, fontSize = 24.sp)
+                    Icon(
+                        imageVector = getCategoryIcon(category.id),
+                        contentDescription = category.name,
+                        modifier = Modifier.size(28.dp),
+                        tint = if (isCaptured) playerColor else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -319,7 +327,7 @@ private fun BingoCategoryCard(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(4.dp)
-                    .size(22.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
                     .background(
                         if (thumbnail != null) playerColor else MaterialTheme.colorScheme.surfaceVariant
@@ -327,9 +335,11 @@ private fun BingoCategoryCard(
                     .clickable { onCameraClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "📷",
-                    fontSize = 10.sp
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Foto aufnehmen",
+                    modifier = Modifier.size(13.dp),
+                    tint = if (thumbnail != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
