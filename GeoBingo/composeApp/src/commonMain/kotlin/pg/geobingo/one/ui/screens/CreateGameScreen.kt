@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import pg.geobingo.one.data.*
@@ -30,10 +31,15 @@ import pg.geobingo.one.game.*
 @Composable
 fun CreateGameScreen(gameState: GameState) {
     var playerNameInput by remember { mutableStateOf("") }
-    var selectedCategoryIds by remember { mutableStateOf(setOf<String>()) }
+    var customNameInput by remember { mutableStateOf("") }
+    var customCategories by remember { mutableStateOf(listOf<Category>()) }
+    var customCategoryCounter by remember { mutableStateOf(0) }
+    var selectedPresetIds by remember { mutableStateOf(setOf<String>()) }
     var durationMinutes by remember { mutableStateOf(15f) }
 
-    val canStart = gameState.players.size >= 2 && selectedCategoryIds.size >= 9
+    val totalCategories = customCategories.size + selectedPresetIds.size
+    val canAddMore = totalCategories < 10
+    val canStart = gameState.players.size >= 2 && totalCategories in 2..10
 
     Scaffold(
         topBar = {
@@ -57,7 +63,8 @@ fun CreateGameScreen(gameState: GameState) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Button(
                         onClick = {
-                            gameState.selectedCategories = PRESET_CATEGORIES.filter { it.id in selectedCategoryIds }
+                            val presets = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
+                            gameState.selectedCategories = customCategories + presets
                             gameState.gameDurationMinutes = durationMinutes.toInt()
                             gameState.startGame()
                         },
@@ -71,7 +78,11 @@ fun CreateGameScreen(gameState: GameState) {
                         )
                     ) {
                         Text(
-                            text = if (canStart) "Spiel starten" else "Mind. 2 Spieler & 9 Kategorien",
+                            text = when {
+                                gameState.players.size < 2 -> "Mind. 2 Spieler hinzufügen"
+                                totalCategories < 2 -> "Mind. 2 Kategorien wählen"
+                                else -> "Spiel starten ($totalCategories Kategorien)"
+                            },
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -151,10 +162,110 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // --- Categories ---
-            SectionCard(title = "Kategorien  ${selectedCategoryIds.size}/24") {
+            // --- Custom Categories ---
+            SectionCard(title = "Eigene Kategorien  ${customCategories.size}") {
                 Text(
-                    "Wähle mindestens 9 Kategorien für dein Bingo-Feld",
+                    "Erstelle eigene Kategorien für dein Bingo-Feld (${totalCategories}/10 gesamt)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = customNameInput,
+                        onValueChange = { if (it.length <= 30) customNameInput = it },
+                        placeholder = { Text("z.B. Rotes Auto", style = MaterialTheme.typography.bodyMedium) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                    FilledTonalButton(
+                        onClick = {
+                            val name = customNameInput.trim()
+                            if (name.isNotEmpty() && canAddMore) {
+                                customCategories = customCategories + Category(
+                                    id = "custom_$customCategoryCounter",
+                                    name = name,
+                                    emoji = "custom"
+                                )
+                                customCategoryCounter++
+                                customNameInput = ""
+                            }
+                        },
+                        enabled = customNameInput.trim().isNotEmpty() && canAddMore,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Hinzufügen", modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                if (customCategories.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        customCategories.forEach { cat ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = getCategoryIcon(cat.id),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        cat.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    IconButton(
+                                        onClick = { customCategories = customCategories.filter { it.id != cat.id } },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Entfernen",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!canAddMore) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Maximum von 10 Kategorien erreicht",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // --- Preset Categories ---
+            SectionCard(title = "Aus Vorlagen wählen  ${selectedPresetIds.size}") {
+                Text(
+                    "Wähle optional aus fertigen Kategorien",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -167,15 +278,19 @@ fun CreateGameScreen(gameState: GameState) {
                     userScrollEnabled = false
                 ) {
                     items(PRESET_CATEGORIES) { category ->
-                        val isSelected = category.id in selectedCategoryIds
+                        val isSelected = category.id in selectedPresetIds
+                        val isDisabled = !isSelected && !canAddMore
                         CategorySelectCard(
                             category = category,
                             isSelected = isSelected,
+                            isDisabled = isDisabled,
                             onClick = {
-                                selectedCategoryIds = if (isSelected) {
-                                    selectedCategoryIds - category.id
-                                } else {
-                                    selectedCategoryIds + category.id
+                                if (!isDisabled || isSelected) {
+                                    selectedPresetIds = if (isSelected) {
+                                        selectedPresetIds - category.id
+                                    } else {
+                                        selectedPresetIds + category.id
+                                    }
                                 }
                             }
                         )
@@ -263,9 +378,17 @@ private fun PlayerChip(player: Player, onRemove: () -> Unit) {
 }
 
 @Composable
-private fun CategorySelectCard(category: Category, isSelected: Boolean, onClick: () -> Unit) {
-    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+private fun CategorySelectCard(category: Category, isSelected: Boolean, isDisabled: Boolean, onClick: () -> Unit) {
+    val containerColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        isDisabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+        isDisabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Card(
         onClick = onClick,
@@ -284,7 +407,7 @@ private fun CategorySelectCard(category: Category, isSelected: Boolean, onClick:
                 imageVector = getCategoryIcon(category.id),
                 contentDescription = category.name,
                 modifier = Modifier.size(26.dp),
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else contentColor
             )
             Spacer(Modifier.height(4.dp))
             Text(

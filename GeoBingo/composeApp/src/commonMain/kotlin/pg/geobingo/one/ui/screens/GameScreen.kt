@@ -159,7 +159,11 @@ fun GameScreen(gameState: GameState) {
 
             // Bingo grid
             if (currentPlayer != null) {
-                val cols = if (gameState.selectedCategories.size <= 9) 3 else 4
+                val cols = when {
+                    gameState.selectedCategories.size <= 4 -> 2
+                    gameState.selectedCategories.size <= 9 -> 3
+                    else -> 4
+                }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(cols),
                     modifier = Modifier.weight(1f).padding(12.dp),
