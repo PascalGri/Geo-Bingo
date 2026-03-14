@@ -1,49 +1,23 @@
 package pg.geobingo.one
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.painterResource
-
-import geobingo.composeapp.generated.resources.Res
-import geobingo.composeapp.generated.resources.compose_multiplatform
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import pg.geobingo.one.game.GameState
+import pg.geobingo.one.game.Screen
+import pg.geobingo.one.ui.screens.*
+import pg.geobingo.one.ui.theme.GeoBingoTheme
 
 @Composable
-@Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
-            }
+    val gameState = remember { GameState() }
+
+    GeoBingoTheme {
+        when (gameState.currentScreen) {
+            Screen.HOME -> HomeScreen(gameState)
+            Screen.CREATE_GAME -> CreateGameScreen(gameState)
+            Screen.GAME -> GameScreen(gameState)
+            Screen.REVIEW -> ReviewScreen(gameState)
+            Screen.RESULTS -> ResultsScreen(gameState)
         }
     }
 }
