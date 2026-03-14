@@ -23,7 +23,10 @@ class GameState {
     // Captures: playerId -> Set of captured categoryIds
     var captures by mutableStateOf(mapOf<String, Set<String>>())
 
-    // Votes: "$playerId-$categoryId" -> list of approvals (true=yes, false=no)
+    // Photos: playerId -> (categoryId -> ByteArray)
+    var photos by mutableStateOf(mapOf<String, Map<String, ByteArray>>())
+
+    // Votes: "$playerId-$categoryId" -> list of approvals
     var votes by mutableStateOf(mapOf<String, List<Boolean>>())
 
     // Review
@@ -37,6 +40,7 @@ class GameState {
         isGameRunning = true
         currentPlayerIndex = 0
         captures = players.associate { it.id to emptySet() }
+        photos = players.associate { it.id to emptyMap() }
         votes = emptyMap()
         currentScreen = Screen.GAME
     }
@@ -51,6 +55,21 @@ class GameState {
 
     fun isCaptured(playerId: String, categoryId: String): Boolean =
         captures[playerId]?.contains(categoryId) == true
+
+    fun addPhoto(playerId: String, categoryId: String, bytes: ByteArray) {
+        val updated = photos.toMutableMap()
+        val playerPhotos = (updated[playerId] ?: emptyMap()).toMutableMap()
+        playerPhotos[categoryId] = bytes
+        updated[playerId] = playerPhotos
+        photos = updated
+        // Auto-mark as captured when photo is taken
+        if (!isCaptured(playerId, categoryId)) {
+            toggleCapture(playerId, categoryId)
+        }
+    }
+
+    fun getPhoto(playerId: String, categoryId: String): ByteArray? =
+        photos[playerId]?.get(categoryId)
 
     fun endGame() {
         isGameRunning = false
@@ -100,6 +119,7 @@ class GameState {
         isGameRunning = false
         currentPlayerIndex = 0
         captures = mapOf()
+        photos = mapOf()
         votes = mapOf()
         reviewPlayerIndex = 0
     }

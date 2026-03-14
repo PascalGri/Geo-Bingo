@@ -30,12 +30,12 @@ val PRESET_CATEGORIES = listOf(
 )
 
 val PLAYER_COLORS = listOf(
-    Color(0xFFE53935), // Rot
-    Color(0xFF1E88E5), // Blau
-    Color(0xFF43A047), // Grün
-    Color(0xFF8E24AA), // Lila
-    Color(0xFFFF8F00), // Orange
-    Color(0xFFD81B60), // Pink
-    Color(0xFF00ACC1), // Teal
-    Color(0xFFFDD835), // Gelb
+    Color(0xFFB85454), // muted rose
+    Color(0xFF4A72A8), // slate blue
+    Color(0xFF4E8A5E), // sage green
+    Color(0xFF7B5499), // plum
+    Color(0xFFB87830), // warm amber
+    Color(0xFF2D8080), // teal
+    Color(0xFFA0436A), // raspberry
+    Color(0xFF717A2E), // olive
 )
