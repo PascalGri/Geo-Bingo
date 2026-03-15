@@ -93,7 +93,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun GotchaTheme(content: @Composable () -> Unit) {
+fun KatchItTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
         content = content

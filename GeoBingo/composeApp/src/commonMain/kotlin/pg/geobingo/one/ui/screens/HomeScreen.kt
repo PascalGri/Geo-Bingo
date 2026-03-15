@@ -20,23 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import geobingo.composeapp.generated.resources.Res
-import geobingo.composeapp.generated.resources.app_icon
+import katchit.composeapp.generated.resources.Res
+import katchit.composeapp.generated.resources.app_icon
 import org.jetbrains.compose.resources.painterResource
 import pg.geobingo.one.game.*
-import pg.geobingo.one.ui.theme.AnimatedGradientText
-import pg.geobingo.one.ui.theme.ColorBackground
-import pg.geobingo.one.ui.theme.ColorOnSurface
-import pg.geobingo.one.ui.theme.ColorOnSurfaceVariant
-import pg.geobingo.one.ui.theme.ColorOutline
-import pg.geobingo.one.ui.theme.ColorOutlineVariant
-import pg.geobingo.one.ui.theme.ColorPrimary
-import pg.geobingo.one.ui.theme.ColorPrimaryContainer
-import pg.geobingo.one.ui.theme.ColorSurface
-import pg.geobingo.one.ui.theme.GradientBorderCard
-import pg.geobingo.one.ui.theme.GradientButton
-import pg.geobingo.one.ui.theme.GradientCool
-import pg.geobingo.one.ui.theme.GradientPrimary
+import pg.geobingo.one.ui.theme.*
 
 @Composable
 fun HomeScreen(gameState: GameState) {
@@ -45,18 +33,15 @@ fun HomeScreen(gameState: GameState) {
             .fillMaxSize()
             .background(ColorBackground),
     ) {
-        // Subtle radial glow at top
+        // Top glow
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(320.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF2D1B6B).copy(alpha = 0.5f),
-                            Color.Transparent,
-                        ),
-                        radius = 500f,
+                        colors = listOf(Color(0xFF1A3A10).copy(alpha = 0.6f), Color.Transparent),
+                        radius = 600f,
                     )
                 )
         )
@@ -64,65 +49,62 @@ fun HomeScreen(gameState: GameState) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(72.dp))
 
-            // App icon
+            // Icon + Title
             Image(
                 painter = painterResource(Res.drawable.app_icon),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(RoundedCornerShape(24.dp)),
+                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(22.dp)),
                 contentScale = ContentScale.Crop,
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
 
             AnimatedGradientText(
-                text = "Gotcha!",
+                text = "KatchIt!",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 44.sp,
+                    fontSize = 42.sp,
                 ),
                 gradientColors = GradientPrimary,
                 durationMillis = 2500,
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
             Text(
-                "Erkunde die Stadt mit Freunden",
+                text = "Spiele gegen deine Freunde.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(36.dp))
 
-            // Game flow card
-            GradientBorderCard(
+            // Three compact mechanic pills
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 20.dp,
-                borderColors = GradientCool,
-                backgroundColor = ColorSurface,
-                durationMillis = 4000,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    GameFlowStep(icon = Icons.Default.DirectionsWalk, label = "Erkunden")
-                    GameFlowArrow()
-                    GameFlowStep(icon = Icons.Default.CameraAlt, label = "Fotografieren")
-                    GameFlowArrow()
-                    GameFlowStep(icon = Icons.Default.HowToVote, label = "Abstimmen")
-                    GameFlowArrow()
-                    GameFlowStep(icon = Icons.Default.EmojiEvents, label = "Gewinnen")
-                }
+                MechanicPill(
+                    icon = Icons.Default.GridView,
+                    label = "Kategorien\nwählen",
+                    modifier = Modifier.weight(1f),
+                )
+                MechanicPill(
+                    icon = Icons.Default.CameraAlt,
+                    label = "Motive\nfotografieren",
+                    modifier = Modifier.weight(1f),
+                )
+                MechanicPill(
+                    icon = Icons.Default.EmojiEvents,
+                    label = "Abstimmen\n& gewinnen",
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Spacer(Modifier.weight(1f))
@@ -133,12 +115,7 @@ fun HomeScreen(gameState: GameState) {
                 modifier = Modifier.fillMaxWidth(),
                 gradientColors = GradientPrimary,
                 leadingIcon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White,
-                    )
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
                 },
             )
 
@@ -151,12 +128,7 @@ fun HomeScreen(gameState: GameState) {
                 border = BorderStroke(1.5.dp, ColorPrimary),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
             ) {
-                Icon(
-                    Icons.Default.Login,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = ColorPrimary,
-                )
+                Icon(Icons.Default.Login, null, modifier = Modifier.size(20.dp), tint = ColorPrimary)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Runde beitreten",
@@ -168,44 +140,54 @@ fun HomeScreen(gameState: GameState) {
             }
 
             Spacer(Modifier.height(12.dp))
-            Text(
-                "Gotcha! v1.0",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOutline,
-            )
-            Spacer(Modifier.height(48.dp))
+
+            TextButton(onClick = { gameState.currentScreen = Screen.HOW_TO_PLAY }) {
+                Icon(
+                    Icons.Default.HelpOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    tint = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    "Wie funktioniert's?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorOnSurfaceVariant,
+                )
+            }
+
+            Text("KatchIt! v1.0", style = MaterialTheme.typography.bodySmall, color = ColorOutline)
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun GameFlowStep(icon: ImageVector, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun MechanicPill(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(ColorSurface)
+            .padding(vertical = 14.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .background(Brush.linearGradient(GradientPrimary)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = Color.White)
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
         }
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = ColorOnSurface,
+            fontWeight = FontWeight.Medium,
+            color = ColorOnSurfaceVariant,
             textAlign = TextAlign.Center,
+            lineHeight = 14.sp,
         )
     }
-}
-
-@Composable
-private fun GameFlowArrow() {
-    Icon(
-        imageVector = Icons.Default.ChevronRight,
-        contentDescription = null,
-        modifier = Modifier.size(16.dp),
-        tint = ColorPrimary.copy(alpha = 0.5f),
-    )
 }

@@ -5,8 +5,8 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Gotcha! benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
+	<string>KatchIt! benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Gotcha! benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
+	<string>KatchIt! benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
 </dict>
 </plist>

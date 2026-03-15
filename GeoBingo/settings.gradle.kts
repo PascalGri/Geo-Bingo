@@ -1,4 +1,4 @@
-rootProject.name = "Gotcha"
+rootProject.name = "KatchIt"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

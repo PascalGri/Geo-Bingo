@@ -7,7 +7,7 @@ import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.VoteDto
 
 enum class Screen {
-    HOME, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS
+    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS
 }
 
 class GameState {
