@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -27,6 +28,7 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,14 +41,12 @@ fun ReviewScreen(gameState: GameState) {
 
     val categoryIndex = gameState.reviewCategoryIndex
 
-    // Load all captures once
     LaunchedEffect(gameId) {
         try {
             gameState.allCaptures = GameRepository.getCaptures(gameId)
         } catch (_: Exception) {}
     }
 
-    // Poll for category index changes and "results" status
     LaunchedEffect(gameId) {
         while (true) {
             try {
@@ -68,8 +68,8 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     if (categoryIndex >= categories.size) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = ColorPrimary)
         }
         return
     }
@@ -79,13 +79,13 @@ fun ReviewScreen(gameState: GameState) {
     val othersCaptures = capturesForCategory.filter { it.player_id != myPlayerId }
 
     if (gameState.hasSubmittedCurrentCategory) {
-        WaitingForOthersScreen(
+        DarkWaitingScreen(
             categoryName = currentCategory.name,
             categoryIndex = categoryIndex,
-            totalCategories = categories.size
+            totalCategories = categories.size,
         )
     } else {
-        VotingScreen(
+        DarkVotingScreen(
             gameState = gameState,
             currentCategory = currentCategory,
             categoryIndex = categoryIndex,
@@ -99,12 +99,11 @@ fun ReviewScreen(gameState: GameState) {
                             gameId = gameId,
                             voterId = myPlayerId,
                             categoryId = currentCategory.id,
-                            votes = votes.toList()
+                            votes = votes.toList(),
                         )
                         gameState.hasSubmittedCurrentCategory = true
                         gameState.categoryVotes = emptyMap()
 
-                        // Check if all players submitted → advance
                         val submissionCount = GameRepository.getVoteSubmissionCount(gameId, currentCategory.id)
                         if (submissionCount >= totalPlayers) {
                             val nextIndex = categoryIndex + 1
@@ -119,30 +118,27 @@ fun ReviewScreen(gameState: GameState) {
                         }
                     } catch (_: Exception) {}
                 }
-            }
+            },
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VotingScreen(
+private fun DarkVotingScreen(
     gameState: GameState,
     currentCategory: Category,
     categoryIndex: Int,
     totalCategories: Int,
     othersCaptures: List<CaptureDto>,
     totalPlayers: Int,
-    onSubmit: (Map<String, Boolean>) -> Unit
+    onSubmit: (Map<String, Boolean>) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val gameId = gameState.gameId ?: return
-
-    // votes: targetPlayerId -> approved
     var votes by remember(categoryIndex) { mutableStateOf(mapOf<String, Boolean>()) }
     var photoCache by remember { mutableStateOf(mapOf<String, ImageBitmap?>()) }
 
-    // Load photos for each capture
     LaunchedEffect(othersCaptures) {
         othersCaptures.forEach { capture ->
             if (capture.player_id !in photoCache) {
@@ -159,54 +155,85 @@ private fun VotingScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Abstimmung", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text("Kategorie ${categoryIndex + 1} / $totalCategories", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Abstimmung",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ColorOnSurface,
+                        )
+                        Text(
+                            "Kategorie ${categoryIndex + 1} / $totalCategories",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
+            Surface(shadowElevation = 8.dp, color = ColorSurface) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    Button(
+                    GradientButton(
+                        text = "Abstimmung abschicken",
                         onClick = { onSubmit(votes) },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(27.dp)
-                    ) {
-                        Text(
-                            "Abstimmung abschicken",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                        modifier = Modifier.fillMaxWidth(),
+                        gradientColors = GradientPrimary,
+                    )
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = ColorBackground,
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Category header
-            Card(
+            // Category header with gradient border
+            GradientBorderCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                cornerRadius = 16.dp,
+                borderColors = GradientPrimary,
+                backgroundColor = ColorPrimaryContainer,
+                durationMillis = 3000,
             ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(currentCategory.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Text("Haben andere Spieler das wirklich gefunden?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    AnimatedGradientText(
+                        text = currentCategory.name,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        gradientColors = GradientPrimary,
+                        durationMillis = 2000,
+                    )
+                    Text(
+                        "Haben andere Spieler das wirklich gefunden?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
 
             if (othersCaptures.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("\uD83D\uDE05", fontSize = 40.sp)
                         Spacer(Modifier.height(8.dp))
-                        Text("Niemand hat diese Kategorie fotografiert", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                        Text(
+                            "Niemand hat diese Kategorie fotografiert",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ColorOnSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
             } else {
@@ -215,14 +242,14 @@ private fun VotingScreen(
                     val photo = photoCache[capture.player_id]
                     val isApproved = votes[capture.player_id]
 
-                    PlayerPhotoVoteCard(
+                    DarkPlayerPhotoVoteCard(
                         playerName = player?.name ?: "Spieler",
-                        playerColor = player?.color ?: Color.Gray,
+                        playerColor = player?.color ?: ColorOnSurfaceVariant,
                         photo = photo,
                         isApproved = isApproved,
                         onVote = { approved ->
                             votes = votes + (capture.player_id to approved)
-                        }
+                        },
                     )
                 }
             }
@@ -233,84 +260,148 @@ private fun VotingScreen(
 }
 
 @Composable
-private fun PlayerPhotoVoteCard(
+private fun DarkPlayerPhotoVoteCard(
     playerName: String,
     playerColor: Color,
     photo: ImageBitmap?,
     isApproved: Boolean?,
-    onVote: (Boolean) -> Unit
+    onVote: (Boolean) -> Unit,
 ) {
+    val cardBg = when (isApproved) {
+        true -> ColorPrimaryContainer
+        false -> ColorErrorContainer
+        null -> ColorSurface
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when (isApproved) {
-                true -> MaterialTheme.colorScheme.primaryContainer
-                false -> MaterialTheme.colorScheme.errorContainer
-                null -> MaterialTheme.colorScheme.surface
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = BorderStroke(
+            1.dp,
+            when (isApproved) {
+                true -> ColorPrimary.copy(alpha = 0.5f)
+                false -> ColorError.copy(alpha = 0.5f)
+                null -> ColorOutlineVariant
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Player name row
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(32.dp).clip(CircleShape).background(playerColor),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.size(36.dp).clip(CircleShape).background(playerColor),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(playerName.take(1).uppercase(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.width(8.dp))
-                Text(playerName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    playerName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurface,
+                )
             }
 
-            // Photo
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(ColorSurfaceVariant),
+                contentAlignment = Alignment.Center,
             ) {
                 if (photo != null) {
-                    Image(bitmap = photo, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    Image(
+                        bitmap = photo,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = ColorPrimary)
                         Spacer(Modifier.height(8.dp))
-                        Text("Foto l\u00e4dt...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Foto lädt...", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                     }
                 }
             }
 
-            // Vote buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Reject
-                OutlinedButton(
-                    onClick = { onVote(false) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (isApproved == false) MaterialTheme.colorScheme.error.copy(alpha = 0.1f) else Color.Transparent
-                    ),
-                    border = BorderStroke(if (isApproved == false) 2.dp else 1.dp, if (isApproved == false) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline)
+                // Reject button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isApproved == false)
+                                Brush.linearGradient(listOf(ColorError.copy(alpha = 0.3f), ColorError.copy(alpha = 0.3f)))
+                            else
+                                Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                        )
+                        .border(
+                            if (isApproved == false) 2.dp else 1.dp,
+                            if (isApproved == false) ColorError else ColorOutline,
+                            RoundedCornerShape(12.dp),
+                        )
+                        .clickable { onVote(false) },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Ablehnen", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Nein", color = MaterialTheme.colorScheme.error)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, tint = ColorError, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Nein", color = ColorError, fontWeight = FontWeight.SemiBold)
+                    }
                 }
-                // Approve
-                Button(
-                    onClick = { onVote(true) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isApproved == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isApproved == true) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                // Approve button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isApproved == true)
+                                Brush.linearGradient(GradientPrimary)
+                            else
+                                Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                        )
+                        .then(
+                            if (isApproved != true)
+                                Modifier.border(1.dp, ColorOutline, RoundedCornerShape(12.dp))
+                            else
+                                Modifier
+                        )
+                        .clickable { onVote(true) },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "Best\u00e4tigen", modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Ja")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (isApproved == true) Color.White else ColorOnSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Ja",
+                            color = if (isApproved == true) Color.White else ColorOnSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
@@ -318,17 +409,36 @@ private fun PlayerPhotoVoteCard(
 }
 
 @Composable
-private fun WaitingForOthersScreen(
+private fun DarkWaitingScreen(
     categoryName: String,
     categoryIndex: Int,
-    totalCategories: Int
+    totalCategories: Int,
 ) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            CircularProgressIndicator(modifier = Modifier.size(48.dp))
-            Text("\u2705 Abgestimmt!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Warte auf andere Spieler...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Kategorie ${categoryIndex + 1} / $totalCategories: $categoryName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Box(
+        modifier = Modifier.fillMaxSize().background(ColorBackground),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(48.dp), color = ColorPrimary)
+            AnimatedGradientText(
+                text = "✅ Abgestimmt!",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                gradientColors = GradientPrimary,
+                durationMillis = 2000,
+            )
+            Text(
+                "Warte auf andere Spieler...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = ColorOnSurfaceVariant,
+            )
+            Text(
+                "Kategorie ${categoryIndex + 1} / $totalCategories: $categoryName",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorOnSurfaceVariant,
+            )
         }
     }
 }

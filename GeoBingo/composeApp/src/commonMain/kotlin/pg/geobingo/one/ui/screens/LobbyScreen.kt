@@ -26,6 +26,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
+import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,25 +65,31 @@ fun LobbyScreen(gameState: GameState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wartezimmer") },
+                title = {
+                    Text(
+                        "Wartezimmer",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ColorOnSurface,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { gameState.resetGame() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Verlassen")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Verlassen", tint = ColorPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },
         bottomBar = {
             if (gameState.isHost) {
-                Surface(
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
+                Surface(shadowElevation = 8.dp, color = ColorSurface) {
                     Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Button(
+                        GradientButton(
+                            text = if (gameState.lobbyPlayers.size < 2)
+                                "Mind. 2 Spieler nötig"
+                            else
+                                "Spiel starten (${gameState.lobbyPlayers.size} Spieler)",
                             onClick = {
                                 scope.launch {
                                     isStarting = true
@@ -103,73 +110,75 @@ fun LobbyScreen(gameState: GameState) {
                                 }
                             },
                             enabled = gameState.lobbyPlayers.size >= 2 && !isStarting,
-                            modifier = Modifier.fillMaxWidth().height(54.dp),
-                            shape = RoundedCornerShape(27.dp)
-                        ) {
-                            if (isStarting) {
+                            modifier = Modifier.fillMaxWidth(),
+                            gradientColors = GradientPrimary,
+                            leadingIcon = if (isStarting) ({
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
                                 )
-                            } else {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    if (gameState.lobbyPlayers.size < 2) "Mind. 2 Spieler nötig"
-                                    else "Spiel starten (${gameState.lobbyPlayers.size} Spieler)",
-                                    fontWeight = FontWeight.SemiBold
+                            }) else ({
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp),
                                 )
-                            }
-                        }
+                            }),
+                        )
                     }
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = ColorBackground,
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Spacer(Modifier.height(16.dp))
 
-                // Game code card
-                Card(
+                // Game code card with animated gradient border
+                GradientBorderCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    cornerRadius = 20.dp,
+                    borderColors = GradientPrimary,
+                    backgroundColor = ColorPrimaryContainer,
+                    borderWidth = 1.5.dp,
+                    durationMillis = 3000,
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             "Rundencode",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            gameState.gameCode ?: "------",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 8.sp
+                        Spacer(Modifier.height(12.dp))
+                        AnimatedGradientText(
+                            text = gameState.gameCode ?: "------",
+                            style = MaterialTheme.typography.displayMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 8.sp,
+                            ),
+                            gradientColors = GradientPrimary,
+                            durationMillis = 2000,
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Teile diesen Code mit deinen Freunden",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
+                            color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -179,49 +188,50 @@ fun LobbyScreen(gameState: GameState) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(
-                        "Spieler (${gameState.lobbyPlayers.size})",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                    AnimatedGradientText(
+                        text = "Spieler (${gameState.lobbyPlayers.size})",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientCool,
+                        durationMillis = 3500,
                     )
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
+                        color = ColorPrimary,
                     )
                 }
             }
 
             items(gameState.lobbyPlayers) { player ->
-                PlayerLobbyRow(player = player, isMe = player.id == gameState.myPlayerId)
+                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId)
             }
 
             item {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    elevation = CardDefaults.cardElevation(0.dp)
+                    colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
+                    elevation = CardDefaults.cardElevation(0.dp),
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             Icons.Default.Info,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = ColorSecondary,
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "${gameState.selectedCategories.size} Kategorien · ${gameState.gameDurationMinutes} Min.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = ColorOnSurfaceVariant,
                         )
                     }
                 }
@@ -231,12 +241,12 @@ fun LobbyScreen(gameState: GameState) {
                 item {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             "Warte auf den Host...",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = ColorOnSurfaceVariant,
                         )
                     }
                 }
@@ -248,31 +258,33 @@ fun LobbyScreen(gameState: GameState) {
 }
 
 @Composable
-private fun PlayerLobbyRow(player: PlayerDto, isMe: Boolean) {
+private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean) {
     val color = parseHexColor(player.color)
-    Surface(
+    Card(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 1.dp
+        colors = CardDefaults.cardColors(containerColor = ColorSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
+        elevation = CardDefaults.cardElevation(0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(color),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     player.name.take(1).uppercase(),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 16.sp,
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -280,19 +292,21 @@ private fun PlayerLobbyRow(player: PlayerDto, isMe: Boolean) {
                 player.name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                color = ColorOnSurface,
             )
             if (isMe) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(ColorPrimaryContainer)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
                     Text(
                         "Du",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        color = ColorPrimary,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }

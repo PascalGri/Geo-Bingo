@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -34,6 +35,7 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.ui.theme.*
 
 @Composable
 fun GameScreen(gameState: GameState) {
@@ -56,7 +58,6 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Poll for "voting" status so all devices navigate to ReviewScreen together
     LaunchedEffect(gameId) {
         while (true) {
             try {
@@ -88,34 +89,48 @@ fun GameScreen(gameState: GameState) {
 
     val isLow = gameState.timeRemainingSeconds in 1..60
     val timerColor by animateColorAsState(
-        targetValue = if (isLow) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-        animationSpec = tween(500)
+        targetValue = if (isLow) ColorError else ColorPrimary,
+        animationSpec = tween(500),
     )
 
     val currentPlayer = gameState.currentPlayer
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+    Scaffold(containerColor = ColorBackground) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
 
             // Top bar: timer + player tabs
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
+                color = ColorSurface,
+                shadowElevation = 2.dp,
+                border = BorderStroke(1.dp, ColorOutlineVariant),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Timer
-                    Text(
-                        text = gameState.formatTime(gameState.timeRemainingSeconds),
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = timerColor,
-                        letterSpacing = 3.sp
-                    )
+                    // Timer with gradient when low
+                    if (isLow) {
+                        AnimatedGradientText(
+                            text = gameState.formatTime(gameState.timeRemainingSeconds),
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 3.sp,
+                                fontSize = 40.sp,
+                            ),
+                            gradientColors = GradientHot,
+                            durationMillis = 600,
+                        )
+                    } else {
+                        Text(
+                            text = gameState.formatTime(gameState.timeRemainingSeconds),
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = timerColor,
+                            letterSpacing = 3.sp,
+                        )
+                    }
 
                     Spacer(Modifier.height(12.dp))
 
@@ -124,16 +139,16 @@ fun GameScreen(gameState: GameState) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         gameState.players.forEachIndexed { index, player ->
                             val isActive = index == gameState.currentPlayerIndex
                             val captured = gameState.captures[player.id]?.size ?: 0
-                            PlayerTab(
+                            GamePlayerTab(
                                 player = player,
                                 isActive = isActive,
                                 captureCount = captured,
-                                onClick = { gameState.currentPlayerIndex = index }
+                                onClick = { gameState.currentPlayerIndex = index },
                             )
                         }
                     }
@@ -147,18 +162,21 @@ fun GameScreen(gameState: GameState) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier.size(30.dp).clip(CircleShape).background(currentPlayer.color),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(currentPlayer.color),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 currentPlayer.name.take(1).uppercase(),
                                 color = Color.White,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -166,13 +184,14 @@ fun GameScreen(gameState: GameState) {
                             Text(
                                 currentPlayer.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = ColorOnSurface,
                             )
                             val count = gameState.captures[currentPlayer.id]?.size ?: 0
                             Text(
                                 "$count/${gameState.selectedCategories.size} gefunden",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = ColorOnSurfaceVariant,
                             )
                         }
                     }
@@ -187,15 +206,15 @@ fun GameScreen(gameState: GameState) {
                                 gameState.currentScreen = Screen.REVIEW
                             }
                         },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorError),
+                        border = BorderStroke(1.dp, ColorError.copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     ) {
-                        Text("Beenden", style = MaterialTheme.typography.labelMedium)
+                        Text("Beenden", style = MaterialTheme.typography.labelMedium, color = ColorError)
                     }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = ColorOutlineVariant)
             }
 
             // Bingo grid
@@ -209,13 +228,13 @@ fun GameScreen(gameState: GameState) {
                     columns = GridCells.Fixed(cols),
                     modifier = Modifier.weight(1f).padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(gameState.selectedCategories) { category ->
                         val captured = gameState.isCaptured(currentPlayer.id, category.id)
                         val photoBytes = gameState.getPhoto(currentPlayer.id, category.id)
                         val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
-                        BingoCategoryCard(
+                        DarkBingoCategoryCard(
                             category = category,
                             isCaptured = captured,
                             playerColor = currentPlayer.color,
@@ -225,7 +244,7 @@ fun GameScreen(gameState: GameState) {
                                 photoTargetPlayerId = currentPlayer.id
                                 photoTargetCategoryId = category.id
                                 photoCapturer.launch()
-                            }
+                            },
                         )
                     }
                 }
@@ -234,29 +253,32 @@ fun GameScreen(gameState: GameState) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(ColorSurface)
                         .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (gameState.currentPlayerIndex > 0) {
                         OutlinedButton(
                             onClick = { gameState.currentPlayerIndex-- },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                            border = BorderStroke(1.dp, ColorOutline),
                         ) {
-                            Text("← Zurück")
+                            Text("← Zurück", color = ColorPrimary)
                         }
                     }
                     if (gameState.currentPlayerIndex < gameState.players.size - 1) {
-                        Button(
-                            onClick = { gameState.currentPlayerIndex++ },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(GradientPrimary))
+                                .clickable { gameState.currentPlayerIndex++ },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Text("Weiter →")
+                            Text("Weiter →", color = Color.White, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -266,67 +288,84 @@ fun GameScreen(gameState: GameState) {
 }
 
 @Composable
-private fun PlayerTab(player: Player, isActive: Boolean, captureCount: Int, onClick: () -> Unit) {
-    val containerColor = if (isActive) player.color.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (isActive) player.color else MaterialTheme.colorScheme.onSurfaceVariant
+private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, onClick: () -> Unit) {
+    val bg = if (isActive)
+        Brush.linearGradient(listOf(player.color.copy(alpha = 0.25f), player.color.copy(alpha = 0.15f)))
+    else
+        Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = containerColor,
-        border = if (isActive) BorderStroke(1.dp, player.color.copy(alpha = 0.4f)) else null,
-        modifier = Modifier.clickable { onClick() }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .then(
+                if (isActive) Modifier.border(1.dp, player.color.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                else Modifier
+            )
+            .clickable { onClick() },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             Box(
-                modifier = Modifier.size(16.dp).clip(CircleShape).background(player.color),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(player.color),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(player.name.take(1).uppercase(), color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.width(5.dp))
-            Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = contentColor)
+            Text(
+                player.name,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isActive) player.color else ColorOnSurfaceVariant,
+            )
             if (captureCount > 0) {
                 Spacer(Modifier.width(3.dp))
-                Text("($captureCount)", fontSize = 11.sp, color = contentColor.copy(alpha = 0.7f))
+                Text(
+                    "($captureCount)",
+                    fontSize = 11.sp,
+                    color = (if (isActive) player.color else ColorOnSurfaceVariant).copy(alpha = 0.7f),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun BingoCategoryCard(
+private fun DarkBingoCategoryCard(
     category: Category,
     isCaptured: Boolean,
     playerColor: Color,
     thumbnail: ImageBitmap?,
     onToggle: () -> Unit,
-    onCameraClick: () -> Unit
+    onCameraClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (isCaptured) playerColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-        animationSpec = tween(300)
+        targetValue = if (isCaptured) playerColor.copy(alpha = 0.18f) else ColorSurface,
+        animationSpec = tween(300),
     )
-    val borderColor = if (isCaptured) playerColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant
+    val borderColor = if (isCaptured) playerColor.copy(alpha = 0.5f) else ColorOutlineVariant
 
     Card(
         modifier = Modifier.aspectRatio(0.9f).fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isCaptured) 2.dp else 1.dp),
-        border = BorderStroke(if (isCaptured) 1.5.dp else 1.dp, borderColor)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(if (isCaptured) 1.5.dp else 1.dp, borderColor),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Main tap area
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable { onToggle() }
                     .padding(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 if (thumbnail != null) {
                     Image(
@@ -334,15 +373,15 @@ private fun BingoCategoryCard(
                         contentDescription = null,
                         modifier = Modifier
                             .size(40.dp)
-                            .clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
                     )
                 } else {
                     Icon(
                         imageVector = getCategoryIcon(category.id),
                         contentDescription = category.name,
                         modifier = Modifier.size(28.dp),
-                        tint = if (isCaptured) playerColor else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isCaptured) playerColor else ColorOnSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(4.dp))
@@ -350,41 +389,39 @@ private fun BingoCategoryCard(
                     text = category.name,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isCaptured) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isCaptured) playerColor else MaterialTheme.colorScheme.onSurface,
+                    color = if (isCaptured) playerColor else ColorOnSurface,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 13.sp
+                    lineHeight = 13.sp,
                 )
                 if (isCaptured) {
                     Spacer(Modifier.height(2.dp))
-                    Text(
-                        "✓",
-                        fontSize = 10.sp,
-                        color = playerColor,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("✓", fontSize = 10.sp, color = playerColor, fontWeight = FontWeight.Bold)
                 }
             }
 
-            // Camera button overlay (bottom-right)
+            // Camera button overlay
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(4.dp)
-                    .size(24.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(
-                        if (thumbnail != null) playerColor else MaterialTheme.colorScheme.surfaceVariant
+                        if (thumbnail != null)
+                            Brush.linearGradient(listOf(playerColor, playerColor))
+                        else
+                            Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
                     )
                     .clickable { onCameraClick() },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Foto aufnehmen",
                     modifier = Modifier.size(13.dp),
-                    tint = if (thumbnail != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (thumbnail != null) Color.White else ColorOnSurfaceVariant,
                 )
             }
         }

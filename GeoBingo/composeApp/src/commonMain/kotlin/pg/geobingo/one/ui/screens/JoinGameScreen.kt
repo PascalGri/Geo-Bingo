@@ -1,5 +1,6 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -9,6 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -21,6 +25,7 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,42 +41,71 @@ fun JoinGameScreen(gameState: GameState) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Runde beitreten") },
+                title = {
+                    Text(
+                        "Runde beitreten",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ColorOnSurface,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Zurück",
+                            tint = ColorPrimary,
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                    containerColor = ColorSurface,
+                ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = ColorBackground,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(48.dp))
 
-            Icon(
-                Icons.Default.Login,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.primary
+            // Icon with gradient box
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Brush.linearGradient(GradientHot)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Login,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = Color.White,
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            AnimatedGradientText(
+                text = "Code eingeben",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                gradientColors = GradientHot,
+                durationMillis = 2500,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 "Gib den Code ein, den dir\nder Rundenersteller gegeben hat.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                color = ColorOnSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
 
             Spacer(Modifier.height(40.dp))
@@ -80,24 +114,31 @@ fun JoinGameScreen(gameState: GameState) {
             OutlinedTextField(
                 value = codeInput,
                 onValueChange = { if (it.length <= 6) codeInput = it.uppercase() },
-                label = { Text("Rundencode") },
-                placeholder = { Text("ABC123") },
+                label = { Text("Rundencode", color = ColorOnSurfaceVariant) },
+                placeholder = { Text("ABC123", color = ColorOutline) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    focusedBorderColor = ColorPrimary,
+                    unfocusedBorderColor = ColorOutline,
+                    focusedTextColor = ColorOnSurface,
+                    unfocusedTextColor = ColorOnSurface,
+                    focusedLabelColor = ColorPrimary,
+                    cursorColor = ColorPrimary,
+                    focusedContainerColor = ColorSurface,
+                    unfocusedContainerColor = ColorSurface,
                 ),
                 leadingIcon = {
-                    Icon(Icons.Default.Tag, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Tag, contentDescription = null, tint = ColorPrimary)
                 },
                 textStyle = LocalTextStyle.current.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
-                    letterSpacing = 4.sp
-                )
+                    letterSpacing = 4.sp,
+                    color = ColorOnSurface,
+                ),
             )
 
             Spacer(Modifier.height(16.dp))
@@ -106,38 +147,45 @@ fun JoinGameScreen(gameState: GameState) {
             OutlinedTextField(
                 value = nameInput,
                 onValueChange = { if (it.length <= 20) nameInput = it },
-                label = { Text("Dein Name") },
-                placeholder = { Text("z.B. Anna") },
+                label = { Text("Dein Name", color = ColorOnSurfaceVariant) },
+                placeholder = { Text("z.B. Anna", color = ColorOutline) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    focusedBorderColor = ColorPrimary,
+                    unfocusedBorderColor = ColorOutline,
+                    focusedTextColor = ColorOnSurface,
+                    unfocusedTextColor = ColorOnSurface,
+                    focusedLabelColor = ColorPrimary,
+                    cursorColor = ColorPrimary,
+                    focusedContainerColor = ColorSurface,
+                    unfocusedContainerColor = ColorSurface,
                 ),
                 leadingIcon = {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                }
+                    Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary)
+                },
             )
 
             if (errorMessage != null) {
                 Spacer(Modifier.height(12.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.errorContainer
+                    color = ColorErrorContainer,
                 ) {
                     Text(
                         errorMessage!!,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall
+                        color = ColorOnErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
 
             Spacer(Modifier.weight(1f))
 
-            Button(
+            GradientButton(
+                text = "Beitreten",
                 onClick = {
                     scope.launch {
                         isLoading = true
@@ -171,21 +219,23 @@ fun JoinGameScreen(gameState: GameState) {
                     }
                 },
                 enabled = canJoin && !isLoading,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                if (isLoading) {
+                modifier = Modifier.fillMaxWidth(),
+                gradientColors = GradientHot,
+                leadingIcon = if (isLoading) ({
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+                        color = Color.White,
+                        strokeWidth = 2.dp,
                     )
-                } else {
-                    Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Beitreten", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                }
-            }
+                }) else ({
+                    Icon(
+                        Icons.Default.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White,
+                    )
+                }),
+            )
 
             Spacer(Modifier.height(40.dp))
         }
