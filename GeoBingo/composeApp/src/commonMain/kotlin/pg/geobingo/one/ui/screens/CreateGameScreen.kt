@@ -2,9 +2,6 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -37,14 +34,14 @@ fun CreateGameScreen(gameState: GameState) {
     var customCategories by remember { mutableStateOf(listOf<Category>()) }
     var customCategoryCounter by remember { mutableStateOf(0) }
     var selectedPresetIds by remember { mutableStateOf(setOf<String>()) }
+    var visiblePresets by remember { mutableStateOf(PRESET_CATEGORIES.take(VISIBLE_PRESET_COUNT)) }
     var durationMinutes by remember { mutableStateOf(15f) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     val totalCategories = customCategories.size + selectedPresetIds.size
-    val canAddMore = totalCategories < 10
-    val canStart = hostNameInput.trim().isNotEmpty() && totalCategories in 2..10
+    val canStart = hostNameInput.trim().isNotEmpty() && totalCategories >= 2
 
     Scaffold(
         topBar = {
@@ -59,37 +56,28 @@ fun CreateGameScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Zurück",
-                            tint = ColorPrimary,
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ColorSurface,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },
         bottomBar = {
-            Surface(
-                shadowElevation = 8.dp,
-                color = ColorSurface,
-            ) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Surface(shadowElevation = 8.dp, color = ColorSurface) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     if (errorMessage != null) {
                         Text(
                             errorMessage!!,
                             color = ColorError,
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            modifier = Modifier.padding(bottom = 6.dp),
                         )
                     }
                     GradientButton(
                         text = when {
                             hostNameInput.trim().isEmpty() -> "Name eingeben"
                             totalCategories < 2 -> "Mind. 2 Kategorien wählen"
-                            else -> "Runde erstellen ($totalCategories Kategorien)"
+                            else -> "Runde erstellen  ·  $totalCategories Kategorien"
                         },
                         onClick = {
                             scope.launch {
@@ -100,8 +88,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     val allCategories = customCategories + presets
                                     val code = generateCode()
                                     val game = GameRepository.createGame(code, durationMinutes.toInt() * 60)
-                                    val colorIndex = 0
-                                    val hostColor = PLAYER_COLORS[colorIndex].toHex()
+                                    val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
                                     gameState.gameId = game.id
@@ -122,11 +109,7 @@ fun CreateGameScreen(gameState: GameState) {
                         enabled = canStart && !isLoading,
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = if (isLoading) ({
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                            )
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                         }) else null,
                     )
                 }
@@ -142,14 +125,13 @@ fun CreateGameScreen(gameState: GameState) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // --- Host Name ---
-            DarkSectionCard(title = "Dein Name") {
+
+            // ── 1. Name ──────────────────────────────────────────────────────
+            DarkSectionCard(title = "Name") {
                 OutlinedTextField(
                     value = hostNameInput,
                     onValueChange = { if (it.length <= 20) hostNameInput = it },
-                    placeholder = {
-                        Text("z.B. Pascal", style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
-                    },
+                    placeholder = { Text("z.B. Pascal", color = ColorOnSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -162,9 +144,7 @@ fun CreateGameScreen(gameState: GameState) {
                         focusedContainerColor = ColorSurfaceVariant,
                         unfocusedContainerColor = ColorSurfaceVariant,
                     ),
-                    leadingIcon = {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary)
-                    },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -174,14 +154,10 @@ fun CreateGameScreen(gameState: GameState) {
                 )
             }
 
-            // --- Custom Categories ---
-            DarkSectionCard(title = "Eigene Kategorien  ${customCategories.size}") {
-                Text(
-                    "Erstelle eigene Kategorien für dein Bingo-Feld (${totalCategories}/10 gesamt)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
+            // ── 2. Kategorien (eigene + Vorlagen zusammen) ───────────────────
+            DarkSectionCard(title = "Kategorien  ·  $totalCategories ausgewählt") {
+
+                // Custom input row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -189,9 +165,7 @@ fun CreateGameScreen(gameState: GameState) {
                     OutlinedTextField(
                         value = customNameInput,
                         onValueChange = { if (it.length <= 30) customNameInput = it },
-                        placeholder = {
-                            Text("z.B. Rotes Auto", style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
-                        },
+                        placeholder = { Text("Eigene Kategorie...", color = ColorOnSurfaceVariant) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -210,14 +184,14 @@ fun CreateGameScreen(gameState: GameState) {
                             .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (customNameInput.trim().isNotEmpty() && canAddMore)
+                                if (customNameInput.trim().isNotEmpty())
                                     Brush.linearGradient(GradientPrimary)
                                 else
                                     Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
                             )
                             .clickable {
                                 val name = customNameInput.trim()
-                                if (name.isNotEmpty() && canAddMore) {
+                                if (name.isNotEmpty()) {
                                     customCategories = customCategories + Category(
                                         id = "custom_$customCategoryCounter",
                                         name = name,
@@ -229,15 +203,11 @@ fun CreateGameScreen(gameState: GameState) {
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Hinzufügen",
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White,
-                        )
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
                     }
                 }
 
+                // Custom category chips
                 if (customCategories.isNotEmpty()) {
                     Spacer(Modifier.height(10.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -248,18 +218,16 @@ fun CreateGameScreen(gameState: GameState) {
                                 border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f)),
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
                                         imageVector = getCategoryIcon(cat.id),
                                         contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
+                                        modifier = Modifier.size(16.dp),
                                         tint = ColorPrimary,
                                     )
-                                    Spacer(Modifier.width(10.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text(
                                         cat.name,
                                         style = MaterialTheme.typography.bodyMedium,
@@ -271,12 +239,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         onClick = { customCategories = customCategories.filter { it.id != cat.id } },
                                         modifier = Modifier.size(28.dp),
                                     ) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Entfernen",
-                                            modifier = Modifier.size(14.dp),
-                                            tint = ColorOnSurfaceVariant,
-                                        )
+                                        Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
                                     }
                                 }
                             }
@@ -284,54 +247,83 @@ fun CreateGameScreen(gameState: GameState) {
                     }
                 }
 
-                if (!canAddMore) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Maximum von 10 Kategorien erreicht",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorError,
-                    )
-                }
-            }
-
-            // --- Preset Categories ---
-            DarkSectionCard(title = "Aus Vorlagen wählen  ${selectedPresetIds.size}") {
-                Text(
-                    "Wähle optional aus fertigen Kategorien",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier.height(420.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    userScrollEnabled = false,
+                // Divider with label
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(PRESET_CATEGORIES) { category ->
-                        val isSelected = category.id in selectedPresetIds
-                        val isDisabled = !isSelected && !canAddMore
-                        DarkCategorySelectCard(
-                            category = category,
-                            isSelected = isSelected,
-                            isDisabled = isDisabled,
-                            onClick = {
-                                if (!isDisabled || isSelected) {
-                                    selectedPresetIds = if (isSelected) {
-                                        selectedPresetIds - category.id
-                                    } else {
-                                        selectedPresetIds + category.id
-                                    }
-                                }
-                            },
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = ColorOutlineVariant)
+                    Text(
+                        "Vorlagen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = ColorOutlineVariant)
+                }
+                Spacer(Modifier.height(12.dp))
+
+                // Preset grid (3 columns)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    visiblePresets.chunked(3).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            rowItems.forEach { category ->
+                                val isSelected = category.id in selectedPresetIds
+                                DarkCategorySelectCard(
+                                    category = category,
+                                    isSelected = isSelected,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        selectedPresetIds = if (isSelected)
+                                            selectedPresetIds - category.id
+                                        else
+                                            selectedPresetIds + category.id
+                                    },
+                                )
+                            }
+                            repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Shuffle button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Brush.linearGradient(GradientPrimary))
+                        .clickable {
+                            // Keep already-selected ones visible, fill rest with new suggestions
+                            val selectedOnes = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
+                            val unselectedPool = PRESET_CATEGORIES.filter { it.id !in selectedPresetIds }.shuffled()
+                            val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
+                            visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                        }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                        Text(
+                            "Andere Vorschläge",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
                         )
                     }
                 }
             }
 
-            // --- Duration ---
-            DarkSectionCard(title = "Spielzeit  ${durationMinutes.toInt()} Min.") {
+            // ── 3. Spielzeit ─────────────────────────────────────────────────
+            DarkSectionCard(title = "Spielzeit  ·  ${durationMinutes.toInt()} Min.") {
                 Slider(
                     value = durationMinutes,
                     onValueChange = { durationMinutes = it },
@@ -383,25 +375,16 @@ private fun DarkSectionCard(title: String, content: @Composable ColumnScope.() -
 private fun DarkCategorySelectCard(
     category: Category,
     isSelected: Boolean,
-    isDisabled: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val bg = when {
-        isSelected -> ColorPrimaryContainer
-        isDisabled -> ColorSurfaceVariant.copy(alpha = 0.4f)
-        else -> ColorSurfaceVariant
-    }
-    val contentColor = when {
-        isSelected -> ColorOnPrimaryContainer
-        isDisabled -> ColorOnSurfaceVariant.copy(alpha = 0.4f)
-        else -> ColorOnSurfaceVariant
-    }
-
     Card(
         onClick = onClick,
-        modifier = Modifier.aspectRatio(0.85f).fillMaxWidth(),
+        modifier = modifier.aspectRatio(0.85f),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = bg),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) ColorPrimaryContainer else ColorSurfaceVariant,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = if (isSelected) BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.7f)) else null,
     ) {
@@ -414,14 +397,14 @@ private fun DarkCategorySelectCard(
                 imageVector = getCategoryIcon(category.id),
                 contentDescription = category.name,
                 modifier = Modifier.size(26.dp),
-                tint = if (isSelected) ColorPrimary else contentColor,
+                tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = category.name,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
-                color = contentColor,
+                color = if (isSelected) ColorOnPrimaryContainer else ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

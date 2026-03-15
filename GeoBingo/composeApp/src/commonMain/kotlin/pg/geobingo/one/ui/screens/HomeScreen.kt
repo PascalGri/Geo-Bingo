@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +15,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import geobingo.composeapp.generated.resources.Res
+import geobingo.composeapp.generated.resources.app_icon
+import org.jetbrains.compose.resources.painterResource
 import pg.geobingo.one.game.*
 import pg.geobingo.one.ui.theme.AnimatedGradientText
 import pg.geobingo.one.ui.theme.ColorBackground
@@ -64,21 +69,15 @@ fun HomeScreen(gameState: GameState) {
         ) {
             Spacer(Modifier.height(80.dp))
 
-            // App icon with gradient background
-            Box(
+            // App icon
+            Image(
+                painter = painterResource(Res.drawable.app_icon),
+                contentDescription = null,
                 modifier = Modifier
                     .size(88.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Brush.linearGradient(GradientPrimary)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PinDrop,
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp),
-                    tint = Color.White,
-                )
-            }
+                    .clip(RoundedCornerShape(24.dp)),
+                contentScale = ContentScale.Crop,
+            )
 
             Spacer(Modifier.height(28.dp))
 
@@ -103,7 +102,7 @@ fun HomeScreen(gameState: GameState) {
 
             Spacer(Modifier.height(48.dp))
 
-            // Feature card with animated gradient border
+            // Game flow card
             GradientBorderCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 20.dp,
@@ -111,17 +110,18 @@ fun HomeScreen(gameState: GameState) {
                 backgroundColor = ColorSurface,
                 durationMillis = 4000,
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    HomeFeatureItem(Icons.Default.Group, "2–8 Spieler in einer Runde")
-                    HorizontalDivider(color = ColorOutlineVariant)
-                    HomeFeatureItem(Icons.Default.GridView, "Kategorien frei wählen")
-                    HorizontalDivider(color = ColorOutlineVariant)
-                    HomeFeatureItem(Icons.Default.CameraAlt, "Fotos mit der Kamera aufnehmen")
-                    HorizontalDivider(color = ColorOutlineVariant)
-                    HomeFeatureItem(Icons.Default.HowToVote, "Abstimmen & Punkte zählen")
+                    GameFlowStep(icon = Icons.Default.DirectionsWalk, label = "Erkunden")
+                    GameFlowArrow()
+                    GameFlowStep(icon = Icons.Default.CameraAlt, label = "Fotografieren")
+                    GameFlowArrow()
+                    GameFlowStep(icon = Icons.Default.HowToVote, label = "Abstimmen")
+                    GameFlowArrow()
+                    GameFlowStep(icon = Icons.Default.EmojiEvents, label = "Gewinnen")
                 }
             }
 
@@ -179,27 +179,33 @@ fun HomeScreen(gameState: GameState) {
 }
 
 @Composable
-private fun HomeFeatureItem(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun GameFlowStep(icon: ImageVector, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(ColorPrimaryContainer),
+                .size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Brush.linearGradient(GradientPrimary)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = ColorPrimary,
-            )
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = Color.White)
         }
-        Spacer(Modifier.width(12.dp))
         Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
             color = ColorOnSurface,
+            textAlign = TextAlign.Center,
         )
     }
+}
+
+@Composable
+private fun GameFlowArrow() {
+    Icon(
+        imageVector = Icons.Default.ChevronRight,
+        contentDescription = null,
+        modifier = Modifier.size(16.dp),
+        tint = ColorPrimary.copy(alpha = 0.5f),
+    )
 }

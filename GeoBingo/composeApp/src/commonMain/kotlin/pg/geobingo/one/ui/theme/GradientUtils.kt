@@ -112,7 +112,7 @@ fun GradientBorderCard(
             modifier = Modifier
                 .clip(RoundedCornerShape(cornerRadius - borderWidth))
                 .background(backgroundColor)
-                .fillMaxSize(),
+                .fillMaxWidth(),
             content = content,
         )
     }
