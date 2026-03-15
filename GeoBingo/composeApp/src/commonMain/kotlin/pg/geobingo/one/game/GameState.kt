@@ -2,7 +2,9 @@ package pg.geobingo.one.game
 
 import androidx.compose.runtime.*
 import pg.geobingo.one.data.*
+import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.PlayerDto
+import pg.geobingo.one.network.VoteDto
 
 enum class Screen {
     HOME, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS
@@ -39,6 +41,13 @@ class GameState {
 
     // Review
     var reviewPlayerIndex by mutableStateOf(0)
+
+    // Review sync state
+    var reviewCategoryIndex by mutableStateOf(0)
+    var allCaptures by mutableStateOf(listOf<CaptureDto>())
+    var categoryVotes by mutableStateOf(mapOf<String, Boolean>()) // targetPlayerId -> approved
+    var hasSubmittedCurrentCategory by mutableStateOf(false)
+    var allVotes by mutableStateOf(listOf<VoteDto>())
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
@@ -88,8 +97,7 @@ class GameState {
 
     fun endGame() {
         isGameRunning = false
-        reviewPlayerIndex = 0
-        currentScreen = Screen.REVIEW
+        // Navigation handled by GameScreen after Supabase update
     }
 
     fun submitVotes(targetPlayerId: String, approvedCategoryIds: Set<String>) {
@@ -111,11 +119,23 @@ class GameState {
         return v.count { it } > v.size / 2
     }
 
-    fun getPlayerScore(playerId: String): Int =
-        selectedCategories.count { category ->
+    fun getPlayerScore(playerId: String): Int {
+        // If we have server votes, use them
+        if (allVotes.isNotEmpty()) {
+            return selectedCategories.count { category ->
+                val capturesForPlayer = allCaptures.filter { it.player_id == playerId && it.category_id == category.id }
+                if (capturesForPlayer.isEmpty()) return@count false
+                val votesForThis = allVotes.filter { it.target_player_id == playerId && it.category_id == category.id }
+                if (votesForThis.isEmpty()) return@count true // no votes = approved by default
+                votesForThis.count { it.approved } > votesForThis.size / 2
+            }
+        }
+        // Fallback: local votes
+        return selectedCategories.count { category ->
             if (!isCaptured(playerId, category.id)) return@count false
             getVoteResult(playerId, category.id) ?: true
         }
+    }
 
     fun getPlayerCaptures(playerId: String): List<Category> {
         val capturedIds = captures[playerId] ?: emptySet()
@@ -137,6 +157,11 @@ class GameState {
         photos = mapOf()
         votes = mapOf()
         reviewPlayerIndex = 0
+        reviewCategoryIndex = 0
+        allCaptures = listOf()
+        categoryVotes = mapOf()
+        hasSubmittedCurrentCategory = false
+        allVotes = listOf()
         gameId = null
         gameCode = null
         isHost = false

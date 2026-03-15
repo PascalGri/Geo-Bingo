@@ -23,7 +23,7 @@ kotlin {
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
-            isStatic = true
+            isStatic = false
         }
     }
     
@@ -111,6 +111,18 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+}
+
+tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach {
+    doFirst {
+        val srcRoot = System.getenv("SRCROOT") ?: return@doFirst
+        val configuration = System.getenv("CONFIGURATION") ?: "Debug"
+        val sdkName = System.getenv("SDK_NAME") ?: "iphoneos"
+        val frameworkPath = "$srcRoot/../composeApp/build/xcode-frameworks/$configuration/$sdkName/ComposeApp.framework"
+        ProcessBuilder("xattr", "-cr", frameworkPath)
+            .start()
+            .waitFor()
+    }
 }
 
 compose.desktop {

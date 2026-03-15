@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Icon
@@ -30,17 +31,44 @@ import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.getCategoryIcon
 import pg.geobingo.one.game.*
+import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
 
 @Composable
 fun GameScreen(gameState: GameState) {
+    val scope = rememberCoroutineScope()
+    val gameId = gameState.gameId
+
     var photoTargetPlayerId by remember { mutableStateOf("") }
     var photoTargetCategoryId by remember { mutableStateOf("") }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             gameState.addPhoto(photoTargetPlayerId, photoTargetCategoryId, bytes)
+            val pid = photoTargetPlayerId
+            val cid = photoTargetCategoryId
+            if (gameId != null) {
+                scope.launch {
+                    try { GameRepository.recordCapture(gameId, pid, cid, bytes) } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
+    // Poll for "voting" status so all devices navigate to ReviewScreen together
+    LaunchedEffect(gameId) {
+        while (true) {
+            try {
+                val game = gameId?.let { GameRepository.getGameById(it) }
+                if (game?.status == "voting") {
+                    gameState.isGameRunning = false
+                    gameState.reviewCategoryIndex = game.review_category_index
+                    gameState.currentScreen = Screen.REVIEW
+                    break
+                }
+            } catch (_: Exception) {}
+            delay(3000)
         }
     }
 
@@ -49,9 +77,13 @@ fun GameScreen(gameState: GameState) {
             delay(1000L)
             if (gameState.isGameRunning) {
                 gameState.timeRemainingSeconds--
-                if (gameState.timeRemainingSeconds <= 0) gameState.endGame()
             }
         }
+        if (gameId != null) {
+            try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+        }
+        gameState.reviewCategoryIndex = 0
+        gameState.currentScreen = Screen.REVIEW
     }
 
     val isLow = gameState.timeRemainingSeconds in 1..60
@@ -145,7 +177,16 @@ fun GameScreen(gameState: GameState) {
                         }
                     }
                     OutlinedButton(
-                        onClick = { gameState.endGame() },
+                        onClick = {
+                            gameState.isGameRunning = false
+                            scope.launch {
+                                if (gameId != null) {
+                                    try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                                }
+                                gameState.reviewCategoryIndex = 0
+                                gameState.currentScreen = Screen.REVIEW
+                            }
+                        },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(20.dp),

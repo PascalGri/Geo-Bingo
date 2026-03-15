@@ -15,8 +15,40 @@ data class GameDto(
     val id: String = "",
     val code: String = "",
     val status: String = "lobby",
-    val duration_s: Int = 300
+    val duration_s: Int = 300,
+    val review_category_index: Int = 0
 )
+
+@Serializable
+data class CaptureDto(
+    val id: String = "",
+    val game_id: String = "",
+    val player_id: String = "",
+    val category_id: String = "",
+    val photo_url: String = ""
+)
+
+@Serializable
+private data class CaptureInsertDto(val game_id: String, val player_id: String, val category_id: String, val photo_url: String = "")
+
+@Serializable
+data class VoteDto(
+    val id: String = "",
+    val game_id: String = "",
+    val voter_id: String = "",
+    val target_player_id: String = "",
+    val category_id: String = "",
+    val approved: Boolean = false
+)
+
+@Serializable
+private data class VoteInsertDto(val game_id: String, val voter_id: String, val target_player_id: String, val category_id: String, val approved: Boolean)
+
+@Serializable
+private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: String, val category_id: String)
+
+@Serializable
+private data class GameInsertDto(val code: String, val duration_s: Int)
 
 @Serializable
 data class PlayerDto(
@@ -27,6 +59,9 @@ data class PlayerDto(
 )
 
 @Serializable
+private data class PlayerInsertDto(val game_id: String, val name: String, val color: String)
+
+@Serializable
 data class CategoryDto(
     val id: String = "",
     val game_id: String = "",
@@ -34,6 +69,9 @@ data class CategoryDto(
     val icon_id: String = "",
     val sort_order: Int = 0
 )
+
+@Serializable
+private data class CategoryInsertDto(val game_id: String, val label: String, val icon_id: String, val sort_order: Int)
 
 fun PlayerDto.toPlayer(): Player = Player(
     id = id,
@@ -73,17 +111,17 @@ object GameRepository {
 
     suspend fun createGame(code: String, durationSeconds: Int): GameDto =
         supabase.from("games").insert(
-            GameDto(code = code, duration_s = durationSeconds)
+            GameInsertDto(code = code, duration_s = durationSeconds)
         ) { select() }.decodeSingle()
 
     suspend fun addPlayer(gameId: String, name: String, color: String): PlayerDto =
         supabase.from("players").insert(
-            PlayerDto(game_id = gameId, name = name, color = color)
+            PlayerInsertDto(game_id = gameId, name = name, color = color)
         ) { select() }.decodeSingle()
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
         val dtos = categories.mapIndexed { i, cat ->
-            CategoryDto(game_id = gameId, label = cat.name, icon_id = cat.id, sort_order = i)
+            CategoryInsertDto(game_id = gameId, label = cat.name, icon_id = cat.id, sort_order = i)
         }
         return supabase.from("categories").insert(dtos) { select() }.decodeList()
     }
@@ -118,5 +156,56 @@ object GameRepository {
         val path = "$gameId/$playerId/$categoryId.jpg"
         supabase.storage.from("photos").upload(path, bytes) { upsert = true }
         return supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+    }
+
+    suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray) {
+        val path = "$gameId/$playerId/$categoryId.jpg"
+        supabase.storage.from("photos").upload(path, photoBytes) { upsert = true }
+        val url = supabase.storage.from("photos").createSignedUrl(path, 86400.seconds)
+        supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url))
+    }
+
+    suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = try {
+        supabase.storage.from("photos").downloadAuthenticated("$gameId/$playerId/$categoryId.jpg")
+    } catch (_: Exception) { null }
+
+    suspend fun getCaptures(gameId: String): List<CaptureDto> =
+        supabase.from("captures").select { filter { eq("game_id", gameId) } }.decodeList()
+
+    suspend fun submitCategoryVotes(gameId: String, voterId: String, categoryId: String, votes: List<Pair<String, Boolean>>) {
+        if (votes.isNotEmpty()) {
+            val dtos = votes.map { (targetId, approved) ->
+                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetId, category_id = categoryId, approved = approved)
+            }
+            supabase.from("votes").insert(dtos)
+        }
+        supabase.from("vote_submissions").insert(VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = categoryId))
+    }
+
+    suspend fun getVoteSubmissionCount(gameId: String, categoryId: String): Int =
+        supabase.from("vote_submissions")
+            .select { filter { eq("game_id", gameId); eq("category_id", categoryId) } }
+            .decodeList<VoteSubmissionInsertDto>().size
+
+    suspend fun getVotes(gameId: String): List<VoteDto> =
+        supabase.from("votes").select { filter { eq("game_id", gameId) } }.decodeList()
+
+    suspend fun setReviewCategoryIndex(gameId: String, index: Int) {
+        supabase.from("games").update({ set("review_category_index", index) }) {
+            filter { eq("id", gameId) }
+        }
+    }
+
+    suspend fun setGameStatus(gameId: String, status: String) {
+        supabase.from("games").update({ set("status", status) }) {
+            filter { eq("id", gameId) }
+        }
+    }
+
+    suspend fun endGameAsVoting(gameId: String) {
+        supabase.from("games").update({
+            set("status", "voting")
+            set("review_category_index", 0)
+        }) { filter { eq("id", gameId) } }
     }
 }
