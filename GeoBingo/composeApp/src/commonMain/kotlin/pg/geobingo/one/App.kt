@@ -15,6 +15,8 @@ fun App() {
         when (gameState.currentScreen) {
             Screen.HOME -> HomeScreen(gameState)
             Screen.CREATE_GAME -> CreateGameScreen(gameState)
+            Screen.JOIN_GAME -> JoinGameScreen(gameState)
+            Screen.LOBBY -> LobbyScreen(gameState)
             Screen.GAME -> GameScreen(gameState)
             Screen.REVIEW -> ReviewScreen(gameState)
             Screen.RESULTS -> ResultsScreen(gameState)

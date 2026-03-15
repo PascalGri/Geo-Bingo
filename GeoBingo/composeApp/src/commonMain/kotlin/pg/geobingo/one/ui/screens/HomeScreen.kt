@@ -37,7 +37,7 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "Geo Bingo",
+                "Gotcha!",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -85,11 +85,45 @@ fun HomeScreen(gameState: GameState) {
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    "Neues Spiel starten",
+                    "Runde erstellen",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = { gameState.currentScreen = Screen.JOIN_GAME },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.5.dp, MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.Login,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Runde beitreten",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 

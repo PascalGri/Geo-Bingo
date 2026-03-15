@@ -2,44 +2,45 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
+import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.*
+import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.generateCode
+import pg.geobingo.one.network.toCategory
+import pg.geobingo.one.network.toHex
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateGameScreen(gameState: GameState) {
-    var playerNameInput by remember { mutableStateOf("") }
+    var hostNameInput by remember { mutableStateOf("") }
     var customNameInput by remember { mutableStateOf("") }
     var customCategories by remember { mutableStateOf(listOf<Category>()) }
     var customCategoryCounter by remember { mutableStateOf(0) }
     var selectedPresetIds by remember { mutableStateOf(setOf<String>()) }
     var durationMinutes by remember { mutableStateOf(15f) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val totalCategories = customCategories.size + selectedPresetIds.size
     val canAddMore = totalCategories < 10
-    val canStart = gameState.players.size >= 2 && totalCategories in 2..10
+    val canStart = hostNameInput.trim().isNotEmpty() && totalCategories in 2..10
 
     Scaffold(
         topBar = {
@@ -61,14 +62,44 @@ fun CreateGameScreen(gameState: GameState) {
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    if (errorMessage != null) {
+                        Text(
+                            errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     Button(
                         onClick = {
-                            val presets = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
-                            gameState.selectedCategories = customCategories + presets
-                            gameState.gameDurationMinutes = durationMinutes.toInt()
-                            gameState.startGame()
+                            scope.launch {
+                                isLoading = true
+                                errorMessage = null
+                                try {
+                                    val presets = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
+                                    val allCategories = customCategories + presets
+                                    val code = generateCode()
+                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60)
+                                    val colorIndex = 0
+                                    val hostColor = PLAYER_COLORS[colorIndex].toHex()
+                                    val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
+                                    val categoryDtos = GameRepository.addCategories(game.id, allCategories)
+                                    gameState.gameId = game.id
+                                    gameState.gameCode = game.code
+                                    gameState.isHost = true
+                                    gameState.myPlayerId = hostDto.id
+                                    gameState.gameDurationMinutes = durationMinutes.toInt()
+                                    gameState.selectedCategories = categoryDtos.map { it.toCategory() }
+                                    gameState.lobbyPlayers = listOf(hostDto)
+                                    gameState.currentScreen = Screen.LOBBY
+                                } catch (e: Exception) {
+                                    errorMessage = "Fehler: ${e.message}"
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
                         },
-                        enabled = canStart,
+                        enabled = canStart && !isLoading,
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(27.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -77,15 +108,23 @@ fun CreateGameScreen(gameState: GameState) {
                             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
-                        Text(
-                            text = when {
-                                gameState.players.size < 2 -> "Mind. 2 Spieler hinzufügen"
-                                totalCategories < 2 -> "Mind. 2 Kategorien wählen"
-                                else -> "Spiel starten ($totalCategories Kategorien)"
-                            },
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = when {
+                                    hostNameInput.trim().isEmpty() -> "Name eingeben"
+                                    totalCategories < 2 -> "Mind. 2 Kategorien wählen"
+                                    else -> "Runde erstellen ($totalCategories Kategorien)"
+                                },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
@@ -100,66 +139,33 @@ fun CreateGameScreen(gameState: GameState) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // --- Players ---
-            SectionCard(title = "Spieler  ${gameState.players.size}/8") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = playerNameInput,
-                        onValueChange = { playerNameInput = it },
-                        placeholder = { Text("Name eingeben", style = MaterialTheme.typography.bodyMedium) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
-                    )
-                    FilledTonalButton(
-                        onClick = {
-                            val name = playerNameInput.trim()
-                            if (name.isNotEmpty() && gameState.players.size < 8) {
-                                val colorIndex = gameState.players.size % PLAYER_COLORS.size
-                                val newPlayer = Player(
-                                    id = "player_${gameState.players.size}_${name.hashCode()}",
-                                    name = name,
-                                    color = PLAYER_COLORS[colorIndex]
-                                )
-                                gameState.players = gameState.players + newPlayer
-                                playerNameInput = ""
-                            }
-                        },
-                        enabled = playerNameInput.trim().isNotEmpty() && gameState.players.size < 8,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                if (gameState.players.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Füge mindestens 2 Spieler hinzu",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+            // --- Host Name ---
+            SectionCard(title = "Dein Name") {
+                OutlinedTextField(
+                    value = hostNameInput,
+                    onValueChange = { if (it.length <= 20) hostNameInput = it },
+                    placeholder = { Text("z.B. Pascal", style = MaterialTheme.typography.bodyMedium) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                } else {
-                    Spacer(Modifier.height(8.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(gameState.players) { player ->
-                            PlayerChip(player = player, onRemove = {
-                                gameState.players = gameState.players.filter { it.id != player.id }
-                            })
-                        }
-                    }
-                }
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Andere Spieler treten über einen Code bei.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // --- Custom Categories ---
@@ -342,37 +348,6 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
             )
             Spacer(Modifier.height(12.dp))
             content()
-        }
-    }
-}
-
-@Composable
-private fun PlayerChip(player: Player, onRemove: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = player.color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, player.color.copy(alpha = 0.30f))
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier.size(20.dp).clip(CircleShape).background(player.color),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(player.name.take(1).uppercase(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.width(6.dp))
-            Text(player.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.width(2.dp))
-            TextButton(
-                onClick = onRemove,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.size(24.dp)
-            ) {
-                Text("✕", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
         }
     }
 }

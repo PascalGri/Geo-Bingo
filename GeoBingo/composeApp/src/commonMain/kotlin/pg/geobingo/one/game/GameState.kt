@@ -2,13 +2,21 @@ package pg.geobingo.one.game
 
 import androidx.compose.runtime.*
 import pg.geobingo.one.data.*
+import pg.geobingo.one.network.PlayerDto
 
 enum class Screen {
-    HOME, CREATE_GAME, GAME, REVIEW, RESULTS
+    HOME, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS
 }
 
 class GameState {
     var currentScreen by mutableStateOf(Screen.HOME)
+
+    // Multiplayer
+    var gameId by mutableStateOf<String?>(null)
+    var gameCode by mutableStateOf<String?>(null)
+    var isHost by mutableStateOf(false)
+    var myPlayerId by mutableStateOf<String?>(null)
+    var lobbyPlayers by mutableStateOf(listOf<PlayerDto>())
 
     // Setup
     var players by mutableStateOf(listOf<Player>())
@@ -129,6 +137,11 @@ class GameState {
         photos = mapOf()
         votes = mapOf()
         reviewPlayerIndex = 0
+        gameId = null
+        gameCode = null
+        isHost = false
+        myPlayerId = null
+        lobbyPlayers = listOf()
     }
 
     fun formatTime(seconds: Int): String {
