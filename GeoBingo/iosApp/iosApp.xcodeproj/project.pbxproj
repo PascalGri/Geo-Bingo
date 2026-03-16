@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		2B638AE55DDF9A99BACFBD15 /* GeoBingo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoBingo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B638AE55DDF9A99BACFBD15 /* KatchIt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KatchIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -59,7 +59,7 @@
 		FD44C0AEBC4A0BCC5DB2A8E5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2B638AE55DDF9A99BACFBD15 /* GeoBingo.app */,
+				2B638AE55DDF9A99BACFBD15 /* KatchIt.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = 2B638AE55DDF9A99BACFBD15 /* GeoBingo.app */;
+			productReference = 2B638AE55DDF9A99BACFBD15 /* KatchIt.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
