@@ -1,7 +1,6 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,14 +14,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import katchit.composeapp.generated.resources.Res
-import katchit.composeapp.generated.resources.app_icon
-import org.jetbrains.compose.resources.painterResource
 import pg.geobingo.one.game.*
 import pg.geobingo.one.ui.theme.*
 
@@ -54,21 +49,12 @@ fun HomeScreen(gameState: GameState) {
         ) {
             Spacer(Modifier.height(72.dp))
 
-            // Icon + Title
-            Image(
-                painter = painterResource(Res.drawable.app_icon),
-                contentDescription = null,
-                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(22.dp)),
-                contentScale = ContentScale.Crop,
-            )
-
-            Spacer(Modifier.height(20.dp))
-
+            // Title
             AnimatedGradientText(
                 text = "KatchIt!",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 42.sp,
+                    fontSize = 56.sp,
                 ),
                 gradientColors = GradientPrimary,
                 durationMillis = 2500,
