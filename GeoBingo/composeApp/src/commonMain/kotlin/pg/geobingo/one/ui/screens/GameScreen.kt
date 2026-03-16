@@ -140,12 +140,12 @@ fun GameScreenContent(
         animationSpec = tween(500),
     )
 
-    val currentPlayer = gameState.currentPlayer
+    val myPlayer = gameState.players.find { it.id == gameState.myPlayerId }
 
     Scaffold(containerColor = ColorBackground) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-            // Top bar: timer + player tabs
+            // Top bar: timer + player tabs (status only, not interactive)
             Surface(
                 color = ColorSurface,
                 shadowElevation = 2.dp,
@@ -181,21 +181,21 @@ fun GameScreenContent(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Player tabs
+                    // Player tabs — read-only status indicator
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        gameState.players.forEachIndexed { index, player ->
-                            val isActive = index == gameState.currentPlayerIndex
+                        gameState.players.forEach { player ->
+                            val isMe = player.id == gameState.myPlayerId
                             val captured = gameState.captures[player.id]?.size ?: 0
                             GamePlayerTab(
                                 player = player,
-                                isActive = isActive,
+                                isActive = isMe,
                                 captureCount = captured,
-                                onClick = { gameState.currentPlayerIndex = index },
+                                onClick = {},
                             )
                         }
                     }
@@ -203,7 +203,7 @@ fun GameScreenContent(
             }
 
             // Player info + end button
-            if (currentPlayer != null) {
+            if (myPlayer != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,11 +216,11 @@ fun GameScreenContent(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(currentPlayer.color),
+                                .background(myPlayer.color),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                currentPlayer.name.take(1).uppercase(),
+                                myPlayer.name.take(1).uppercase(),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
@@ -229,12 +229,12 @@ fun GameScreenContent(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
-                                currentPlayer.name,
+                                myPlayer.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = ColorOnSurface,
                             )
-                            val count = gameState.captures[currentPlayer.id]?.size ?: 0
+                            val count = gameState.captures[myPlayer.id]?.size ?: 0
                             Text(
                                 "$count/${gameState.selectedCategories.size} gefunden",
                                 style = MaterialTheme.typography.labelSmall,
@@ -255,8 +255,8 @@ fun GameScreenContent(
                 HorizontalDivider(color = ColorOutlineVariant)
             }
 
-            // Bingo grid
-            if (currentPlayer != null) {
+            // Bingo grid — always shows only own player
+            if (myPlayer != null) {
                 val cols = when {
                     gameState.selectedCategories.size <= 4 -> 2
                     gameState.selectedCategories.size <= 9 -> 3
@@ -269,51 +269,16 @@ fun GameScreenContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(gameState.selectedCategories) { category ->
-                        val isOwnPlayer = currentPlayer.id == gameState.myPlayerId
-                        val captured = gameState.isCaptured(currentPlayer.id, category.id)
-                        val photoBytes = if (isOwnPlayer) gameState.getPhoto(currentPlayer.id, category.id) else null
+                        val captured = gameState.isCaptured(myPlayer.id, category.id)
+                        val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
                         val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
                         DarkBingoCategoryCard(
                             category = category,
-                            isCaptured = captured && isOwnPlayer,
-                            playerColor = currentPlayer.color,
+                            isCaptured = captured,
+                            playerColor = myPlayer.color,
                             thumbnail = thumbnail,
-                            onCameraClick = { if (isOwnPlayer) onCameraClick(currentPlayer.id, category.id) },
+                            onCameraClick = { onCameraClick(myPlayer.id, category.id) },
                         )
-                    }
-                }
-
-                // Navigation row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ColorSurface)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (gameState.currentPlayerIndex > 0) {
-                        OutlinedButton(
-                            onClick = { gameState.currentPlayerIndex-- },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
-                            border = BorderStroke(1.dp, ColorOutline),
-                        ) {
-                            Text("← Zurück", color = ColorPrimary)
-                        }
-                    }
-                    if (gameState.currentPlayerIndex < gameState.players.size - 1) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(GradientPrimary))
-                                .clickable { gameState.currentPlayerIndex++ },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("Weiter →", color = Color.White, fontWeight = FontWeight.SemiBold)
-                        }
                     }
                 }
             }

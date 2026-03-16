@@ -163,10 +163,11 @@ private fun DarkVotingScreen(
 
     LaunchedEffect(othersCaptures) {
         othersCaptures.forEach { capture ->
-            if (capture.player_id !in photoCache) {
+            val key = "${capture.player_id}-${capture.category_id}"
+            if (key !in photoCache) {
                 scope.launch {
                     val bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
-                    photoCache = photoCache + (capture.player_id to bytes?.toImageBitmap())
+                    photoCache = photoCache + (key to bytes?.toImageBitmap())
                 }
             }
         }
@@ -261,7 +262,7 @@ private fun DarkVotingScreen(
             } else {
                 othersCaptures.forEach { capture ->
                     val player = gameState.players.find { it.id == capture.player_id }
-                    val photo = photoCache[capture.player_id]
+                    val photo = photoCache["${capture.player_id}-${capture.category_id}"]
                     val isApproved = votes[capture.player_id]
 
                     DarkPlayerPhotoVoteCard(
