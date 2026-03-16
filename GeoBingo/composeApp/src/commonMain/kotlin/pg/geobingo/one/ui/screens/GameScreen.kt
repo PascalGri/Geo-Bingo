@@ -108,6 +108,34 @@ fun GameScreen(gameState: GameState) {
         gameState.currentScreen = Screen.REVIEW
     }
 
+    GameScreenContent(
+        gameState = gameState,
+        onEndGame = {
+            gameState.isGameRunning = false
+            scope.launch {
+                if (gameId != null) {
+                    try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                }
+                gameState.reviewCategoryIndex = 0
+                gameState.currentScreen = Screen.REVIEW
+            }
+        },
+        onToggleCapture = { playerId, catId -> gameState.toggleCapture(playerId, catId) },
+        onCameraClick = { playerId, catId ->
+            photoTargetPlayerId = playerId
+            photoTargetCategoryId = catId
+            photoCapturer.launch()
+        },
+    )
+}
+
+@Composable
+fun GameScreenContent(
+    gameState: GameState,
+    onEndGame: () -> Unit = {},
+    onToggleCapture: (String, String) -> Unit = { _, _ -> },
+    onCameraClick: (String, String) -> Unit = { _, _ -> },
+) {
     val isLow = gameState.timeRemainingSeconds in 1..60
     val timerColor by animateColorAsState(
         targetValue = if (isLow) ColorError else ColorPrimary,
@@ -217,16 +245,7 @@ fun GameScreen(gameState: GameState) {
                         }
                     }
                     OutlinedButton(
-                        onClick = {
-                            gameState.isGameRunning = false
-                            scope.launch {
-                                if (gameId != null) {
-                                    try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
-                                }
-                                gameState.reviewCategoryIndex = 0
-                                gameState.currentScreen = Screen.REVIEW
-                            }
-                        },
+                        onClick = onEndGame,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorError),
                         border = BorderStroke(1.dp, ColorError.copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(20.dp),
@@ -260,12 +279,8 @@ fun GameScreen(gameState: GameState) {
                             isCaptured = captured,
                             playerColor = currentPlayer.color,
                             thumbnail = thumbnail,
-                            onToggle = { gameState.toggleCapture(currentPlayer.id, category.id) },
-                            onCameraClick = {
-                                photoTargetPlayerId = currentPlayer.id
-                                photoTargetCategoryId = category.id
-                                photoCapturer.launch()
-                            },
+                            onToggle = { onToggleCapture(currentPlayer.id, category.id) },
+                            onCameraClick = { onCameraClick(currentPlayer.id, category.id) },
                         )
                     }
                 }
