@@ -26,6 +26,7 @@ import pg.geobingo.one.data.Category
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.CaptureDto
+import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
@@ -41,14 +42,33 @@ fun ReviewScreen(gameState: GameState) {
 
     val categoryIndex = gameState.reviewCategoryIndex
 
+    val realtime = remember(gameId) { GameRealtimeManager(gameId) }
+
     LaunchedEffect(gameId) {
-        try {
-            gameState.allCaptures = GameRepository.getCaptures(gameId)
-        } catch (_: Exception) {}
+        try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (_: Exception) {}
+    }
+
+    // Realtime: react to category index advances and results phase
+    LaunchedEffect(gameId) {
+        realtime.gameUpdates.collect { game ->
+            val newIndex = game.review_category_index
+            if (newIndex != gameState.reviewCategoryIndex) {
+                gameState.reviewCategoryIndex = newIndex
+                gameState.hasSubmittedCurrentCategory = false
+                gameState.categoryVotes = emptyMap()
+            }
+            if (game.status == "results") {
+                try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                gameState.currentScreen = Screen.RESULTS
+            }
+        }
     }
 
     LaunchedEffect(gameId) {
+        try { realtime.subscribe() } catch (_: Exception) {}
+        // Fallback poll every 10s
         while (true) {
+            delay(10_000)
             try {
                 val game = GameRepository.getGameById(gameId)
                 val newIndex = game?.review_category_index ?: 0
@@ -60,11 +80,13 @@ fun ReviewScreen(gameState: GameState) {
                 if (game?.status == "results") {
                     gameState.allVotes = GameRepository.getVotes(gameId)
                     gameState.currentScreen = Screen.RESULTS
-                    break
                 }
             } catch (_: Exception) {}
-            delay(2500)
         }
+    }
+
+    DisposableEffect(gameId) {
+        onDispose { scope.launch { try { realtime.unsubscribe() } catch (_: Exception) {} } }
     }
 
     if (categoryIndex >= categories.size) {

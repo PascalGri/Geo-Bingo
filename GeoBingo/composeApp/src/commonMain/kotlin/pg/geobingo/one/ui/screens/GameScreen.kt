@@ -32,6 +32,7 @@ import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.getCategoryIcon
 import pg.geobingo.one.game.*
+import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
@@ -58,19 +59,39 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
+    val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it) } }
+
+    // Realtime: detect when another player ends the game early
     LaunchedEffect(gameId) {
+        if (gameId == null) return@LaunchedEffect
+        realtime?.gameUpdates?.collect { game ->
+            if (game.status == "voting" && gameState.currentScreen == Screen.GAME) {
+                gameState.isGameRunning = false
+                gameState.reviewCategoryIndex = game.review_category_index
+                gameState.currentScreen = Screen.REVIEW
+            }
+        }
+    }
+
+    LaunchedEffect(gameId) {
+        if (gameId == null) return@LaunchedEffect
+        try { realtime?.subscribe() } catch (_: Exception) {}
+        // Fallback poll every 15s
         while (true) {
+            delay(15_000)
             try {
-                val game = gameId?.let { GameRepository.getGameById(it) }
-                if (game?.status == "voting") {
+                val game = GameRepository.getGameById(gameId)
+                if (game?.status == "voting" && gameState.currentScreen == Screen.GAME) {
                     gameState.isGameRunning = false
                     gameState.reviewCategoryIndex = game.review_category_index
                     gameState.currentScreen = Screen.REVIEW
-                    break
                 }
             } catch (_: Exception) {}
-            delay(3000)
         }
+    }
+
+    DisposableEffect(gameId) {
+        onDispose { scope.launch { try { realtime?.unsubscribe() } catch (_: Exception) {} } }
     }
 
     LaunchedEffect(Unit) {

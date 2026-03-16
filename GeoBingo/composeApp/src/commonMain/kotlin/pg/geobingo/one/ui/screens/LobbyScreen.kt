@@ -22,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
@@ -34,14 +35,47 @@ fun LobbyScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.gameId ?: return
+    val realtime = remember(gameId) { GameRealtimeManager(gameId) }
 
-    // Poll for new players and game status every 3 seconds
+    // Initial player load
     LaunchedEffect(gameId) {
-        while (true) {
-            try {
-                val players = GameRepository.getPlayers(gameId)
-                gameState.lobbyPlayers = players
+        try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
+    }
 
+    // Realtime: new player joined
+    LaunchedEffect(gameId) {
+        realtime.playerInserts.collect {
+            try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
+        }
+    }
+
+    // Realtime: game status changed to "running" (guests only)
+    LaunchedEffect(gameId) {
+        if (!gameState.isHost) {
+            realtime.gameUpdates.collect { game ->
+                if (game.status == "running") {
+                    val playerDtos = GameRepository.getPlayers(gameId)
+                    gameState.players = playerDtos.map { it.toPlayer() }
+                    gameState.captures = playerDtos.associate { it.id to emptySet() }
+                    gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                    gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                    gameState.isGameRunning = true
+                    gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                        .takeIf { it >= 0 } ?: 0
+                    gameState.currentScreen = Screen.GAME
+                }
+            }
+        }
+    }
+
+    // Subscribe Realtime channel + fallback poll every 15s
+    LaunchedEffect(gameId) {
+        try { realtime.subscribe() } catch (_: Exception) {}
+        // Fallback polling in case Realtime misses an event
+        while (true) {
+            delay(15_000)
+            try {
+                gameState.lobbyPlayers = GameRepository.getPlayers(gameId)
                 if (!gameState.isHost) {
                     val game = GameRepository.getGameById(gameId)
                     if (game?.status == "running") {
@@ -54,12 +88,14 @@ fun LobbyScreen(gameState: GameState) {
                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
                         gameState.currentScreen = Screen.GAME
-                        break
                     }
                 }
             } catch (_: Exception) {}
-            delay(3000)
         }
+    }
+
+    DisposableEffect(gameId) {
+        onDispose { scope.launch { try { realtime.unsubscribe() } catch (_: Exception) {} } }
     }
 
     Scaffold(
