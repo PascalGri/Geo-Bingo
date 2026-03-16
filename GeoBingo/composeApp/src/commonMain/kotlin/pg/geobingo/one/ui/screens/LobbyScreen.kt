@@ -89,7 +89,7 @@ fun LobbyScreen(gameState: GameState) {
         try { realtime.subscribe() } catch (_: Exception) {}
         // Fallback polling in case Realtime misses an event
         while (true) {
-            delay(15_000)
+            delay(3_000)
             try {
                 gameState.lobbyPlayers = GameRepository.getPlayers(gameId)
                 if (!gameState.isHost) {

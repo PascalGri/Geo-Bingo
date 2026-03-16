@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,7 +70,7 @@ fun ReviewScreen(gameState: GameState) {
         try { realtime.subscribe() } catch (_: Exception) {}
         // Fallback poll every 10s
         while (true) {
-            delay(10_000)
+            delay(3_000)
             try {
                 val game = GameRepository.getGameById(gameId)
                 val newIndex = game?.review_category_index ?: 0
@@ -249,7 +251,12 @@ private fun DarkVotingScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("\uD83D\uDE05", fontSize = 40.sp)
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = ColorOnSurfaceVariant,
+                        )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Niemand hat diese Kategorie fotografiert",
@@ -446,12 +453,18 @@ private fun DarkWaitingScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             CircularProgressIndicator(modifier = Modifier.size(48.dp), color = ColorPrimary)
-            AnimatedGradientText(
-                text = "✅ Abgestimmt!",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                gradientColors = GradientPrimary,
-                durationMillis = 2000,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorPrimary, modifier = Modifier.size(28.dp))
+                AnimatedGradientText(
+                    text = "Abgestimmt!",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    gradientColors = GradientPrimary,
+                    durationMillis = 2000,
+                )
+            }
             Text(
                 "Warte auf andere Spieler...",
                 style = MaterialTheme.typography.bodyMedium,

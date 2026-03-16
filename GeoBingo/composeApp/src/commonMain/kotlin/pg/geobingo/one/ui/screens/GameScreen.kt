@@ -78,7 +78,7 @@ fun GameScreen(gameState: GameState) {
         try { realtime?.subscribe() } catch (_: Exception) {}
         // Fallback poll every 15s
         while (true) {
-            delay(15_000)
+            delay(3_000)
             try {
                 val game = GameRepository.getGameById(gameId)
                 if (game?.status == "voting" && gameState.currentScreen == Screen.GAME) {

@@ -98,7 +98,7 @@ fun ResultsScreen(gameState: GameState) {
                             color = Color.White,
                         )
                         Text(
-                            "gewinnt! 🎉",
+                            "gewinnt!",
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.White.copy(alpha = 0.85f),
                         )
