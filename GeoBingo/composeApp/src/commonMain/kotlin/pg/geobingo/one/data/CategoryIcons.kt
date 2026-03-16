@@ -6,47 +6,47 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     // ── Kleidung ──────────────────────────────────────────────────────────────
-    "pants"             -> Icons.Default.Style              // Schere/Mode
-    "jacket"            -> Icons.Default.Checkroom          // Garderobe/Jacke
-    "hat"               -> Icons.Default.EmojiPeople        // Person mit Kopfbedeckung
-    "sneaker"           -> Icons.Default.DirectionsWalk     // Gehender Mensch / Schuhe
+    "pants"             -> Icons.Default.Checkroom          // Kleiderschrank / Garderobe
+    "jacket"            -> Icons.Default.DryCleaning        // Kleidungsstück an Bügel
+    "hat"               -> Icons.Default.Face               // Gesicht / Kopf
+    "sneaker"           -> Icons.Default.Hiking             // Schuh / Boot
     // ── Fahrzeuge ─────────────────────────────────────────────────────────────
     "car"               -> Icons.Default.DirectionsCar
     "vehicle"           -> Icons.Default.DirectionsBus
     "bicycle"           -> Icons.Default.DirectionsBike
-    "unusual_vehicle"   -> Icons.Default.TwoWheeler         // Motorrad/ungewöhnlich
+    "unusual_vehicle"   -> Icons.Default.ElectricScooter    // E-Scooter / ungewöhnliches Fahrzeug
     // ── Tiere ─────────────────────────────────────────────────────────────────
     "animal"            -> Icons.Default.Pets               // Pfote
-    "dog_breed"         -> Icons.Default.Pets
-    "bird"              -> Icons.Default.Flight             // Flügel/Fliegen
+    "dog_breed"         -> Icons.Default.Cruelty_Free       // Hunde-/Tierpfote (alternativ zu Pets)
+    "bird"              -> Icons.Default.Flight             // Flügel / Fliegen
     // ── Natur ─────────────────────────────────────────────────────────────────
-    "nature"            -> Icons.Default.Yard               // Blatt/Pflanze
-    "tree"              -> Icons.Default.Park               // Baum
+    "nature"            -> Icons.Default.Eco                // Blatt / Natur
+    "tree"              -> Icons.Default.Park               // Baum / Park
     "water"             -> Icons.Default.Waves
     "sky"               -> Icons.Default.WbCloudy
     // ── Essen & Trinken ───────────────────────────────────────────────────────
-    "food"              -> Icons.Default.Icecream           // Eis / Straßenessen
-    "food_truck"        -> Icons.Default.LocalShipping      // Lieferwagen
+    "food"              -> Icons.Default.Fastfood           // Burger / Fastfood
+    "food_truck"        -> Icons.Default.DeliveryDining     // Lieferfahrzeug mit Essen
     "cafe"              -> Icons.Default.LocalCafe
-    "street_food"       -> Icons.Default.Restaurant
+    "street_food"       -> Icons.Default.OutdoorGrill       // Grill / Straßenessen
     // ── Architektur ───────────────────────────────────────────────────────────
     "building"          -> Icons.Default.AccountBalance     // Säulengebäude
     "door"              -> Icons.Default.DoorFront          // Haustür
     "window"            -> Icons.Default.Window
-    "balcony"           -> Icons.Default.Deck
+    "balcony"           -> Icons.Default.Balcony            // Balkon
     "arch"              -> Icons.Default.Architecture       // Architekturbogen
     // ── Straßenkunst ─────────────────────────────────────────────────────────
     "street_art"        -> Icons.Default.FormatPaint        // Farbroller / Graffiti
     "mural"             -> Icons.Default.Brush              // Pinsel / Wandbild
     "sculpture"         -> Icons.Default.Interests          // Formen / Skulptur
-    "pattern"           -> Icons.Default.GridView
+    "pattern"           -> Icons.Default.Pattern            // Muster
     // ── Schilder ─────────────────────────────────────────────────────────────
-    "sign"              -> Icons.Default.Info
-    "funny_sign"        -> Icons.Default.Announcement       // Lautsprecher / witziges Schild
+    "sign"              -> Icons.Default.Signpost           // Wegweiser / Schild
+    "funny_sign"        -> Icons.Default.EmojiEmotions      // Lachendes Gesicht / witziges Schild
     "number"            -> Icons.Default.Tag
     // ── Reflexionen & Licht ───────────────────────────────────────────────────
     "shadow"            -> Icons.Default.Contrast
-    "reflection"        -> Icons.Default.Flip
+    "reflection"        -> Icons.Default.Flip               // Spiegelung
     "light"             -> Icons.Default.Flare              // Lichtreflex / Sonnenstrahlen
     // ── Sport ─────────────────────────────────────────────────────────────────
     "sport"             -> Icons.Default.DirectionsRun      // Laufender Mensch
@@ -57,10 +57,10 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "smart_city"        -> Icons.Default.Sensors            // Sensorsignal
     "construction"      -> Icons.Default.Construction
     // ── Stadtmöbel ───────────────────────────────────────────────────────────
-    "bench"             -> Icons.Default.Weekend            // Sofa / Bank
+    "bench"             -> Icons.Default.Chair              // Stuhl / Bank
     "stairs"            -> Icons.Default.Stairs
-    "manhole"           -> Icons.Default.Settings           // Rundes Metallgitter
-    "mailbox"           -> Icons.Default.Mail
+    "manhole"           -> Icons.Default.Lens               // Kreisform / Kanaldeckel
+    "mailbox"           -> Icons.Default.MarkunreadMailbox  // Briefkasten
     "clock"             -> Icons.Default.Schedule
     "lamp"              -> Icons.Default.Lightbulb
     // ── Menschen ─────────────────────────────────────────────────────────────
@@ -71,10 +71,10 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "tourist"           -> Icons.Default.CameraAlt
     // ── Shops ─────────────────────────────────────────────────────────────────
     "shop"              -> Icons.Default.Store
-    "market"            -> Icons.Default.ShoppingCart
+    "market"            -> Icons.Default.ShoppingBasket     // Einkaufskorb / Markt
     "vintage"           -> Icons.Default.Storefront
     // ── Farbe & Form ─────────────────────────────────────────────────────────
-    "color_object"      -> Icons.Default.ColorLens          // Farblinse
+    "color_object"      -> Icons.Default.Palette            // Farbpalette
     "colorful_scene"    -> Icons.Default.AutoAwesome        // Funkeln / bunt
     "round"             -> Icons.Default.Circle
     "triangle"          -> Icons.Default.ChangeHistory
@@ -83,18 +83,18 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "culture"           -> Icons.Default.TheaterComedy
     // ── Kurioses ─────────────────────────────────────────────────────────────
     "weird"             -> Icons.Default.QuestionMark
-    "miniature"         -> Icons.Default.Search
-    "symmetry"          -> Icons.Default.Balance            // Waage / Symmetrie
+    "miniature"         -> Icons.Default.ZoomIn             // Vergrößerung / klein
+    "symmetry"          -> Icons.Default.Flip               // Spiegelung / Symmetrie
     // ── Legacy IDs ────────────────────────────────────────────────────────────
     "flower"            -> Icons.Default.LocalFlorist
     "coffee"            -> Icons.Default.LocalCafe
     "fountain"          -> Icons.Default.Waves
     "bridge"            -> Icons.Default.Landscape
-    "letterbox"         -> Icons.Default.Markunread
+    "letterbox"         -> Icons.Default.MarkunreadMailbox
     "sunset"            -> Icons.Default.WbTwilight
     "people_group"      -> Icons.Default.Groups
     "traffic"           -> Icons.Default.Traffic
-    "plant"             -> Icons.Default.LocalFlorist
+    "plant"             -> Icons.Default.Eco
     "yellow"            -> Icons.Default.Circle
     "round_obj"         -> Icons.Default.Circle
     else                -> Icons.Default.PhotoCamera
