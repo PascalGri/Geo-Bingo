@@ -37,6 +37,19 @@ fun LobbyScreen(gameState: GameState) {
     val gameId = gameState.gameId ?: return
     val realtime = remember(gameId) { GameRealtimeManager(gameId) }
 
+    // Lobby auto-close timeout (host only): 5 min without a second player joining
+    var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
+    LaunchedEffect(gameId) {
+        if (!gameState.isHost) return@LaunchedEffect
+        while (lobbyTimeoutSeconds > 0) {
+            delay(1000)
+            if (gameState.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
+            lobbyTimeoutSeconds--
+        }
+        try { GameRepository.setGameStatus(gameId, "closed") } catch (_: Exception) {}
+        gameState.resetGame()
+    }
+
     // Initial player load
     LaunchedEffect(gameId) {
         try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
@@ -49,20 +62,23 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // Realtime: game status changed to "running" (guests only)
+    // Realtime: game status changed (guests only)
     LaunchedEffect(gameId) {
         if (!gameState.isHost) {
             realtime.gameUpdates.collect { game ->
-                if (game.status == "running") {
-                    val playerDtos = GameRepository.getPlayers(gameId)
-                    gameState.players = playerDtos.map { it.toPlayer() }
-                    gameState.captures = playerDtos.associate { it.id to emptySet() }
-                    gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                    gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                    gameState.isGameRunning = true
-                    gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
-                        .takeIf { it >= 0 } ?: 0
-                    gameState.currentScreen = Screen.GAME
+                when (game.status) {
+                    "running" -> {
+                        val playerDtos = GameRepository.getPlayers(gameId)
+                        gameState.players = playerDtos.map { it.toPlayer() }
+                        gameState.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                        gameState.isGameRunning = true
+                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                            .takeIf { it >= 0 } ?: 0
+                        gameState.currentScreen = Screen.GAME
+                    }
+                    "closed" -> gameState.resetGame()
                 }
             }
         }
@@ -78,16 +94,19 @@ fun LobbyScreen(gameState: GameState) {
                 gameState.lobbyPlayers = GameRepository.getPlayers(gameId)
                 if (!gameState.isHost) {
                     val game = GameRepository.getGameById(gameId)
-                    if (game?.status == "running") {
-                        val playerDtos = GameRepository.getPlayers(gameId)
-                        gameState.players = playerDtos.map { it.toPlayer() }
-                        gameState.captures = playerDtos.associate { it.id to emptySet() }
-                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                        gameState.isGameRunning = true
-                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
-                            .takeIf { it >= 0 } ?: 0
-                        gameState.currentScreen = Screen.GAME
+                    when (game?.status) {
+                        "running" -> {
+                            val playerDtos = GameRepository.getPlayers(gameId)
+                            gameState.players = playerDtos.map { it.toPlayer() }
+                            gameState.captures = playerDtos.associate { it.id to emptySet() }
+                            gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                            gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                            gameState.isGameRunning = true
+                            gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                                .takeIf { it >= 0 } ?: 0
+                            gameState.currentScreen = Screen.GAME
+                        }
+                        "closed" -> gameState.resetGame()
                     }
                 }
             } catch (_: Exception) {}
@@ -284,6 +303,37 @@ fun LobbyScreen(gameState: GameState) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = ColorOnSurfaceVariant,
                         )
+                    }
+                }
+            }
+
+            // Timeout warning for host (last 60 seconds)
+            if (gameState.isHost && gameState.lobbyPlayers.size < 2 && lobbyTimeoutSeconds <= 60) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = ColorError.copy(alpha = 0.1f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ColorError.copy(alpha = 0.4f)),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = ColorError,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Lobby schließt in ${gameState.formatTime(lobbyTimeoutSeconds)}, falls kein Spieler beitritt",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorError,
+                            )
+                        }
                     }
                 }
             }
