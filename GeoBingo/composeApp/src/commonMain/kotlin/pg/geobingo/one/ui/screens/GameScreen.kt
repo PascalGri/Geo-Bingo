@@ -120,7 +120,6 @@ fun GameScreen(gameState: GameState) {
                 gameState.currentScreen = Screen.REVIEW
             }
         },
-        onToggleCapture = { playerId, catId -> gameState.toggleCapture(playerId, catId) },
         onCameraClick = { playerId, catId ->
             photoTargetPlayerId = playerId
             photoTargetCategoryId = catId
@@ -133,7 +132,6 @@ fun GameScreen(gameState: GameState) {
 fun GameScreenContent(
     gameState: GameState,
     onEndGame: () -> Unit = {},
-    onToggleCapture: (String, String) -> Unit = { _, _ -> },
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
     val isLow = gameState.timeRemainingSeconds in 1..60
@@ -271,16 +269,16 @@ fun GameScreenContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(gameState.selectedCategories) { category ->
+                        val isOwnPlayer = currentPlayer.id == gameState.myPlayerId
                         val captured = gameState.isCaptured(currentPlayer.id, category.id)
-                        val photoBytes = gameState.getPhoto(currentPlayer.id, category.id)
+                        val photoBytes = if (isOwnPlayer) gameState.getPhoto(currentPlayer.id, category.id) else null
                         val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
                         DarkBingoCategoryCard(
                             category = category,
-                            isCaptured = captured,
+                            isCaptured = captured && isOwnPlayer,
                             playerColor = currentPlayer.color,
                             thumbnail = thumbnail,
-                            onToggle = { onToggleCapture(currentPlayer.id, category.id) },
-                            onCameraClick = { onCameraClick(currentPlayer.id, category.id) },
+                            onCameraClick = { if (isOwnPlayer) onCameraClick(currentPlayer.id, category.id) },
                         )
                     }
                 }
@@ -378,7 +376,6 @@ private fun DarkBingoCategoryCard(
     isCaptured: Boolean,
     playerColor: Color,
     thumbnail: ImageBitmap?,
-    onToggle: () -> Unit,
     onCameraClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
@@ -388,7 +385,7 @@ private fun DarkBingoCategoryCard(
     val borderColor = if (isCaptured) playerColor.copy(alpha = 0.5f) else ColorOutlineVariant
 
     Card(
-        modifier = Modifier.aspectRatio(0.9f).fillMaxWidth(),
+        modifier = Modifier.aspectRatio(0.9f).fillMaxWidth().clickable { onCameraClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -398,7 +395,6 @@ private fun DarkBingoCategoryCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { onToggle() }
                     .padding(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -437,7 +433,7 @@ private fun DarkBingoCategoryCard(
                 }
             }
 
-            // Camera button overlay
+            // Camera icon (visual indicator, whole card is already clickable)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -445,17 +441,16 @@ private fun DarkBingoCategoryCard(
                     .size(26.dp)
                     .clip(CircleShape)
                     .background(
-                        if (thumbnail != null)
+                        if (isCaptured)
                             Brush.linearGradient(listOf(playerColor, playerColor))
                         else
                             Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                    )
-                    .clickable { onCameraClick() },
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Foto aufnehmen",
+                    contentDescription = null,
                     modifier = Modifier.size(13.dp),
                     tint = if (thumbnail != null) Color.White else ColorOnSurfaceVariant,
                 )
