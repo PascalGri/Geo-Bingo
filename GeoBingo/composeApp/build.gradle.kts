@@ -137,10 +137,15 @@ tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach
         val srcRoot = System.getenv("SRCROOT") ?: return@doFirst
         val configuration = System.getenv("CONFIGURATION") ?: "Debug"
         val sdkName = System.getenv("SDK_NAME") ?: "iphoneos"
-        val frameworkPath = "$srcRoot/../composeApp/build/xcode-frameworks/$configuration/$sdkName/ComposeApp.framework"
-        ProcessBuilder("xattr", "-cr", frameworkPath)
-            .start()
-            .waitFor()
+        // Clear xattrs from entire xcode-frameworks output dir (includes .dSYM)
+        val xcodeFrameworksDir = "$srcRoot/../composeApp/build/xcode-frameworks/$configuration/$sdkName"
+        ProcessBuilder("xattr", "-cr", xcodeFrameworksDir).start().waitFor()
+        // Also clear from bin output (used by script fallback)
+        val arch = System.getenv("ARCHS")?.split(" ")?.firstOrNull() ?: "iosArm64"
+        val archForBin = if (arch == "arm64") "iosArm64" else "iosSimulatorArm64"
+        val confLower = configuration.lowercase()
+        val binFrameworkPath = "$srcRoot/../composeApp/build/bin/$archForBin/${confLower}Framework/ComposeApp.framework"
+        ProcessBuilder("xattr", "-cr", binFrameworkPath).start().waitFor()
     }
 }
 
