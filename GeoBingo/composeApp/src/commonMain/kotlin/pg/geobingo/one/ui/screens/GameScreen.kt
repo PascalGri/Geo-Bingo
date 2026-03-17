@@ -91,7 +91,7 @@ fun GameScreen(gameState: GameState) {
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
         try { realtime?.subscribe() } catch (_: Exception) {}
-        // Fallback poll every 15s
+        // Fallback poll every 3s
         while (true) {
             delay(3_000)
             try {
@@ -100,6 +100,17 @@ fun GameScreen(gameState: GameState) {
                     gameState.isGameRunning = false
                     gameState.reviewCategoryIndex = game.review_category_index
                     gameState.currentScreen = Screen.REVIEW
+                }
+                // Poll end vote count
+                if (gameState.isGameRunning) {
+                    val count = GameRepository.getEndVoteCount(gameId)
+                    gameState.endVoteCount = count
+                    if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
+                        gameState.isGameRunning = false
+                        GameRepository.endGameAsVoting(gameId)
+                        gameState.reviewCategoryIndex = 0
+                        gameState.currentScreen = Screen.REVIEW
+                    }
                 }
             } catch (_: Exception) {}
         }
@@ -125,14 +136,24 @@ fun GameScreen(gameState: GameState) {
 
     GameScreenContent(
         gameState = gameState,
-        onEndGame = {
-            gameState.isGameRunning = false
+        onVoteToEnd = {
             scope.launch {
-                if (gameId != null) {
-                    try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                if (gameId != null && !gameState.hasVotedToEnd) {
+                    gameState.hasVotedToEnd = true
+                    try {
+                        GameRepository.submitEndVote(gameId, gameState.myPlayerId ?: return@launch)
+                        val count = GameRepository.getEndVoteCount(gameId)
+                        gameState.endVoteCount = count
+                        if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
+                            gameState.isGameRunning = false
+                            GameRepository.endGameAsVoting(gameId)
+                            gameState.reviewCategoryIndex = 0
+                            gameState.currentScreen = Screen.REVIEW
+                        }
+                    } catch (_: Exception) {
+                        gameState.hasVotedToEnd = false
+                    }
                 }
-                gameState.reviewCategoryIndex = 0
-                gameState.currentScreen = Screen.REVIEW
             }
         },
         onCameraClick = { playerId, catId ->
@@ -146,7 +167,7 @@ fun GameScreen(gameState: GameState) {
 @Composable
 fun GameScreenContent(
     gameState: GameState,
-    onEndGame: () -> Unit = {},
+    onVoteToEnd: () -> Unit = {},
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
     val isLow = gameState.timeRemainingSeconds in 1..60
@@ -257,14 +278,30 @@ fun GameScreenContent(
                             )
                         }
                     }
-                    OutlinedButton(
-                        onClick = onEndGame,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorError),
-                        border = BorderStroke(1.dp, ColorError.copy(alpha = 0.5f)),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    ) {
-                        Text("Beenden", style = MaterialTheme.typography.labelMedium, color = ColorError)
+                    Column(horizontalAlignment = Alignment.End) {
+                        OutlinedButton(
+                            onClick = onVoteToEnd,
+                            enabled = !gameState.hasVotedToEnd,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (gameState.hasVotedToEnd) ColorOnSurfaceVariant else ColorError
+                            ),
+                            border = BorderStroke(1.dp, if (gameState.hasVotedToEnd) ColorOutlineVariant else ColorError.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                if (gameState.hasVotedToEnd) "Abgestimmt ✓" else "Beenden",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (gameState.hasVotedToEnd) ColorOnSurfaceVariant else ColorError,
+                            )
+                        }
+                        if (gameState.endVoteCount > 0 || gameState.hasVotedToEnd) {
+                            Text(
+                                "${gameState.endVoteCount}/${gameState.players.size} wollen beenden",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ColorOnSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 HorizontalDivider(color = ColorOutlineVariant)
@@ -287,11 +324,17 @@ fun GameScreenContent(
                         val captured = gameState.isCaptured(myPlayer.id, category.id)
                         val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
                         val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
+                        val otherCapturers = remember(gameState.captures) {
+                            gameState.players.filter { player ->
+                                player.id != myPlayer.id && (gameState.captures[player.id]?.contains(category.id) == true)
+                            }
+                        }
                         DarkBingoCategoryCard(
                             category = category,
                             isCaptured = captured,
                             playerColor = myPlayer.color,
                             thumbnail = thumbnail,
+                            otherCapturingPlayers = otherCapturers,
                             onCameraClick = { onCameraClick(myPlayer.id, category.id) },
                         )
                     }
@@ -357,6 +400,7 @@ private fun DarkBingoCategoryCard(
     isCaptured: Boolean,
     playerColor: Color,
     thumbnail: ImageBitmap?,
+    otherCapturingPlayers: List<Player> = emptyList(),
     onCameraClick: () -> Unit,
 ) {
     var showInfo by remember { mutableStateOf(false) }
@@ -396,7 +440,7 @@ private fun DarkBingoCategoryCard(
                 TextButton(onClick = { showInfo = false; onCameraClick() }) {
                     Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Foto machen")
+                    Text(if (isCaptured) "Neu aufnehmen" else "Foto machen")
                 }
             },
             dismissButton = {
@@ -489,6 +533,33 @@ private fun DarkBingoCategoryCard(
                     modifier = Modifier.size(13.dp),
                     tint = if (thumbnail != null) Color.White else ColorOnSurfaceVariant,
                 )
+            }
+
+            // Other capturers dots - bottom left
+            if (otherCapturingPlayers.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 4.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    otherCapturingPlayers.take(4).forEach { player ->
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(player.color)
+                        )
+                    }
+                    if (otherCapturingPlayers.size > 4) {
+                        Text(
+                            "+${otherCapturingPlayers.size - 4}",
+                            fontSize = 6.sp,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }

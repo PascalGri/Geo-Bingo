@@ -230,4 +230,15 @@ object GameRepository {
             set("review_category_index", 0)
         }) { filter { eq("id", gameId) } }
     }
+
+    suspend fun submitEndVote(gameId: String, voterId: String) {
+        supabase.from("vote_submissions").insert(
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = "__end_vote__")
+        )
+    }
+
+    suspend fun getEndVoteCount(gameId: String): Int =
+        supabase.from("vote_submissions")
+            .select { filter { eq("game_id", gameId); eq("category_id", "__end_vote__") } }
+            .decodeList<VoteSubmissionInsertDto>().size
 }

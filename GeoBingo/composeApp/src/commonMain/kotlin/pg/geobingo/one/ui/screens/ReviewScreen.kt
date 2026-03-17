@@ -136,12 +136,29 @@ fun ReviewScreen(gameState: GameState) {
     when {
         gameState.hasSubmittedCurrentCategory -> {
             DarkWaitingScreen(
+                gameId = gameId,
+                stepKey = stepKey,
                 categoryName = currentCategory.name,
                 playerName = targetPlayer.name,
                 categoryIndex = categoryIndex,
                 totalCategories = categories.size,
                 playerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
+                isHost = gameState.isHost,
+                onForceAdvance = {
+                    scope.launch {
+                        try {
+                            val nextStep = stepIndex + 1
+                            if (nextStep >= totalSteps) {
+                                GameRepository.setGameStatus(gameId, "results")
+                            } else {
+                                GameRepository.setReviewCategoryIndex(gameId, nextStep)
+                                gameState.reviewCategoryIndex = nextStep
+                                gameState.hasSubmittedCurrentCategory = false
+                            }
+                        } catch (_: Exception) {}
+                    }
+                },
             )
         }
         targetCapture == null -> {
@@ -484,13 +501,30 @@ private fun DarkNoPhotoScreen(
 
 @Composable
 private fun DarkWaitingScreen(
+    gameId: String,
+    stepKey: String,
     categoryName: String,
     playerName: String,
     categoryIndex: Int,
     totalCategories: Int,
     playerIndex: Int,
     totalPlayers: Int,
+    isHost: Boolean,
+    onForceAdvance: () -> Unit,
 ) {
+    var submittedCount by remember(stepKey) { mutableStateOf(0) }
+    var waitSeconds by remember(stepKey) { mutableStateOf(0) }
+
+    LaunchedEffect(stepKey) {
+        while (true) {
+            delay(2_000)
+            waitSeconds += 2
+            try {
+                submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
+            } catch (_: Exception) {}
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize().background(ColorBackground),
         contentAlignment = Alignment.Center,
@@ -518,7 +552,7 @@ private fun DarkWaitingScreen(
                 )
             }
             Text(
-                "Warte auf andere Spieler...",
+                "$submittedCount von $totalPlayers haben abgestimmt",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorOnSurfaceVariant,
             )
@@ -528,6 +562,21 @@ private fun DarkWaitingScreen(
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            if (isHost && waitSeconds >= 30) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onForceAdvance,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant),
+                    border = BorderStroke(1.dp, ColorOutlineVariant),
+                    shape = RoundedCornerShape(20.dp),
+                ) {
+                    Text(
+                        "Nächstes Bild (Spieler überspringen)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

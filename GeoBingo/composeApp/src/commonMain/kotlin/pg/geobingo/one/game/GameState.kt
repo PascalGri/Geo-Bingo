@@ -47,6 +47,8 @@ class GameState {
     var allCaptures by mutableStateOf(listOf<CaptureDto>())
     var categoryVotes by mutableStateOf(mapOf<String, Boolean>()) // targetPlayerId -> approved
     var hasSubmittedCurrentCategory by mutableStateOf(false)
+    var hasVotedToEnd by mutableStateOf(false)
+    var endVoteCount by mutableStateOf(0)
     var allVotes by mutableStateOf(listOf<VoteDto>())
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
@@ -162,11 +164,38 @@ class GameState {
         categoryVotes = mapOf()
         hasSubmittedCurrentCategory = false
         allVotes = listOf()
+        hasVotedToEnd = false
+        endVoteCount = 0
         gameId = null
         gameCode = null
         isHost = false
         myPlayerId = null
         lobbyPlayers = listOf()
+    }
+
+    fun resetForRematch(newGameId: String, newGameCode: String, newPlayerId: String) {
+        gameId = newGameId
+        gameCode = newGameCode
+        myPlayerId = newPlayerId
+        isHost = true
+        players = listOf()
+        lobbyPlayers = listOf()
+        timeRemainingSeconds = 0
+        isGameRunning = false
+        currentPlayerIndex = 0
+        captures = mapOf()
+        photos = mapOf()
+        votes = mapOf()
+        reviewPlayerIndex = 0
+        reviewCategoryIndex = 0
+        allCaptures = listOf()
+        categoryVotes = mapOf()
+        hasSubmittedCurrentCategory = false
+        allVotes = listOf()
+        hasVotedToEnd = false
+        endVoteCount = 0
+        // selectedCategories and gameDurationMinutes are intentionally kept for rematch
+        currentScreen = Screen.LOBBY
     }
 
     fun formatTime(seconds: Int): String {

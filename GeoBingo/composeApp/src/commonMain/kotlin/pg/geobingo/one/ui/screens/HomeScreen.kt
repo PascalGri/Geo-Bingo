@@ -63,7 +63,7 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Spiele gegen deine Freunde.",
+                text = "Sei schneller als deine Freunde!",
                 style = MaterialTheme.typography.bodyLarge,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
