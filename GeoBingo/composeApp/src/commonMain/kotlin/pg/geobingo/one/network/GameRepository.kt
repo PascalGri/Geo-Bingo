@@ -158,6 +158,15 @@ object GameRepository {
         } catch (_: Exception) {} // Graceful: column may not exist yet
     }
 
+    suspend fun uploadAvatarPhoto(playerId: String, bytes: ByteArray) {
+        val path = "avatars/$playerId.jpg"
+        supabase.storage.from("photos").upload(path, bytes) { upsert = true }
+    }
+
+    suspend fun downloadAvatarPhoto(playerId: String): ByteArray? = try {
+        supabase.storage.from("photos").downloadAuthenticated("avatars/$playerId.jpg")
+    } catch (_: Exception) { null }
+
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
         val dtos = categories.mapIndexed { i, cat ->
             CategoryInsertDto(game_id = gameId, label = cat.name, icon_id = cat.id, sort_order = i)

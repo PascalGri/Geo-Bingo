@@ -348,6 +348,7 @@ fun GameScreenContent(
                                 player = player,
                                 isActive = isMe,
                                 captureCount = captured,
+                                photoBytes = gameState.playerAvatarBytes[player.id],
                                 onClick = {},
                             )
                         }
@@ -405,7 +406,7 @@ fun GameScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PlayerAvatarView(player = myPlayer, size = 32.dp, fontSize = 13.sp)
+                        PlayerAvatarView(player = myPlayer, size = 32.dp, fontSize = 13.sp, photoBytes = gameState.playerAvatarBytes[myPlayer.id])
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
@@ -555,7 +556,7 @@ fun GameScreenContent(
 }
 
 @Composable
-private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, onClick: () -> Unit) {
+private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, photoBytes: ByteArray? = null, onClick: () -> Unit) {
     val bg = if (isActive)
         Brush.linearGradient(listOf(player.color.copy(alpha = 0.25f), player.color.copy(alpha = 0.15f)))
     else
@@ -575,7 +576,7 @@ private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
-            PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp)
+            PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(5.dp))
             Text(
                 player.name,

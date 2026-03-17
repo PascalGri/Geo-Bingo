@@ -165,7 +165,7 @@ fun ResultsScreen(gameState: GameState) {
             // Podium
             if (ranked.size >= 2) {
                 Spacer(Modifier.height(20.dp))
-                DarkPodiumSection(ranked = ranked.take(3))
+                DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.playerAvatarBytes)
             }
 
             // Full ranking
@@ -191,6 +191,7 @@ fun ResultsScreen(gameState: GameState) {
                         captures = gameState.getPlayerCaptures(player.id).map { it.name },
                         isWinner = index == 0,
                         speedBonus = speedBonus,
+                        photoBytes = gameState.playerAvatarBytes[player.id],
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -238,7 +239,7 @@ fun ResultsScreen(gameState: GameState) {
 }
 
 @Composable
-private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>) {
+private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes: Map<String, ByteArray>) {
     val heights = listOf(100.dp, 72.dp, 56.dp)
     val podiumOrder = when (ranked.size) {
         1 -> listOf(ranked[0] to 0)
@@ -268,7 +269,7 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>) {
                     },
                 )
                 Spacer(Modifier.height(4.dp))
-                PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp)
+                PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp, photoBytes = playerAvatarBytes[player.id])
                 Spacer(Modifier.height(4.dp))
                 Text(
                     player.name,
@@ -312,6 +313,7 @@ private fun DarkRankCard(
     captures: List<String>,
     isWinner: Boolean,
     speedBonus: Int = 0,
+    photoBytes: ByteArray? = null,
 ) {
     val cardBg = if (isWinner) ColorPrimaryContainer else ColorSurface
     val borderColor = if (isWinner) ColorPrimary.copy(alpha = 0.5f) else ColorOutlineVariant
@@ -353,7 +355,7 @@ private fun DarkRankCard(
             Spacer(Modifier.width(10.dp))
 
             // Avatar
-            PlayerAvatarView(player = player, size = 38.dp, fontSize = 15.sp)
+            PlayerAvatarView(player = player, size = 38.dp, fontSize = 15.sp, photoBytes = photoBytes)
 
             Spacer(Modifier.width(10.dp))
 

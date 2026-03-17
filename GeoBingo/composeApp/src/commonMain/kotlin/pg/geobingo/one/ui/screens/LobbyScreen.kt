@@ -56,6 +56,20 @@ fun LobbyScreen(gameState: GameState) {
         try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
     }
 
+    // Download avatar photos for players who have selfies but aren't cached yet
+    LaunchedEffect(gameState.lobbyPlayers) {
+        gameState.lobbyPlayers
+            .filter { it.avatar == "selfie" && it.id !in gameState.playerAvatarBytes }
+            .forEach { player ->
+                scope.launch {
+                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                    if (bytes != null) {
+                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    }
+                }
+            }
+    }
+
     // Realtime: new player joined
     LaunchedEffect(gameId) {
         realtime.playerInserts.collect {
@@ -267,7 +281,7 @@ fun LobbyScreen(gameState: GameState) {
             }
 
             items(gameState.lobbyPlayers) { player ->
-                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId)
+                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId, photoBytes = gameState.playerAvatarBytes[player.id])
             }
 
             item {
@@ -354,7 +368,7 @@ fun LobbyScreen(gameState: GameState) {
 }
 
 @Composable
-private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean) {
+private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArray?) {
     val color = parseHexColor(player.color)
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -375,6 +389,7 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean) {
                 avatar = player.avatar,
                 size = 40.dp,
                 fontSize = 16.sp,
+                photoBytes = photoBytes,
             )
             Spacer(Modifier.width(12.dp))
             Text(

@@ -1,24 +1,29 @@
 package pg.geobingo.one.ui.theme
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.platform.toImageBitmap
 
 /**
- * Reusable player avatar: shows emoji if set, otherwise first letter of name on colored circle.
+ * Reusable player avatar: shows selfie photo if available, otherwise first letter on colored circle.
  */
 @Composable
 fun PlayerAvatarView(
@@ -26,18 +31,22 @@ fun PlayerAvatarView(
     size: Dp = 40.dp,
     fontSize: TextUnit = 16.sp,
     modifier: Modifier = Modifier,
+    photoBytes: ByteArray? = null,
 ) {
+    val imageBitmap = remember(photoBytes) { photoBytes?.toImageBitmap() }
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(if (player.avatar.isEmpty()) player.color else Color.Transparent),
+            .background(if (imageBitmap == null) player.color else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
-        if (player.avatar.isNotEmpty()) {
-            Text(
-                text = player.avatar,
-                fontSize = fontSize,
+        if (imageBitmap != null) {
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
             )
         } else {
             Text(
@@ -59,16 +68,23 @@ fun PlayerAvatarViewRaw(
     size: Dp = 40.dp,
     fontSize: TextUnit = 16.sp,
     modifier: Modifier = Modifier,
+    photoBytes: ByteArray? = null,
 ) {
+    val imageBitmap = remember(photoBytes) { photoBytes?.toImageBitmap() }
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(if (avatar.isEmpty()) color else Color.Transparent),
+            .background(if (imageBitmap == null) color else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
-        if (avatar.isNotEmpty()) {
-            Text(text = avatar, fontSize = fontSize)
+        if (imageBitmap != null) {
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         } else {
             Text(
                 text = name.take(1).uppercase(),

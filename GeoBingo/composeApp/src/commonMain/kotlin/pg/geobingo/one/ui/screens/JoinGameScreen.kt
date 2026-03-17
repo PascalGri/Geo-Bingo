@@ -2,8 +2,10 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,18 +27,22 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.ui.theme.*
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JoinGameScreen(gameState: GameState) {
     var codeInput by remember { mutableStateOf("") }
     var nameInput by remember { mutableStateOf("") }
-    var selectedAvatar by remember { mutableStateOf("") }
+    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    val photoCapturer = rememberPhotoCapturer { bytes ->
+        if (bytes != null) selectedAvatarBytes = bytes
+    }
 
     val canJoin = codeInput.trim().length == 6 && nameInput.trim().isNotEmpty()
 
@@ -71,6 +77,7 @@ fun JoinGameScreen(gameState: GameState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -169,14 +176,13 @@ fun JoinGameScreen(gameState: GameState) {
                 },
             )
 
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Emoji-Avatar wählen (optional)",
-                style = MaterialTheme.typography.labelSmall,
-                color = ColorOnSurfaceVariant,
+            Spacer(Modifier.height(16.dp))
+
+            SelfiePicker(
+                avatarBytes = selectedAvatarBytes,
+                onTakePhoto = { photoCapturer.launch() },
+                onClear = { selectedAvatarBytes = null },
             )
-            Spacer(Modifier.height(6.dp))
-            AvatarEmojiPicker(selected = selectedAvatar, onSelect = { selectedAvatar = it })
 
             if (errorMessage != null) {
                 Spacer(Modifier.height(12.dp))
@@ -211,7 +217,16 @@ fun JoinGameScreen(gameState: GameState) {
                                 val colorIndex = (0..7).random()
                                 val color = PLAYER_COLORS[colorIndex].toHex()
                                 val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color)
-                                if (selectedAvatar.isNotEmpty()) GameRepository.setPlayerAvatar(playerDto.id, selectedAvatar)
+                                val avatarBytes = selectedAvatarBytes
+                                if (avatarBytes != null) {
+                                    try {
+                                        GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
+                                        GameRepository.setPlayerAvatar(playerDto.id, "selfie")
+                                    } catch (_: Exception) {}
+                                }
+                                if (avatarBytes != null) {
+                                    gameState.playerAvatarBytes = gameState.playerAvatarBytes + (playerDto.id to avatarBytes)
+                                }
                                 val players = GameRepository.getPlayers(game.id)
                                 val categories = GameRepository.getCategories(game.id)
                                 gameState.gameId = game.id

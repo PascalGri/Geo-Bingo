@@ -2,8 +2,10 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.*
@@ -27,14 +30,20 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.rememberPhotoCapturer
+import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateGameScreen(gameState: GameState) {
     var hostNameInput by remember { mutableStateOf("") }
-    var selectedAvatar by remember { mutableStateOf("") }
+    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
     var jokerMode by remember { mutableStateOf(false) }
+
+    val photoCapturer = rememberPhotoCapturer { bytes ->
+        if (bytes != null) selectedAvatarBytes = bytes
+    }
     var customNameInput by remember { mutableStateOf("") }
     var customCategories by remember { mutableStateOf(listOf<Category>()) }
     var customCategoryCounter by remember { mutableStateOf(0) }
@@ -95,8 +104,17 @@ fun CreateGameScreen(gameState: GameState) {
                                     val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
-                                    if (selectedAvatar.isNotEmpty()) GameRepository.setPlayerAvatar(hostDto.id, selectedAvatar)
+                                    val avatarBytes = selectedAvatarBytes
+                                    if (avatarBytes != null) {
+                                        try {
+                                            GameRepository.uploadAvatarPhoto(hostDto.id, avatarBytes)
+                                            GameRepository.setPlayerAvatar(hostDto.id, "selfie")
+                                        } catch (_: Exception) {}
+                                    }
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
+                                    if (avatarBytes != null) {
+                                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (hostDto.id to avatarBytes)
+                                    }
                                     gameState.gameId = game.id
                                     gameState.gameCode = game.code
                                     gameState.isHost = true
@@ -153,14 +171,12 @@ fun CreateGameScreen(gameState: GameState) {
                     ),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
                 )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "Emoji-Avatar wählen (optional)",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant,
+                Spacer(Modifier.height(12.dp))
+                SelfiePicker(
+                    avatarBytes = selectedAvatarBytes,
+                    onTakePhoto = { photoCapturer.launch() },
+                    onClear = { selectedAvatarBytes = null },
                 )
-                Spacer(Modifier.height(6.dp))
-                AvatarEmojiPicker(selected = selectedAvatar, onSelect = { selectedAvatar = it })
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Andere Spieler treten über einen Code bei.",
@@ -441,33 +457,68 @@ fun CreateGameScreen(gameState: GameState) {
     }
 }
 
-private val AVATAR_EMOJIS = listOf(
-    "🦁", "🐼", "🦊", "🐨", "🐯", "🦝", "🐸", "🦄",
-    "🐙", "🦋", "🐺", "🦉", "🐧", "🦖", "🐲", "🤖",
-)
-
 @Composable
-fun AvatarEmojiPicker(selected: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        AVATAR_EMOJIS.chunked(8).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                row.forEach { emoji ->
-                    val isSelected = emoji == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) ColorPrimaryContainer else ColorSurfaceVariant)
-                            .then(if (isSelected) Modifier.border(1.5.dp, ColorPrimary, RoundedCornerShape(10.dp)) else Modifier)
-                            .clickable { onSelect(if (isSelected) "" else emoji) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(emoji, fontSize = 20.sp)
-                    }
+fun SelfiePicker(
+    avatarBytes: ByteArray?,
+    onTakePhoto: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val imageBitmap = remember(avatarBytes) { avatarBytes?.toImageBitmap() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(68.dp)
+                .clip(CircleShape)
+                .background(if (imageBitmap != null) Color.Transparent else ColorSurfaceVariant)
+                .clickable { onTakePhoto() },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (imageBitmap != null) {
+                Image(
+                    bitmap = imageBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                // Dark overlay with camera icon for retake
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.35f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                }
+            } else {
+                Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(28.dp), tint = ColorOnSurfaceVariant)
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                if (imageBitmap != null) "Selfie aufgenommen" else "Selfie aufnehmen",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = ColorOnSurface,
+            )
+            Text(
+                if (imageBitmap != null) "Tippen zum Neuaufnehmen" else "Optional · wird als Profilbild angezeigt",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorOnSurfaceVariant,
+            )
+            if (imageBitmap != null) {
+                TextButton(
+                    onClick = onClear,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.height(24.dp),
+                ) {
+                    Text(
+                        "Entfernen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorError,
+                    )
                 }
             }
         }

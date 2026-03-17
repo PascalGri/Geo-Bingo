@@ -76,6 +76,9 @@ class GameState {
     // Offline detection: number of consecutive poll failures
     var consecutiveNetworkErrors by mutableStateOf(0)
 
+    // Avatar photos: playerId → ByteArray (in-memory cache, populated from selfie upload/download)
+    var playerAvatarBytes by mutableStateOf(mapOf<String, ByteArray>())
+
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
 
@@ -227,6 +230,7 @@ class GameState {
         myJokerUsed = false
         jokerLabels = mapOf()
         consecutiveNetworkErrors = 0
+        playerAvatarBytes = mapOf()
     }
 
     fun resetGame() {
