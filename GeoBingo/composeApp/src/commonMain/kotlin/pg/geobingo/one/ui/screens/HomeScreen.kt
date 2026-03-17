@@ -93,6 +93,35 @@ fun HomeScreen(gameState: GameState) {
                 )
             }
 
+            Spacer(Modifier.height(24.dp))
+
+            // Datenschutz-Hinweis
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF1C2A1A))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Icon(
+                    Icons.Default.GppMaybe,
+                    contentDescription = null,
+                    tint = Color(0xFF81C784),
+                    modifier = Modifier.size(18.dp).padding(top = 1.dp),
+                )
+                Text(
+                    text = "Fotografiere keine Personen ohne deren ausdrückliche Zustimmung. " +
+                           "Das Recht am eigenen Bild (§ 22 KUG) schützt jede Person vor unerlaubter " +
+                           "Aufnahme und Weitergabe. Die Verantwortung für rechtmäßige Aufnahmen " +
+                           "liegt ausschließlich beim jeweiligen Nutzer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFAED581),
+                    lineHeight = 17.sp,
+                )
+            }
+
             Spacer(Modifier.weight(1f))
 
             GradientButton(
