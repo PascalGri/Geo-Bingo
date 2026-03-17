@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +54,7 @@ fun GameScreen(gameState: GameState) {
     var photoTargetCategoryId by remember { mutableStateOf("") }
     var jokerDialogVisible by remember { mutableStateOf(false) }
     var jokerLabelInput by remember { mutableStateOf("") }
+    val haptic = LocalHapticFeedback.current
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
@@ -59,13 +62,23 @@ fun GameScreen(gameState: GameState) {
             val pid = photoTargetPlayerId
             val cid = photoTargetCategoryId
             val isJoker = cid.startsWith("joker_")
+            
+            gameState.uploadingCategories = gameState.uploadingCategories + cid
+            
             if (gameId != null) {
                 scope.launch {
                     try {
                         GameRepository.recordCapture(gameId, pid, cid, bytes)
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         if (isJoker) GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        gameState.uploadingCategories = gameState.uploadingCategories - cid
+                    }
                 }
+            } else {
+                gameState.uploadingCategories = gameState.uploadingCategories - cid
             }
             if (isJoker) gameState.myJokerUsed = true
         }
@@ -166,7 +179,7 @@ fun GameScreen(gameState: GameState) {
 
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
-        try { realtime?.subscribe() } catch (_: Exception) {}
+        try { realtime?.subscribe() } catch (e: Exception) { e.printStackTrace() }
         // Fallback poll every 3s
         while (true) {
             delay(3_000)
@@ -194,17 +207,18 @@ fun GameScreen(gameState: GameState) {
                         if (GameRepository.hasAllCapturedSignal(gameId)) {
                             gameState.finishSignalDetected = true
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
                 gameState.consecutiveNetworkErrors = 0
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                e.printStackTrace()
                 gameState.consecutiveNetworkErrors++
             }
         }
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime?.unsubscribe() } catch (_: Exception) {} } }
+        onDispose { scope.launch { try { realtime?.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
     }
 
     // Main countdown timer — stops ticking once all categories are captured
@@ -218,7 +232,7 @@ fun GameScreen(gameState: GameState) {
         // Only end here if the finish-countdown is NOT driving the end
         if (!gameState.allCategoriesCaptured) {
             if (gameId != null) {
-                try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
             }
             gameState.reviewCategoryIndex = 0
             gameState.currentScreen = Screen.REVIEW
@@ -231,7 +245,7 @@ fun GameScreen(gameState: GameState) {
         if (!gameState.allCategoriesCaptured) return@LaunchedEffect
         // Signal to other players that someone finished
         if (gameId != null) {
-            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (_: Exception) {}
+            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (e: Exception) { e.printStackTrace() }
         }
         finishCountdownSeconds = 30
         repeat(30) {
@@ -240,7 +254,7 @@ fun GameScreen(gameState: GameState) {
         }
         gameState.isGameRunning = false
         if (gameId != null) {
-            try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+            try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
         }
         gameState.reviewCategoryIndex = 0
         gameState.currentScreen = Screen.REVIEW
@@ -264,7 +278,8 @@ fun GameScreen(gameState: GameState) {
                             gameState.reviewCategoryIndex = 0
                             gameState.currentScreen = Screen.REVIEW
                         }
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                         gameState.hasVotedToEnd = false
                     }
                 }
@@ -489,9 +504,11 @@ fun GameScreenContent(
                                 player.id != myPlayer.id && (gameState.captures[player.id]?.contains(category.id) == true)
                             }
                         }
+                        val isUploading = category.id in gameState.uploadingCategories
                         DarkBingoCategoryCard(
                             category = category,
                             isCaptured = captured,
+                            isUploading = isUploading,
                             playerColor = myPlayer.color,
                             thumbnail = thumbnail,
                             otherCapturingPlayers = otherCapturers,
@@ -601,6 +618,7 @@ private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, 
 private fun DarkBingoCategoryCard(
     category: Category,
     isCaptured: Boolean,
+    isUploading: Boolean,
     playerColor: Color,
     thumbnail: ImageBitmap?,
     otherCapturingPlayers: List<Player> = emptyList(),
@@ -681,7 +699,13 @@ private fun DarkBingoCategoryCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                if (thumbnail != null) {
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 2.dp,
+                        color = playerColor
+                    )
+                } else if (thumbnail != null) {
                     Image(
                         bitmap = thumbnail,
                         contentDescription = null,

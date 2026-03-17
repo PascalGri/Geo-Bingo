@@ -21,11 +21,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HowToPlayScreen(gameState: GameState) {
+    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+
     Scaffold(
         topBar = {
             TopAppBar(

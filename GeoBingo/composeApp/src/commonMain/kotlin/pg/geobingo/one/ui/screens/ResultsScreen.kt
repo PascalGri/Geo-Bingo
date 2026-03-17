@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.*
@@ -33,6 +34,8 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.saveImageToDevice
+import pg.geobingo.one.platform.rememberShareManager
+import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
@@ -43,9 +46,12 @@ fun ResultsScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     val ranked = gameState.getRankedPlayers()
     val winner = ranked.firstOrNull()?.first
+    val shareManager = rememberShareManager()
 
     // Save to history once on entry
     LaunchedEffect(Unit) { gameState.saveToHistory() }
+    
+    SystemBackHandler { gameState.resetGame() }
 
     Scaffold(
         topBar = {
@@ -80,7 +86,8 @@ fun ResultsScreen(gameState: GameState) {
                                             val newPlayer = GameRepository.addPlayer(newGame.id, name, colorHex)
                                             GameRepository.addCategories(newGame.id, gameState.selectedCategories)
                                             gameState.resetForRematch(newGame.id, newCode, newPlayer.id)
-                                        } catch (_: Exception) {
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
                                             rematchLoading = false
                                         }
                                     }
@@ -107,6 +114,26 @@ fun ResultsScreen(gameState: GameState) {
                         }
                         Spacer(Modifier.height(8.dp))
                     }
+                    GradientButton(
+                        text = "Ergebnis teilen",
+                        onClick = {
+                            val text = buildString {
+                                append("KatchIt! Runde beendet \uD83C\uDFC6\n\n")
+                                ranked.take(3).forEachIndexed { index, (player, score) ->
+                                    val medal = when(index) { 0 -> "\uD83E\uDD47"; 1 -> "\uD83E\uDD48"; 2 -> "\uD83E\uDD49"; else -> "" }
+                                    append("$medal ${player.name}: $score Pkt.\n")
+                                }
+                                append("\nZeig, was du kannst und spiele KatchIt!")
+                            }
+                            shareManager.shareText(text)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        gradientColors = GradientCool,
+                        leadingIcon = {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        },
+                    )
+                    Spacer(Modifier.height(8.dp))
                     GradientButton(
                         text = "Neues Spiel",
                         onClick = { gameState.resetGame() },

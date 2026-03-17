@@ -31,6 +31,7 @@ import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.rememberPhotoCapturer
+import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 
@@ -56,6 +57,8 @@ fun CreateGameScreen(gameState: GameState) {
 
     val totalCategories = customCategories.size + selectedPresetIds.size
     val canStart = hostNameInput.trim().isNotEmpty() && totalCategories >= 2
+
+    SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
     Scaffold(
         topBar = {
@@ -109,7 +112,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         try {
                                             GameRepository.uploadAvatarPhoto(hostDto.id, avatarBytes)
                                             GameRepository.setPlayerAvatar(hostDto.id, "selfie")
-                                        } catch (_: Exception) {}
+                                        } catch (e: Exception) { e.printStackTrace() }
                                     }
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
                                     if (avatarBytes != null) {

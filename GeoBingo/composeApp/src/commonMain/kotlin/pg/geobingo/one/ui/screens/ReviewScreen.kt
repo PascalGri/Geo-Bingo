@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -63,7 +65,7 @@ fun ReviewScreen(gameState: GameState) {
                 if (jokerCats.isNotEmpty()) {
                     gameState.selectedCategories = gameState.selectedCategories + jokerCats
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -71,7 +73,7 @@ fun ReviewScreen(gameState: GameState) {
     var stepCapturesLoading by remember { mutableStateOf(true) }
     LaunchedEffect(gameState.reviewCategoryIndex) {
         stepCapturesLoading = true
-        try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (_: Exception) {}
+        try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { e.printStackTrace() }
         stepCapturesLoading = false
     }
 
@@ -84,7 +86,7 @@ fun ReviewScreen(gameState: GameState) {
                 gameState.hasSubmittedCurrentCategory = false
             }
             if (game.status == "results") {
-                try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { e.printStackTrace() }
                 gameState.currentScreen = Screen.RESULTS
             }
         }
@@ -92,7 +94,7 @@ fun ReviewScreen(gameState: GameState) {
 
     // Polling fallback every 3 seconds
     LaunchedEffect(gameId) {
-        try { realtime.subscribe() } catch (_: Exception) {}
+        try { realtime.subscribe() } catch (e: Exception) { e.printStackTrace() }
         while (true) {
             delay(3_000)
             try {
@@ -107,14 +109,15 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.currentScreen = Screen.RESULTS
                 }
                 gameState.consecutiveNetworkErrors = 0
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                e.printStackTrace()
                 gameState.consecutiveNetworkErrors++
             }
         }
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime.unsubscribe() } catch (_: Exception) {} } }
+        onDispose { scope.launch { try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
     }
 
     if (numPlayers == 0 || categories.isEmpty()) {
@@ -158,7 +161,7 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.hasSubmittedCurrentCategory = false
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     when {
@@ -186,7 +189,7 @@ fun ReviewScreen(gameState: GameState) {
                                 gameState.reviewCategoryIndex = nextStep
                                 gameState.hasSubmittedCurrentCategory = false
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) { e.printStackTrace() }
                     }
                 },
             )
@@ -215,7 +218,8 @@ fun ReviewScreen(gameState: GameState) {
                                 try {
                                     GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
                                     submitted = true
-                                } catch (_: Exception) {
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
                                     delay(1_500)
                                 }
                             }
@@ -249,7 +253,7 @@ fun ReviewScreen(gameState: GameState) {
                             )
                             gameState.hasSubmittedCurrentCategory = true
                             advanceStep()
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) { e.printStackTrace() }
                     }
                 },
             )
@@ -273,6 +277,7 @@ private fun DarkSinglePhotoVotingScreen(
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
+    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(stepIndex) {
         photoLoading = true
@@ -420,7 +425,10 @@ private fun DarkSinglePhotoVotingScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Button(
-                    onClick = { onVote(false) },
+                    onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onVote(false) 
+                    },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = ColorError),
                     shape = RoundedCornerShape(14.dp),
@@ -431,7 +439,10 @@ private fun DarkSinglePhotoVotingScreen(
                 }
                 GradientButton(
                     text = "Ja",
-                    onClick = { onVote(true) },
+                    onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onVote(true) 
+                    },
                     modifier = Modifier.weight(1f),
                     gradientColors = GradientPrimary,
                     leadingIcon = {
@@ -572,7 +583,7 @@ private fun DarkWaitingScreen(
                     onReadyToAdvance()
                     break
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 

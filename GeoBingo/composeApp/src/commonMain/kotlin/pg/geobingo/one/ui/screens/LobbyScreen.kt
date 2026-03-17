@@ -27,6 +27,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
+import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
 
@@ -47,13 +48,13 @@ fun LobbyScreen(gameState: GameState) {
             if (gameState.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
             lobbyTimeoutSeconds--
         }
-        try { GameRepository.setGameStatus(gameId, "closed") } catch (_: Exception) {}
+        try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { e.printStackTrace() }
         gameState.resetGame()
     }
 
     // Initial player load
     LaunchedEffect(gameId) {
-        try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
+        try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
     }
 
     // Download avatar photos for players who have selfies but aren't cached yet
@@ -73,7 +74,7 @@ fun LobbyScreen(gameState: GameState) {
     // Realtime: new player joined
     LaunchedEffect(gameId) {
         realtime.playerInserts.collect {
-            try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (_: Exception) {}
+            try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -104,7 +105,7 @@ fun LobbyScreen(gameState: GameState) {
 
     // Subscribe Realtime channel + fallback poll every 15s
     LaunchedEffect(gameId) {
-        try { realtime.subscribe() } catch (_: Exception) {}
+        try { realtime.subscribe() } catch (e: Exception) { e.printStackTrace() }
         // Fallback polling in case Realtime misses an event
         while (true) {
             delay(3_000)
@@ -130,13 +131,15 @@ fun LobbyScreen(gameState: GameState) {
                         }
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime.unsubscribe() } catch (_: Exception) {} } }
+        onDispose { scope.launch { try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
     }
+
+    SystemBackHandler { gameState.resetGame() }
 
     Scaffold(
         topBar = {

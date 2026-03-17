@@ -28,6 +28,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.rememberPhotoCapturer
+import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +46,8 @@ fun JoinGameScreen(gameState: GameState) {
     }
 
     val canJoin = codeInput.trim().length == 6 && nameInput.trim().isNotEmpty()
+
+    SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
     Scaffold(
         topBar = {
@@ -222,7 +225,7 @@ fun JoinGameScreen(gameState: GameState) {
                                     try {
                                         GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
                                         GameRepository.setPlayerAvatar(playerDto.id, "selfie")
-                                    } catch (_: Exception) {}
+                                    } catch (e: Exception) { e.printStackTrace() }
                                 }
                                 if (avatarBytes != null) {
                                     gameState.playerAvatarBytes = gameState.playerAvatarBytes + (playerDto.id to avatarBytes)

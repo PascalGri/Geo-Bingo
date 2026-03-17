@@ -79,6 +79,9 @@ class GameState {
     // Avatar photos: playerId → ByteArray (in-memory cache, populated from selfie upload/download)
     var playerAvatarBytes by mutableStateOf(mapOf<String, ByteArray>())
 
+    // Uploading state
+    var uploadingCategories by mutableStateOf(setOf<String>())
+
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
 
@@ -192,7 +195,8 @@ class GameState {
     }
 
     fun getRankedPlayers(): List<Pair<Player, Int>> =
-        players.map { it to getPlayerScore(it.id) }.sortedByDescending { it.second }
+        players.map { it to getPlayerScore(it.id) }
+            .sortedWith(compareByDescending<Pair<Player, Int>> { it.second }.thenByDescending { getSpeedBonusCount(it.first.id) })
 
     fun saveToHistory() {
         val myId = myPlayerId ?: return
@@ -231,6 +235,7 @@ class GameState {
         jokerLabels = mapOf()
         consecutiveNetworkErrors = 0
         playerAvatarBytes = mapOf()
+        uploadingCategories = setOf()
     }
 
     fun resetGame() {
