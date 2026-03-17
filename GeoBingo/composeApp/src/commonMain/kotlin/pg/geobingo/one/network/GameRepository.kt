@@ -10,6 +10,9 @@ import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.PLAYER_COLORS
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.readRawBytes
 
 @Serializable
 data class GameDto(
@@ -128,6 +131,8 @@ object VoteKeys {
     fun stepKey(categoryId: String, playerId: String) = "${categoryId}__${playerId}"
 }
 
+private val httpClient = HttpClient()
+
 object GameRepository {
 
     suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false): GameDto =
@@ -164,11 +169,9 @@ object GameRepository {
     }
 
     suspend fun downloadAvatarPhoto(playerId: String): ByteArray? = try {
-        try {
-            supabase.storage.from("photos").downloadPublic("avatars/$playerId.jpg")
-        } catch (_: Exception) {
-            supabase.storage.from("photos").downloadAuthenticated("avatars/$playerId.jpg")
-        }
+        val path = "avatars/$playerId.jpg"
+        val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+        httpClient.get(url).readRawBytes()
     } catch (_: Exception) { null }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
@@ -219,11 +222,9 @@ object GameRepository {
     }
 
     suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = try {
-        try {
-            supabase.storage.from("photos").downloadPublic("$gameId/$playerId/$categoryId.jpg")
-        } catch (_: Exception) {
-            supabase.storage.from("photos").downloadAuthenticated("$gameId/$playerId/$categoryId.jpg")
-        }
+        val path = "$gameId/$playerId/$categoryId.jpg"
+        val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+        httpClient.get(url).readRawBytes()
     } catch (_: Exception) { null }
 
     suspend fun getCaptures(gameId: String): List<CaptureDto> =

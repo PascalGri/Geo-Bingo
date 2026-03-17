@@ -75,14 +75,19 @@ fun LobbyScreen(gameState: GameState) {
             }
     }
 
-    // Realtime: new player joined
+    // 1. Subscribe first (separate LaunchedEffect so it doesn't block anything)
+    LaunchedEffect(gameId) {
+        realtime.subscribe()
+    }
+
+    // 2. Realtime: new player joined (safe after subscribe)
     LaunchedEffect(gameId) {
         realtime.playerInserts.collect {
             try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    // Realtime: game status changed (guests only)
+    // 3. Realtime: game status changed (guests only)
     LaunchedEffect(gameId) {
         if (!gameState.isHost) {
             realtime.gameUpdates.collect { game ->
@@ -107,10 +112,8 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // Subscribe Realtime channel + fallback poll every 15s
+    // 4. Fallback polling loop (independent of subscribe)
     LaunchedEffect(gameId) {
-        try { realtime.subscribe() } catch (e: Exception) { e.printStackTrace() }
-        // Fallback polling in case Realtime misses an event
         while (true) {
             delay(3_000)
             try {
@@ -119,15 +122,17 @@ fun LobbyScreen(gameState: GameState) {
                     val game = GameRepository.getGameById(gameId)
                     when (game?.status) {
                         "running" -> {
-                            val playerDtos = GameRepository.getPlayers(gameId)
-                            gameState.players = playerDtos.map { it.toPlayer() }
-                            gameState.captures = playerDtos.associate { it.id to emptySet() }
-                            gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                            gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                            gameState.isGameRunning = true
-                            gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
-                                .takeIf { it >= 0 } ?: 0
-                            gameState.currentScreen = Screen.GAME
+                            if (gameState.currentScreen == Screen.LOBBY) {
+                                val playerDtos = GameRepository.getPlayers(gameId)
+                                gameState.players = playerDtos.map { it.toPlayer() }
+                                gameState.captures = playerDtos.associate { it.id to emptySet() }
+                                gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                                gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                                gameState.isGameRunning = true
+                                gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                                    .takeIf { it >= 0 } ?: 0
+                                gameState.currentScreen = Screen.GAME
+                            }
                         }
                         "closed" -> {
                             gameState.pendingToast = "Der Host hat die Lobby geschlossen."

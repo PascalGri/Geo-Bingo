@@ -77,7 +77,12 @@ fun ReviewScreen(gameState: GameState) {
         try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // Realtime: react to step advances and results phase
+    // 1. Subscribe first - before any collect()
+    LaunchedEffect(gameId) {
+        realtime.subscribe()
+    }
+
+    // 2. Realtime: react to step advances and results phase
     LaunchedEffect(gameId) {
         realtime.gameUpdates.collect { game ->
             val newStep = game.review_category_index
@@ -92,9 +97,8 @@ fun ReviewScreen(gameState: GameState) {
         }
     }
 
-    // Polling fallback every 3 seconds
+    // 3. Polling fallback every 3 seconds (no subscribe here!)
     LaunchedEffect(gameId) {
-        try { realtime.subscribe() } catch (e: Exception) { e.printStackTrace() }
         while (true) {
             delay(3_000)
             try {
@@ -104,7 +108,7 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.reviewCategoryIndex = newStep
                     gameState.hasSubmittedCurrentCategory = false
                 }
-                if (game?.status == "results") {
+                if (game?.status == "results" && gameState.currentScreen == Screen.REVIEW) {
                     gameState.allVotes = GameRepository.getVotes(gameId)
                     gameState.currentScreen = Screen.RESULTS
                 }

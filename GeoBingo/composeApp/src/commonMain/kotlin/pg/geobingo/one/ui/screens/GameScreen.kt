@@ -53,6 +53,7 @@ import pg.geobingo.one.ui.theme.PlayerAvatarView
 fun GameScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     val gameId = gameState.gameId
+    val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it, "game") } }
 
     var photoTargetPlayerId by remember { mutableStateOf("") }
     var photoTargetCategoryId by remember { mutableStateOf("") }
@@ -162,9 +163,13 @@ fun GameScreen(gameState: GameState) {
         )
     }
 
-    val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it, "game") } }
+    // 1. Subscribe first — before any collect()
+    LaunchedEffect(gameId) {
+        if (gameId == null) return@LaunchedEffect
+        realtime?.subscribe()
+    }
 
-    // Realtime: detect when another player ends the game early
+    // 2. Realtime: detect when another player ends the game early
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
         realtime?.gameUpdates?.collect { game ->
@@ -176,7 +181,7 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Realtime: update other players' capture counts live
+    // 3. Realtime: update other players' capture counts live
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
         realtime?.captureInserts?.collect { capture ->
@@ -187,10 +192,9 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
+    // 4. Fallback polling (no subscribe here!)
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
-        try { realtime?.subscribe() } catch (e: Exception) { e.printStackTrace() }
-        // Fallback poll every 3s
         while (true) {
             delay(3_000)
             try {
@@ -200,7 +204,6 @@ fun GameScreen(gameState: GameState) {
                     gameState.reviewCategoryIndex = game.review_category_index
                     gameState.currentScreen = Screen.REVIEW
                 }
-                // Poll end vote count
                 if (gameState.isGameRunning) {
                     val count = GameRepository.getEndVoteCount(gameId)
                     gameState.endVoteCount = count
@@ -211,7 +214,6 @@ fun GameScreen(gameState: GameState) {
                         gameState.currentScreen = Screen.REVIEW
                     }
                 }
-                // Poll for "all captured" signal from another player
                 if (gameState.isGameRunning && !gameState.allCategoriesCaptured && !gameState.finishSignalDetected) {
                     try {
                         if (GameRepository.hasAllCapturedSignal(gameId)) {
