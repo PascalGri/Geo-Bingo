@@ -74,6 +74,17 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
+    // Realtime: update other players' capture counts live
+    LaunchedEffect(gameId) {
+        if (gameId == null) return@LaunchedEffect
+        realtime?.captureInserts?.collect { capture ->
+            if (capture.player_id != gameState.myPlayerId) {
+                val current = gameState.captures[capture.player_id] ?: emptySet()
+                gameState.captures = gameState.captures + (capture.player_id to current + capture.category_id)
+            }
+        }
+    }
+
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
         try { realtime?.subscribe() } catch (_: Exception) {}

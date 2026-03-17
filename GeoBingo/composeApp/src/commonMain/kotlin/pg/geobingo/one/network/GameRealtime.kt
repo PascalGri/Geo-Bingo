@@ -16,17 +16,25 @@ class GameRealtimeManager(private val gameId: String) {
     val gameUpdates: Flow<GameDto> =
         channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
             table = "games"
+            filter = "id=eq.$gameId"
         }
         .map { it.decodeRecord<GameDto>() }
-        .filter { it.id == gameId }
 
     /** Emits a PlayerDto whenever a new player joins this game. */
     val playerInserts: Flow<PlayerDto> =
         channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "players"
+            filter = "game_id=eq.$gameId"
         }
         .map { it.decodeRecord<PlayerDto>() }
-        .filter { it.game_id == gameId }
+
+    /** Emits a CaptureDto whenever any player records a capture in this game. */
+    val captureInserts: Flow<CaptureDto> =
+        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "captures"
+            filter = "game_id=eq.$gameId"
+        }
+        .map { it.decodeRecord<CaptureDto>() }
 
     suspend fun subscribe() = channel.subscribe(blockUntilSubscribed = true)
 
