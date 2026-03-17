@@ -145,6 +145,7 @@ fun ReviewScreen(gameState: GameState) {
                 playerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 isHost = gameState.isHost,
+                onReadyToAdvance = { scope.launch { advanceStep() } },
                 onForceAdvance = {
                     scope.launch {
                         try {
@@ -510,6 +511,7 @@ private fun DarkWaitingScreen(
     playerIndex: Int,
     totalPlayers: Int,
     isHost: Boolean,
+    onReadyToAdvance: () -> Unit,
     onForceAdvance: () -> Unit,
 ) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
@@ -521,6 +523,10 @@ private fun DarkWaitingScreen(
             waitSeconds += 2
             try {
                 submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
+                if (submittedCount >= totalPlayers) {
+                    onReadyToAdvance()
+                    break
+                }
             } catch (_: Exception) {}
         }
     }

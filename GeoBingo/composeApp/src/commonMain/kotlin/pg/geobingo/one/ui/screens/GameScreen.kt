@@ -120,13 +120,34 @@ fun GameScreen(gameState: GameState) {
         onDispose { scope.launch { try { realtime?.unsubscribe() } catch (_: Exception) {} } }
     }
 
+    // Main countdown timer — stops ticking once all categories are captured
     LaunchedEffect(Unit) {
-        while (gameState.isGameRunning && gameState.timeRemainingSeconds > 0) {
+        while (gameState.isGameRunning && gameState.timeRemainingSeconds > 0 && !gameState.allCategoriesCaptured) {
             delay(1000L)
-            if (gameState.isGameRunning) {
+            if (gameState.isGameRunning && !gameState.allCategoriesCaptured) {
                 gameState.timeRemainingSeconds--
             }
         }
+        // Only end here if the finish-countdown is NOT driving the end
+        if (!gameState.allCategoriesCaptured) {
+            if (gameId != null) {
+                try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+            }
+            gameState.reviewCategoryIndex = 0
+            gameState.currentScreen = Screen.REVIEW
+        }
+    }
+
+    // 30-second finish countdown when current player captures all categories
+    var finishCountdownSeconds by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(gameState.allCategoriesCaptured) {
+        if (!gameState.allCategoriesCaptured) return@LaunchedEffect
+        finishCountdownSeconds = 30
+        repeat(30) {
+            delay(1000L)
+            finishCountdownSeconds = (finishCountdownSeconds ?: 1) - 1
+        }
+        gameState.isGameRunning = false
         if (gameId != null) {
             try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
         }
@@ -136,6 +157,7 @@ fun GameScreen(gameState: GameState) {
 
     GameScreenContent(
         gameState = gameState,
+        finishCountdownSeconds = finishCountdownSeconds,
         onVoteToEnd = {
             scope.launch {
                 if (gameId != null && !gameState.hasVotedToEnd) {
@@ -167,6 +189,7 @@ fun GameScreen(gameState: GameState) {
 @Composable
 fun GameScreenContent(
     gameState: GameState,
+    finishCountdownSeconds: Int? = null,
     onVoteToEnd: () -> Unit = {},
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
@@ -179,7 +202,8 @@ fun GameScreenContent(
     val myPlayer = gameState.players.find { it.id == gameState.myPlayerId }
 
     Scaffold(containerColor = ColorBackground) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
             // Top bar: timer + player tabs (status only, not interactive)
             Surface(
@@ -340,7 +364,58 @@ fun GameScreenContent(
                     }
                 }
             }
+        } // end Column
+
+        // Finish countdown overlay
+        if (finishCountdownSeconds != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = ColorSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier.padding(32.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        AnimatedGradientText(
+                            text = "Alle Fotos gemacht!",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            gradientColors = GradientPrimary,
+                            durationMillis = 1500,
+                        )
+                        Text(
+                            "Spiel endet in",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ColorOnSurfaceVariant,
+                        )
+                        AnimatedGradientText(
+                            text = "$finishCountdownSeconds",
+                            style = MaterialTheme.typography.displayMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                            ),
+                            gradientColors = if (finishCountdownSeconds <= 10) GradientHot else GradientPrimary,
+                            durationMillis = 800,
+                        )
+                        Text(
+                            "Anderen Spielern noch Zeit lassen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
         }
+        } // end outer Box
     }
 }
 

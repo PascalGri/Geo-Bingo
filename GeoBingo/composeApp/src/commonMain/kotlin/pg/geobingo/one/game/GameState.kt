@@ -49,6 +49,7 @@ class GameState {
     var hasSubmittedCurrentCategory by mutableStateOf(false)
     var hasVotedToEnd by mutableStateOf(false)
     var endVoteCount by mutableStateOf(0)
+    var allCategoriesCaptured by mutableStateOf(false)
     var allVotes by mutableStateOf(listOf<VoteDto>())
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
@@ -85,11 +86,11 @@ class GameState {
         if (!isCaptured(playerId, categoryId)) {
             toggleCapture(playerId, categoryId)
         }
-        // End game if this player has now photographed every category
-        if (isGameRunning && selectedCategories.isNotEmpty()) {
+        // Signal countdown when this player has photographed every category
+        if (isGameRunning && selectedCategories.isNotEmpty() && !allCategoriesCaptured) {
             val playerPhotos2 = updated[playerId] ?: emptyMap()
             if (selectedCategories.all { it.id in playerPhotos2 }) {
-                endGame()
+                allCategoriesCaptured = true
             }
         }
     }
@@ -166,6 +167,7 @@ class GameState {
         allVotes = listOf()
         hasVotedToEnd = false
         endVoteCount = 0
+        allCategoriesCaptured = false
         gameId = null
         gameCode = null
         isHost = false
@@ -194,6 +196,7 @@ class GameState {
         allVotes = listOf()
         hasVotedToEnd = false
         endVoteCount = 0
+        allCategoriesCaptured = false
         // selectedCategories and gameDurationMinutes are intentionally kept for rematch
         currentScreen = Screen.LOBBY
     }
