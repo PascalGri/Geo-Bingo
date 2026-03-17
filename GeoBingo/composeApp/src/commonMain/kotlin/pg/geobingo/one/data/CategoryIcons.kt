@@ -6,85 +6,82 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     // ── Kleidung ──────────────────────────────────────────────────────────────
-    "pants"             -> Icons.Default.Checkroom          // Kleiderschrank / Garderobe
-    "jacket"            -> Icons.Default.DryCleaning        // Kleidungsstück an Bügel
-    "hat"               -> Icons.Default.School             // Absolventenmütze = Hutform
-    "sneaker"           -> Icons.Default.Hiking             // Schuh / Boot
+    "pants"             -> Icons.Default.Checkroom
+    "jacket"            -> Icons.Default.Checkroom
+    "hat"               -> Icons.Default.ChildCare
+    "sneaker"           -> Icons.Default.DirectionsWalk
     // ── Fahrzeuge ─────────────────────────────────────────────────────────────
     "car"               -> Icons.Default.DirectionsCar
-    "vehicle"           -> Icons.Default.DirectionsBus
-    "bicycle"           -> Icons.Default.DirectionsBike
-    "unusual_vehicle"   -> Icons.Default.ElectricScooter    // E-Scooter / ungewöhnliches Fahrzeug
+    "vehicle"           -> Icons.Default.ElectricScooter
+    "bicycle"           -> Icons.Default.PedalBike
     // ── Tiere ─────────────────────────────────────────────────────────────────
-    "animal"            -> Icons.Default.Pets               // Pfote
-    "dog_breed"         -> Icons.Default.Pets               // Pfote / Hund
-    "bird"              -> Icons.Default.Flight             // Flügel / Fliegen
+    "animal"            -> Icons.Default.Pets
+    "dog_breed"         -> Icons.Default.Pets
+    "bird"              -> Icons.Default.Flight
     // ── Natur ─────────────────────────────────────────────────────────────────
-    "nature"            -> Icons.Default.Eco                // Blatt / Natur
-    "tree"              -> Icons.Default.Park               // Baum / Park
+    "nature"            -> Icons.Default.Eco
+    "tree"              -> Icons.Default.Nature
     "water"             -> Icons.Default.Waves
-    "sky"               -> Icons.Default.WbCloudy
+    "sky"               -> Icons.Default.Cloud
     // ── Essen & Trinken ───────────────────────────────────────────────────────
-    "food"              -> Icons.Default.Fastfood           // Burger / Fastfood
-    "food_truck"        -> Icons.Default.DeliveryDining     // Lieferfahrzeug mit Essen
-    "cafe"              -> Icons.Default.LocalCafe
-    "street_food"       -> Icons.Default.OutdoorGrill       // Grill / Straßenessen
+    "food"              -> Icons.Default.Icecream
+    "food_truck"        -> Icons.Default.LocalShipping
+    "cafe"              -> Icons.Default.Fastfood
+    "street_food"       -> Icons.Default.House
     // ── Architektur ───────────────────────────────────────────────────────────
-    "building"          -> Icons.Default.AccountBalance     // Säulengebäude
-    "door"              -> Icons.Default.DoorFront          // Haustür
+    "building"          -> Icons.Default.AccountBalance
+    "door"              -> Icons.Default.Yard
     "window"            -> Icons.Default.Window
-    "balcony"           -> Icons.Default.Balcony            // Balkon
-    "arch"              -> Icons.Default.Architecture       // Architekturbogen
+    "balcony"           -> Icons.Default.Balcony
+    "arch"              -> Icons.Default.Architecture
     // ── Straßenkunst ─────────────────────────────────────────────────────────
-    "street_art"        -> Icons.Default.FormatPaint        // Farbroller / Graffiti
-    "mural"             -> Icons.Default.Brush              // Pinsel / Wandbild
-    "sculpture"         -> Icons.Default.ViewInAr            // 3D-Objekt / Skulptur
-    "pattern"           -> Icons.Default.Pattern            // Muster
+    "street_art"        -> Icons.Default.Casino
+    "mural"             -> Icons.Default.Extension
+    "sculpture"         -> Icons.Default.AssistantDirection
+    "pattern"           -> Icons.Default.Draw
     // ── Schilder ─────────────────────────────────────────────────────────────
-    "sign"              -> Icons.Default.Signpost           // Wegweiser / Schild
-    "funny_sign"        -> Icons.Default.EmojiEmotions      // Lachendes Gesicht / witziges Schild
+    "sign"              -> Icons.Default.Signpost
+    "funny_sign"        -> Icons.Default.EmojiEmotions
     "number"            -> Icons.Default.Tag
     // ── Reflexionen & Licht ───────────────────────────────────────────────────
-    "shadow"            -> Icons.Default.Tonality            // Helligkeitsverlauf / Schatten
-    "reflection"        -> Icons.Default.Flip               // Spiegelung
-    "light"             -> Icons.Default.Flare              // Lichtreflex / Sonnenstrahlen
+    "shadow"            -> Icons.Default.Tonality
+    "reflection"        -> Icons.Default.Flip
+    "light"             -> Icons.Default.SportsBasketball
     // ── Sport ─────────────────────────────────────────────────────────────────
-    "sport"             -> Icons.Default.DirectionsRun      // Laufender Mensch
-    "sport_field"       -> Icons.Default.SportsSoccer
-    "yoga_meditation"   -> Icons.Default.SelfImprovement
+    "sport"             -> Icons.Default.DirectionsRun
+    "sport_field"       -> Icons.Default.ElectricBolt
     // ── Technik ───────────────────────────────────────────────────────────────
-    "tech"              -> Icons.Default.Memory             // Chip / Schaltkreis
-    "smart_city"        -> Icons.Default.Sensors            // Sensorsignal
+    "tech"              -> Icons.Default.Memory
+    "smart_city"        -> Icons.Default.Sensors
     "construction"      -> Icons.Default.Construction
     // ── Stadtmöbel ───────────────────────────────────────────────────────────
-    "bench"             -> Icons.Default.Chair              // Stuhl / Bank
+    "bench"             -> Icons.Default.AirlineSeatReclineNormal
     "stairs"            -> Icons.Default.Stairs
-    "manhole"           -> Icons.Default.Lens               // Kreisform / Kanaldeckel
-    "mailbox"           -> Icons.Default.MarkunreadMailbox  // Briefkasten
+    "manhole"           -> Icons.Default.Visibility
+    "mailbox"           -> Icons.Default.MarkunreadMailbox
     "clock"             -> Icons.Default.Schedule
-    "lamp"              -> Icons.Default.Lightbulb
+    "lamp"              -> Icons.Default.LightbulbCircle
     // ── Menschen ─────────────────────────────────────────────────────────────
-    "people"            -> Icons.Default.Groups             // Personengruppe
-    "person_accessory"  -> Icons.Default.Watch               // Uhr / Accessoire
-    "musician"          -> Icons.Default.Piano              // Klavier / Musiker
-    "funny_pose"        -> Icons.Default.AccessibilityNew    // Person mit ausgebreiteten Armen = Pose
+    "people"            -> Icons.Default.Groups
+    "person_accessory"  -> Icons.Default.ChildCare
+    "musician"          -> Icons.Default.LibraryMusic
+    "funny_pose"        -> Icons.Default.AccessibilityNew
     "tourist"           -> Icons.Default.CameraAlt
     // ── Shops ─────────────────────────────────────────────────────────────────
-    "shop"              -> Icons.Default.Store
-    "market"            -> Icons.Default.ShoppingBasket     // Einkaufskorb / Markt
-    "vintage"           -> Icons.Default.Storefront
+    "shop"              -> Icons.Default.BakeryDining
+    "market"            -> Icons.Default.ShoppingBasket
     // ── Farbe & Form ─────────────────────────────────────────────────────────
-    "color_object"      -> Icons.Default.Palette            // Farbpalette
-    "colorful_scene"    -> Icons.Default.AutoAwesome        // Funkeln / bunt
-    "round"             -> Icons.Default.Circle
-    "triangle"          -> Icons.Default.ChangeHistory
+    "color_object"      -> Icons.Default.Palette
+    "colorful_scene"    -> Icons.Default.AutoAwesome
+    "round"             -> Icons.Default.ChangeCircle
+    "triangle"          -> Icons.Default.Roofing
     // ── Kultur ────────────────────────────────────────────────────────────────
-    "music"             -> Icons.Default.MusicNote
-    "culture"           -> Icons.Default.TheaterComedy
+    "music"             -> Icons.Default.Mic
+    "culture"           -> Icons.Default.Article
     // ── Kurioses ─────────────────────────────────────────────────────────────
     "weird"             -> Icons.Default.QuestionMark
-    "miniature"         -> Icons.Default.ZoomIn             // Vergrößerung / klein
-    "symmetry"          -> Icons.Default.Flip               // Spiegelung / Symmetrie
+    "miniature"         -> Icons.Default.ZoomIn
+    "symmetry"          -> Icons.Default.Flip
     // ── Legacy IDs ────────────────────────────────────────────────────────────
     "flower"            -> Icons.Default.LocalFlorist
     "coffee"            -> Icons.Default.LocalCafe
@@ -98,4 +95,10 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "yellow"            -> Icons.Default.Circle
     "round_obj"         -> Icons.Default.Circle
     else                -> Icons.Default.PhotoCamera
+}
+
+/** Returns rotation in degrees to apply when rendering this category's icon. */
+fun getCategoryIconRotation(categoryId: String): Float = when (categoryId) {
+    "funny_pose" -> 180f
+    else -> 0f
 }

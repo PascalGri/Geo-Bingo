@@ -47,10 +47,6 @@ private val CATEGORY_TEMPLATES = listOf(
         "Fahrrad mit Anhänger", "Retro-Fahrrad", "Tandem-Fahrrad",
         "Fahrrad mit vollem Korb",
     )),
-    CategoryTemplate("unusual_vehicle", "🛺", listOf(
-        "Rikscha", "Segway-Tour-Gruppe", "Pferdekutsche",
-        "Milchwagen / Lieferdreirad", "Golf-Caddy auf Straße", "Ampelmännchen-Auto",
-    )),
 
     // ── Tiere ─────────────────────────────────────────────────────────────────
     CategoryTemplate("animal", "🐾", listOf(
@@ -190,11 +186,6 @@ private val CATEGORY_TEMPLATES = listOf(
         "Tischtennis-Platte im Freien", "Boule-Spieler", "Skateboard-Park",
         "Fußball-Cage im Stadtviertel",
     )),
-    CategoryTemplate("yoga_meditation", "🧘", listOf(
-        "Yoga-Gruppe im Park", "Person meditierend auf Bank",
-        "Tai-Chi-Gruppe früh morgens", "Stretching vor dem Joggen",
-        "Person mit Foam Roller", "Bewegungsgruppe für Senioren",
-    )),
 
     // ── Technik & Modern ──────────────────────────────────────────────────────
     CategoryTemplate("tech", "⚡", listOf(
@@ -275,11 +266,6 @@ private val CATEGORY_TEMPLATES = listOf(
         "Wochenmarkt-Stand", "Flohmarkt-Tisch", "Blumenmarkt",
         "Obstmarkt mit Farbenvielfalt", "Antiquitäten-Stand",
         "Second-Hand-Kleiderstand",
-    )),
-    CategoryTemplate("vintage", "🎪", listOf(
-        "Retro-Schaufenster", "Vintage-Poster an Wand",
-        "Altes Telefonhäuschen", "70er-Jahre-Wohnmobil",
-        "Nostalgisches Reklame-Schild", "Antikshop-Auslage",
     )),
 
     // ── Farbobjekte ───────────────────────────────────────────────────────────

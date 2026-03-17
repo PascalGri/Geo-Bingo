@@ -172,6 +172,28 @@ object GameRepository {
     suspend fun getCaptures(gameId: String): List<CaptureDto> =
         supabase.from("captures").select { filter { eq("game_id", gameId) } }.decodeList()
 
+    suspend fun submitStepVote(
+        gameId: String,
+        voterId: String,
+        targetPlayerId: String,
+        categoryId: String,
+        stepKey: String,
+        approved: Boolean,
+    ) {
+        supabase.from("votes").insert(
+            VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, approved = approved)
+        )
+        supabase.from("vote_submissions").insert(
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
+        )
+    }
+
+    suspend fun submitStepSubmission(gameId: String, voterId: String, stepKey: String) {
+        supabase.from("vote_submissions").insert(
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
+        )
+    }
+
     suspend fun submitCategoryVotes(gameId: String, voterId: String, categoryId: String, votes: List<Pair<String, Boolean>>) {
         if (votes.isNotEmpty()) {
             val dtos = votes.map { (targetId, approved) ->

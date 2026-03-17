@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -226,7 +227,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     Icon(
                                         imageVector = getCategoryIcon(cat.id),
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(16.dp).rotate(getCategoryIconRotation(cat.id)),
                                         tint = ColorPrimary,
                                     )
                                     Spacer(Modifier.width(8.dp))
@@ -392,7 +393,7 @@ private fun DarkCategorySelectCard(
                     imageVector = getCategoryIcon(category.id),
                     contentDescription = null,
                     tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(32.dp).rotate(getCategoryIconRotation(category.id)),
                 )
             },
             title = {
@@ -455,7 +456,7 @@ private fun DarkCategorySelectCard(
             Icon(
                 imageVector = getCategoryIcon(category.id),
                 contentDescription = category.name,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
                 tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
             )
             Spacer(Modifier.height(4.dp))

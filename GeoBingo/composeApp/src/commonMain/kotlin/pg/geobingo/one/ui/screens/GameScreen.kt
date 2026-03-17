@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -33,6 +34,7 @@ import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.getCategoryIcon
+import pg.geobingo.one.data.getCategoryIconRotation
 import pg.geobingo.one.game.*
 import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
@@ -368,7 +370,7 @@ private fun DarkBingoCategoryCard(
                     imageVector = getCategoryIcon(category.id),
                     contentDescription = null,
                     tint = if (isCaptured) playerColor else ColorOnSurfaceVariant,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(32.dp).rotate(getCategoryIconRotation(category.id)),
                 )
             },
             title = {
@@ -445,7 +447,7 @@ private fun DarkBingoCategoryCard(
                     Icon(
                         imageVector = getCategoryIcon(category.id),
                         contentDescription = category.name,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(28.dp).rotate(getCategoryIconRotation(category.id)),
                         tint = if (isCaptured) playerColor else ColorOnSurfaceVariant,
                     )
                 }
