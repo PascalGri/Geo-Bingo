@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -347,6 +348,7 @@ private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, 
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DarkBingoCategoryCard(
     category: Category,

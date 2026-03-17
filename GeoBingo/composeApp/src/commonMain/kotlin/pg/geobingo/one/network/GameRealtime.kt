@@ -1,11 +1,11 @@
 package pg.geobingo.one.network
 
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 
 class GameRealtimeManager(private val gameId: String) {
@@ -16,7 +16,7 @@ class GameRealtimeManager(private val gameId: String) {
     val gameUpdates: Flow<GameDto> =
         channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
             table = "games"
-            filter = "id=eq.$gameId"
+            filter("id", FilterOperator.EQ, gameId)
         }
         .map { it.decodeRecord<GameDto>() }
 
@@ -24,7 +24,7 @@ class GameRealtimeManager(private val gameId: String) {
     val playerInserts: Flow<PlayerDto> =
         channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "players"
-            filter = "game_id=eq.$gameId"
+            filter("game_id", FilterOperator.EQ, gameId)
         }
         .map { it.decodeRecord<PlayerDto>() }
 
@@ -32,7 +32,7 @@ class GameRealtimeManager(private val gameId: String) {
     val captureInserts: Flow<CaptureDto> =
         channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "captures"
-            filter = "game_id=eq.$gameId"
+            filter("game_id", FilterOperator.EQ, gameId)
         }
         .map { it.decodeRecord<CaptureDto>() }
 

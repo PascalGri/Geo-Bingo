@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -372,6 +373,7 @@ private fun DarkSectionCard(title: String, content: @Composable ColumnScope.() -
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DarkCategorySelectCard(
     category: Category,
