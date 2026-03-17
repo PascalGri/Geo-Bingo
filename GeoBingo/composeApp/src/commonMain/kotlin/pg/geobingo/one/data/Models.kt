@@ -5,7 +5,8 @@ import androidx.compose.ui.graphics.Color
 data class Player(
     val id: String,
     val name: String,
-    val color: Color
+    val color: Color,
+    val avatar: String = "" // emoji character or empty → falls back to first letter
 )
 
 data class Category(

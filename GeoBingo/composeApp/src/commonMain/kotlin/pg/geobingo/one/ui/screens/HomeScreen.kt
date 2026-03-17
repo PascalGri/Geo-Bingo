@@ -169,19 +169,37 @@ fun HomeScreen(gameState: GameState) {
 
             Spacer(Modifier.height(12.dp))
 
-            TextButton(onClick = { gameState.currentScreen = Screen.HOW_TO_PLAY }) {
-                Icon(
-                    Icons.Default.HelpOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.width(5.dp))
-                Text(
-                    "Wie funktioniert's?",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ColorOnSurfaceVariant,
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { gameState.currentScreen = Screen.HOW_TO_PLAY }) {
+                    Icon(
+                        Icons.Default.HelpOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = ColorOnSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        "Wie funktioniert's?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                }
+                if (gameState.gameHistory.isNotEmpty()) {
+                    TextButton(onClick = { gameState.currentScreen = Screen.HISTORY }) {
+                        Icon(
+                            Icons.Default.History,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = ColorOnSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            "Verlauf",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             Text("KatchIt! v1.0", style = MaterialTheme.typography.bodySmall, color = ColorOutline)

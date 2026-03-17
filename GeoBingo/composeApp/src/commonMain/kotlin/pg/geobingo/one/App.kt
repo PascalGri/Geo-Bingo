@@ -21,6 +21,7 @@ fun App() {
             Screen.GAME -> GameScreen(gameState)
             Screen.REVIEW -> ReviewScreen(gameState)
             Screen.RESULTS -> ResultsScreen(gameState)
+            Screen.HISTORY -> HistoryScreen(gameState)
         }
     }
 }

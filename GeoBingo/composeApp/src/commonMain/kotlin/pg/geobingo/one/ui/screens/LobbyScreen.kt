@@ -28,6 +28,7 @@ import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -290,7 +291,10 @@ fun LobbyScreen(gameState: GameState) {
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "${gameState.selectedCategories.size} Kategorien · ${gameState.gameDurationMinutes} Min.",
+                            buildString {
+                                append("${gameState.selectedCategories.size} Kategorien · ${gameState.gameDurationMinutes} Min.")
+                                if (gameState.jokerMode) append(" · 🃏 Joker-Modus")
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = ColorOnSurfaceVariant,
                         )
@@ -365,20 +369,13 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    player.name.take(1).uppercase(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                )
-            }
+            PlayerAvatarViewRaw(
+                name = player.name,
+                color = color,
+                avatar = player.avatar,
+                size = 40.dp,
+                fontSize = 16.sp,
+            )
             Spacer(Modifier.width(12.dp))
             Text(
                 player.name,

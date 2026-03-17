@@ -41,6 +41,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.PlayerAvatarView
 
 @Composable
 fun GameScreen(gameState: GameState) {
@@ -49,18 +50,93 @@ fun GameScreen(gameState: GameState) {
 
     var photoTargetPlayerId by remember { mutableStateOf("") }
     var photoTargetCategoryId by remember { mutableStateOf("") }
+    var jokerDialogVisible by remember { mutableStateOf(false) }
+    var jokerLabelInput by remember { mutableStateOf("") }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             gameState.addPhoto(photoTargetPlayerId, photoTargetCategoryId, bytes)
             val pid = photoTargetPlayerId
             val cid = photoTargetCategoryId
+            val isJoker = cid.startsWith("joker_")
             if (gameId != null) {
                 scope.launch {
-                    try { GameRepository.recordCapture(gameId, pid, cid, bytes) } catch (_: Exception) {}
+                    try {
+                        GameRepository.recordCapture(gameId, pid, cid, bytes)
+                        if (isJoker) GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
+                    } catch (_: Exception) {}
                 }
             }
+            if (isJoker) gameState.myJokerUsed = true
         }
+    }
+
+    if (jokerDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { jokerDialogVisible = false },
+            containerColor = ColorSurface,
+            title = {
+                Text(
+                    "🃏 Joker verwenden",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorOnSurface,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Gib ein Thema für dein Joker-Foto ein:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = jokerLabelInput,
+                        onValueChange = { if (it.length <= 40) jokerLabelInput = it },
+                        placeholder = { Text("z.B. Rote Tür", color = ColorOnSurfaceVariant) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ColorPrimary,
+                            unfocusedBorderColor = ColorOutline,
+                            focusedTextColor = ColorOnSurface,
+                            unfocusedTextColor = ColorOnSurface,
+                            cursorColor = ColorPrimary,
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                GradientButton(
+                    text = "Foto machen",
+                    onClick = {
+                        jokerDialogVisible = false
+                        val myId = gameState.myPlayerId ?: return@GradientButton
+                        photoTargetPlayerId = myId
+                        photoTargetCategoryId = "joker_$myId"
+                        // Add a virtual joker category so it shows in the grid
+                        val label = jokerLabelInput.trim().ifEmpty { "Joker" }
+                        jokerLabelInput = label
+                        val existingJoker = gameState.selectedCategories.find { it.id == "joker_$myId" }
+                        if (existingJoker == null) {
+                            gameState.selectedCategories = gameState.selectedCategories + Category(
+                                id = "joker_$myId",
+                                name = "🃏 $label",
+                                emoji = "joker",
+                            )
+                        }
+                        photoCapturer.launch()
+                    },
+                    enabled = jokerLabelInput.trim().isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { jokerDialogVisible = false }) {
+                    Text("Abbrechen")
+                }
+            },
+        )
     }
 
     val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it) } }
@@ -120,7 +196,10 @@ fun GameScreen(gameState: GameState) {
                         }
                     } catch (_: Exception) {}
                 }
-            } catch (_: Exception) {}
+                gameState.consecutiveNetworkErrors = 0
+            } catch (_: Exception) {
+                gameState.consecutiveNetworkErrors++
+            }
         }
     }
 
@@ -170,6 +249,7 @@ fun GameScreen(gameState: GameState) {
     GameScreenContent(
         gameState = gameState,
         finishCountdownSeconds = finishCountdownSeconds,
+        onJokerClick = { jokerDialogVisible = true },
         onVoteToEnd = {
             scope.launch {
                 if (gameId != null && !gameState.hasVotedToEnd) {
@@ -202,6 +282,7 @@ fun GameScreen(gameState: GameState) {
 fun GameScreenContent(
     gameState: GameState,
     finishCountdownSeconds: Int? = null,
+    onJokerClick: () -> Unit = {},
     onVoteToEnd: () -> Unit = {},
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
@@ -274,6 +355,23 @@ fun GameScreenContent(
                 }
             }
 
+            // Offline banner
+            if (gameState.consecutiveNetworkErrors >= 3) {
+                Surface(modifier = Modifier.fillMaxWidth(), color = ColorError.copy(alpha = 0.15f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            "Keine Verbindung – versuche erneut zu verbinden…",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorError,
+                        )
+                    }
+                }
+            }
+
             // Finish signal banner for players who haven't finished yet
             if (gameState.finishSignalDetected && !gameState.allCategoriesCaptured) {
                 Surface(
@@ -307,20 +405,7 @@ fun GameScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(myPlayer.color),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                myPlayer.name.take(1).uppercase(),
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
+                        PlayerAvatarView(player = myPlayer, size = 32.dp, fontSize = 13.sp)
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
@@ -337,7 +422,22 @@ fun GameScreenContent(
                             )
                         }
                     }
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (gameState.jokerMode && !gameState.myJokerUsed) {
+                            OutlinedButton(
+                                onClick = onJokerClick,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                                border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.6f)),
+                                shape = RoundedCornerShape(20.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            ) {
+                                Text(
+                                    "🃏 Joker",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = ColorPrimary,
+                                )
+                            }
+                        }
                         OutlinedButton(
                             onClick = onVoteToEnd,
                             enabled = !gameState.hasVotedToEnd,
@@ -475,15 +575,7 @@ private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(player.color),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(player.name.take(1).uppercase(), color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            }
+            PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp)
             Spacer(Modifier.width(5.dp))
             Text(
                 player.name,

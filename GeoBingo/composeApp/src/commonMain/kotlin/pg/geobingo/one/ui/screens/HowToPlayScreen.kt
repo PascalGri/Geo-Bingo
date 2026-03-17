@@ -1,5 +1,6 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -97,6 +98,32 @@ fun HowToPlayScreen(gameState: GameState) {
                 title = "Sieger küren",
                 body = "Wer die meisten Votes sammelt, gewinnt. Am Ende seht ihr das Ranking aller Spieler und die besten Bilder der Runde.",
             )
+
+            // Speed bonus info card
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF1A1A2E),
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, Color(0xFFFBBF24).copy(alpha = 0.4f)),
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("⚡", fontSize = 18.sp)
+                        Text(
+                            "Schnelligkeitsbonus",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFBBF24),
+                        )
+                    }
+                    Text(
+                        "Wer als Erster eine Kategorie fotografiert, bekommt automatisch +1 Bonuspunkt – zusätzlich zu den Abstimmungspunkten. Schnell sein lohnt sich!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFBBF24).copy(alpha = 0.85f),
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
 
             // Tips box
             Spacer(Modifier.height(4.dp))

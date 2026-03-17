@@ -33,6 +33,8 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun CreateGameScreen(gameState: GameState) {
     var hostNameInput by remember { mutableStateOf("") }
+    var selectedAvatar by remember { mutableStateOf("") }
+    var jokerMode by remember { mutableStateOf(false) }
     var customNameInput by remember { mutableStateOf("") }
     var customCategories by remember { mutableStateOf(listOf<Category>()) }
     var customCategoryCounter by remember { mutableStateOf(0) }
@@ -90,15 +92,17 @@ fun CreateGameScreen(gameState: GameState) {
                                     val presets = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
                                     val allCategories = customCategories + presets
                                     val code = generateCode()
-                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60)
+                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
+                                    if (selectedAvatar.isNotEmpty()) GameRepository.setPlayerAvatar(hostDto.id, selectedAvatar)
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
                                     gameState.gameId = game.id
                                     gameState.gameCode = game.code
                                     gameState.isHost = true
                                     gameState.myPlayerId = hostDto.id
                                     gameState.gameDurationMinutes = durationMinutes.toInt()
+                                    gameState.jokerMode = jokerMode
                                     gameState.selectedCategories = categoryDtos.map { it.toCategory() }
                                     gameState.lobbyPlayers = listOf(hostDto)
                                     gameState.currentScreen = Screen.LOBBY
@@ -129,8 +133,8 @@ fun CreateGameScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // ── 1. Name ──────────────────────────────────────────────────────
-            DarkSectionCard(title = "Name") {
+            // ── 1. Name & Avatar ─────────────────────────────────────────────
+            DarkSectionCard(title = "Name & Avatar") {
                 OutlinedTextField(
                     value = hostNameInput,
                     onValueChange = { if (it.length <= 20) hostNameInput = it },
@@ -149,6 +153,14 @@ fun CreateGameScreen(gameState: GameState) {
                     ),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
                 )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Emoji-Avatar wählen (optional)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(6.dp))
+                AvatarEmojiPicker(selected = selectedAvatar, onSelect = { selectedAvatar = it })
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Andere Spieler treten über einen Code bei.",
@@ -325,6 +337,28 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
+            // ── Speed Bonus Hinweis ───────────────────────────────────────────
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF1A1A2E),
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, Color(0xFFFBBF24).copy(alpha = 0.35f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text("⚡", fontSize = 16.sp)
+                    Text(
+                        "Wer eine Kategorie als Erster fotografiert, bekommt +1 Schnelligkeitsbonus.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFBBF24).copy(alpha = 0.85f),
+                        lineHeight = 17.sp,
+                    )
+                }
+            }
+
             // ── 3. Spielzeit ─────────────────────────────────────────────────
             DarkSectionCard(title = "Spielzeit  ·  ${durationMinutes.toInt()} Min.") {
                 Slider(
@@ -347,7 +381,95 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
+            // ── 4. Joker-Modus ───────────────────────────────────────────────
+            DarkSectionCard(title = "Optionen") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "🃏 Joker-Modus",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ColorOnSurface,
+                        )
+                        Text(
+                            "Jeder Spieler darf einmal ein Wildcard-Foto machen – mit eigenem Thema.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                            lineHeight = 16.sp,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(
+                        checked = jokerMode,
+                        onCheckedChange = { jokerMode = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = ColorPrimary,
+                            uncheckedThumbColor = ColorOnSurfaceVariant,
+                            uncheckedTrackColor = ColorSurfaceVariant,
+                        ),
+                    )
+                }
+                if (jokerMode) {
+                    Spacer(Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = ColorPrimaryContainer,
+                        border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f)),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("💡", fontSize = 14.sp)
+                            Text(
+                                "Spieler tippen auf den 🃏 Button, geben ein Thema ein und machen ein Foto. Das Joker-Bild wird ganz normal abgestimmt.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorOnPrimaryContainer,
+                                lineHeight = 16.sp,
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+private val AVATAR_EMOJIS = listOf(
+    "🦁", "🐼", "🦊", "🐨", "🐯", "🦝", "🐸", "🦄",
+    "🐙", "🦋", "🐺", "🦉", "🐧", "🦖", "🐲", "🤖",
+)
+
+@Composable
+fun AvatarEmojiPicker(selected: String, onSelect: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        AVATAR_EMOJIS.chunked(8).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                row.forEach { emoji ->
+                    val isSelected = emoji == selected
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) ColorPrimaryContainer else ColorSurfaceVariant)
+                            .then(if (isSelected) Modifier.border(1.5.dp, ColorPrimary, RoundedCornerShape(10.dp)) else Modifier)
+                            .clickable { onSelect(if (isSelected) "" else emoji) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, fontSize = 20.sp)
+                    }
+                }
+            }
         }
     }
 }

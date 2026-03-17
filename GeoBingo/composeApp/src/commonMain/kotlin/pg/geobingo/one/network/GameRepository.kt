@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.Serializable
+import pg.geobingo.one.data.CATEGORY_DESCRIPTIONS
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.PLAYER_COLORS
@@ -16,7 +17,8 @@ data class GameDto(
     val code: String = "",
     val status: String = "lobby",
     val duration_s: Int = 300,
-    val review_category_index: Int = 0
+    val review_category_index: Int = 0,
+    val joker_mode: Boolean = false
 )
 
 @Serializable
@@ -25,7 +27,8 @@ data class CaptureDto(
     val game_id: String = "",
     val player_id: String = "",
     val category_id: String = "",
-    val photo_url: String = ""
+    val photo_url: String = "",
+    val created_at: String = ""
 )
 
 @Serializable
@@ -48,18 +51,28 @@ private data class VoteInsertDto(val game_id: String, val voter_id: String, val 
 private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: String, val category_id: String)
 
 @Serializable
-private data class GameInsertDto(val code: String, val duration_s: Int)
+private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false)
+
+@Serializable
+data class JokerLabelDto(val game_id: String = "", val player_id: String = "", val label: String = "")
+
+@Serializable
+private data class JokerLabelInsertDto(val game_id: String, val player_id: String, val label: String)
 
 @Serializable
 data class PlayerDto(
     val id: String = "",
     val game_id: String = "",
     val name: String = "",
-    val color: String = ""
+    val color: String = "",
+    val avatar: String = ""
 )
 
 @Serializable
 private data class PlayerInsertDto(val game_id: String, val name: String, val color: String)
+
+@Serializable
+private data class PlayerAvatarUpdateDto(val avatar: String)
 
 @Serializable
 data class CategoryDto(
@@ -76,13 +89,15 @@ private data class CategoryInsertDto(val game_id: String, val label: String, val
 fun PlayerDto.toPlayer(): Player = Player(
     id = id,
     name = name,
-    color = parseHexColor(color)
+    color = parseHexColor(color),
+    avatar = avatar
 )
 
 fun CategoryDto.toCategory(): Category = Category(
     id = id,
     name = label,
-    emoji = icon_id
+    emoji = icon_id,
+    description = CATEGORY_DESCRIPTIONS[icon_id] ?: ""
 )
 
 fun Color.toHex(): String {
@@ -115,15 +130,33 @@ object VoteKeys {
 
 object GameRepository {
 
-    suspend fun createGame(code: String, durationSeconds: Int): GameDto =
+    suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false): GameDto =
         supabase.from("games").insert(
-            GameInsertDto(code = code, duration_s = durationSeconds)
+            GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode)
         ) { select() }.decodeSingle()
+
+    suspend fun setJokerLabel(gameId: String, playerId: String, label: String) {
+        supabase.from("joker_labels").insert(JokerLabelInsertDto(game_id = gameId, player_id = playerId, label = label))
+    }
+
+    suspend fun getJokerLabels(gameId: String): Map<String, String> =
+        supabase.from("joker_labels")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList<JokerLabelDto>()
+            .associate { it.player_id to it.label }
 
     suspend fun addPlayer(gameId: String, name: String, color: String): PlayerDto =
         supabase.from("players").insert(
             PlayerInsertDto(game_id = gameId, name = name, color = color)
         ) { select() }.decodeSingle()
+
+    suspend fun setPlayerAvatar(playerId: String, avatar: String) {
+        try {
+            supabase.from("players").update({ set("avatar", avatar) }) {
+                filter { eq("id", playerId) }
+            }
+        } catch (_: Exception) {} // Graceful: column may not exist yet
+    }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
         val dtos = categories.mapIndexed { i, cat ->

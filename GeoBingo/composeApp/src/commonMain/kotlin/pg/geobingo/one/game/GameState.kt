@@ -7,8 +7,17 @@ import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.VoteDto
 
 enum class Screen {
-    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS
+    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS, HISTORY
 }
+
+data class GameHistoryEntry(
+    val gameCode: String,
+    val playerName: String,
+    val score: Int,
+    val totalCategories: Int,
+    val players: List<Pair<String, Int>>, // name to score
+    val jokerMode: Boolean,
+)
 
 class GameState {
     var currentScreen by mutableStateOf(Screen.HOME)
@@ -53,8 +62,19 @@ class GameState {
     var finishSignalDetected by mutableStateOf(false)
     var allVotes by mutableStateOf(listOf<VoteDto>())
 
+    // Joker mode
+    var jokerMode by mutableStateOf(false)
+    var myJokerUsed by mutableStateOf(false)
+    var jokerLabels by mutableStateOf(mapOf<String, String>()) // playerId → custom label
+
     // One-shot message shown on the next screen (e.g. "Lobby was closed")
     var pendingToast by mutableStateOf<String?>(null)
+
+    // In-memory game history (persists within app session)
+    var gameHistory by mutableStateOf(listOf<GameHistoryEntry>())
+
+    // Offline detection: number of consecutive poll failures
+    var consecutiveNetworkErrors by mutableStateOf(0)
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
@@ -126,22 +146,41 @@ class GameState {
         return v.count { it } > v.size / 2
     }
 
+    // Returns the playerId who captured each categoryId first (based on created_at)
+    fun getFirstCapturers(): Map<String, String> {
+        if (allCaptures.isEmpty()) return emptyMap()
+        return selectedCategories.mapNotNull { category ->
+            val first = allCaptures
+                .filter { it.category_id == category.id && it.created_at.isNotEmpty() }
+                .minByOrNull { it.created_at }
+            if (first != null) category.id to first.player_id else null
+        }.toMap()
+    }
+
+    fun getSpeedBonusCount(playerId: String): Int {
+        val firstCapturers = getFirstCapturers()
+        return firstCapturers.values.count { it == playerId }
+    }
+
     fun getPlayerScore(playerId: String): Int {
+        val baseScore: Int
         // If we have server votes, use them
         if (allVotes.isNotEmpty()) {
-            return selectedCategories.count { category ->
+            baseScore = selectedCategories.count { category ->
                 val capturesForPlayer = allCaptures.filter { it.player_id == playerId && it.category_id == category.id }
                 if (capturesForPlayer.isEmpty()) return@count false
                 val votesForThis = allVotes.filter { it.target_player_id == playerId && it.category_id == category.id }
                 if (votesForThis.isEmpty()) return@count true // no votes = approved by default
                 votesForThis.count { it.approved } > votesForThis.size / 2
             }
+        } else {
+            // Fallback: local votes
+            baseScore = selectedCategories.count { category ->
+                if (!isCaptured(playerId, category.id)) return@count false
+                getVoteResult(playerId, category.id) ?: true
+            }
         }
-        // Fallback: local votes
-        return selectedCategories.count { category ->
-            if (!isCaptured(playerId, category.id)) return@count false
-            getVoteResult(playerId, category.id) ?: true
-        }
+        return baseScore + getSpeedBonusCount(playerId)
     }
 
     fun getPlayerCaptures(playerId: String): List<Category> {
@@ -151,6 +190,20 @@ class GameState {
 
     fun getRankedPlayers(): List<Pair<Player, Int>> =
         players.map { it to getPlayerScore(it.id) }.sortedByDescending { it.second }
+
+    fun saveToHistory() {
+        val myId = myPlayerId ?: return
+        val myPlayer = players.find { it.id == myId } ?: return
+        val entry = GameHistoryEntry(
+            gameCode = gameCode ?: "?",
+            playerName = myPlayer.name,
+            score = getPlayerScore(myId),
+            totalCategories = selectedCategories.size,
+            players = getRankedPlayers().map { (p, s) -> p.name to s },
+            jokerMode = jokerMode,
+        )
+        gameHistory = listOf(entry) + gameHistory
+    }
 
     private fun clearGameplayState() {
         players = listOf()
@@ -171,6 +224,9 @@ class GameState {
         endVoteCount = 0
         allCategoriesCaptured = false
         finishSignalDetected = false
+        myJokerUsed = false
+        jokerLabels = mapOf()
+        consecutiveNetworkErrors = 0
     }
 
     fun resetGame() {
@@ -181,6 +237,7 @@ class GameState {
         gameCode = null
         isHost = false
         myPlayerId = null
+        jokerMode = false
         currentScreen = Screen.HOME
     }
 

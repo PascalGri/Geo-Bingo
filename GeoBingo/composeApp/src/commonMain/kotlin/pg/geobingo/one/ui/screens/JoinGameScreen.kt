@@ -26,12 +26,14 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.ui.theme.*
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JoinGameScreen(gameState: GameState) {
     var codeInput by remember { mutableStateOf("") }
     var nameInput by remember { mutableStateOf("") }
+    var selectedAvatar by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -167,6 +169,15 @@ fun JoinGameScreen(gameState: GameState) {
                 },
             )
 
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Emoji-Avatar wählen (optional)",
+                style = MaterialTheme.typography.labelSmall,
+                color = ColorOnSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            AvatarEmojiPicker(selected = selectedAvatar, onSelect = { selectedAvatar = it })
+
             if (errorMessage != null) {
                 Spacer(Modifier.height(12.dp))
                 Surface(
@@ -200,6 +211,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 val colorIndex = (0..7).random()
                                 val color = PLAYER_COLORS[colorIndex].toHex()
                                 val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color)
+                                if (selectedAvatar.isNotEmpty()) GameRepository.setPlayerAvatar(playerDto.id, selectedAvatar)
                                 val players = GameRepository.getPlayers(game.id)
                                 val categories = GameRepository.getCategories(game.id)
                                 gameState.gameId = game.id
@@ -207,6 +219,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 gameState.isHost = false
                                 gameState.myPlayerId = playerDto.id
                                 gameState.gameDurationMinutes = game.duration_s / 60
+                                gameState.jokerMode = game.joker_mode
                                 gameState.selectedCategories = categories.map { it.toCategory() }
                                 gameState.lobbyPlayers = players
                                 gameState.currentScreen = Screen.LOBBY

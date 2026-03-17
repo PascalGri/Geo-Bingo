@@ -47,6 +47,26 @@ fun ReviewScreen(gameState: GameState) {
 
     val realtime = remember(gameId) { GameRealtimeManager(gameId) }
 
+    // On first load: fetch joker labels and append virtual joker categories
+    LaunchedEffect(gameId) {
+        if (gameState.jokerMode) {
+            try {
+                val labels = GameRepository.getJokerLabels(gameId)
+                gameState.jokerLabels = labels
+                val jokerCats = labels.entries.map { (playerId, label) ->
+                    Category(
+                        id = "joker_$playerId",
+                        name = "🃏 $label",
+                        emoji = "joker",
+                    )
+                }.filter { jokerCat -> gameState.selectedCategories.none { it.id == jokerCat.id } }
+                if (jokerCats.isNotEmpty()) {
+                    gameState.selectedCategories = gameState.selectedCategories + jokerCats
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     // Re-fetch captures on each step change (catches late uploads / timing issues)
     var stepCapturesLoading by remember { mutableStateOf(true) }
     LaunchedEffect(gameState.reviewCategoryIndex) {
@@ -86,7 +106,10 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.allVotes = GameRepository.getVotes(gameId)
                     gameState.currentScreen = Screen.RESULTS
                 }
-            } catch (_: Exception) {}
+                gameState.consecutiveNetworkErrors = 0
+            } catch (_: Exception) {
+                gameState.consecutiveNetworkErrors++
+            }
         }
     }
 
@@ -150,6 +173,7 @@ fun ReviewScreen(gameState: GameState) {
                 playerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 isHost = gameState.isHost,
+                isOffline = gameState.consecutiveNetworkErrors >= 3,
                 onReadyToAdvance = { scope.launch { advanceStep() } },
                 onForceAdvance = {
                     scope.launch {
@@ -531,6 +555,7 @@ private fun DarkWaitingScreen(
     playerIndex: Int,
     totalPlayers: Int,
     isHost: Boolean,
+    isOffline: Boolean = false,
     onReadyToAdvance: () -> Unit,
     onForceAdvance: () -> Unit,
 ) {
@@ -551,11 +576,22 @@ private fun DarkWaitingScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(ColorBackground),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(ColorBackground)) {
+        if (isOffline) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = ColorError.copy(alpha = 0.15f),
+            ) {
+                Text(
+                    "Keine Verbindung – versuche erneut zu verbinden…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorError,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+            }
+        }
         Column(
+            modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

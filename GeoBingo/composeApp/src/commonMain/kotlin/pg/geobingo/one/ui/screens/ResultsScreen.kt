@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Download
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.*
@@ -31,8 +32,10 @@ import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.saveImageToDevice
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.PlayerAvatarView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +43,9 @@ fun ResultsScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     val ranked = gameState.getRankedPlayers()
     val winner = ranked.firstOrNull()?.first
+
+    // Save to history once on entry
+    LaunchedEffect(Unit) { gameState.saveToHistory() }
 
     Scaffold(
         topBar = {
@@ -175,6 +181,7 @@ fun ResultsScreen(gameState: GameState) {
                 )
                 ranked.forEachIndexed { index, (player, score) ->
                     val capturedCount = gameState.allCaptures.count { it.player_id == player.id }
+                    val speedBonus = gameState.getSpeedBonusCount(player.id)
                     DarkRankCard(
                         rank = index + 1,
                         player = player,
@@ -183,6 +190,7 @@ fun ResultsScreen(gameState: GameState) {
                         totalCategories = gameState.selectedCategories.size,
                         captures = gameState.getPlayerCaptures(player.id).map { it.name },
                         isWinner = index == 0,
+                        speedBonus = speedBonus,
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -260,15 +268,7 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>) {
                     },
                 )
                 Spacer(Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(player.color),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(player.name.take(1).uppercase(), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
+                PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     player.name,
@@ -311,6 +311,7 @@ private fun DarkRankCard(
     totalCategories: Int,
     captures: List<String>,
     isWinner: Boolean,
+    speedBonus: Int = 0,
 ) {
     val cardBg = if (isWinner) ColorPrimaryContainer else ColorSurface
     val borderColor = if (isWinner) ColorPrimary.copy(alpha = 0.5f) else ColorOutlineVariant
@@ -352,12 +353,7 @@ private fun DarkRankCard(
             Spacer(Modifier.width(10.dp))
 
             // Avatar
-            Box(
-                modifier = Modifier.size(38.dp).clip(CircleShape).background(player.color),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(player.name.take(1).uppercase(), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            }
+            PlayerAvatarView(player = player, size = 38.dp, fontSize = 15.sp)
 
             Spacer(Modifier.width(10.dp))
 
@@ -398,6 +394,13 @@ private fun DarkRankCard(
                         color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
+                if (speedBonus > 0) {
+                    Text(
+                        "⚡ +$speedBonus schnell",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFBBF24),
+                    )
+                }
             }
         }
     }
@@ -412,12 +415,16 @@ private fun GalleryPhotoItem(
     categories: List<Category>,
 ) {
     var photo by remember(capture.id) { mutableStateOf<ImageBitmap?>(null) }
+    var photoBytes by remember(capture.id) { mutableStateOf<ByteArray?>(null) }
     var loading by remember(capture.id) { mutableStateOf(true) }
     var showFullscreen by remember { mutableStateOf(false) }
+    var saveSuccess by remember { mutableStateOf<Boolean?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(capture.id) {
         loading = true
         val bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
+        photoBytes = bytes
         photo = bytes?.toImageBitmap()
         loading = false
     }
@@ -451,7 +458,22 @@ private fun GalleryPhotoItem(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFullscreen = false }) { Text("Schließen") }
+                Row {
+                    if (photoBytes != null) {
+                        TextButton(onClick = {
+                            scope.launch {
+                                val filename = "${player?.name ?: "foto"}_${category?.name ?: ""}.jpg"
+                                val ok = saveImageToDevice(photoBytes!!, filename)
+                                saveSuccess = ok
+                            }
+                        }) {
+                            Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (saveSuccess == true) "Gespeichert ✓" else "Speichern")
+                        }
+                    }
+                    TextButton(onClick = { showFullscreen = false }) { Text("Schließen") }
+                }
             },
         )
     }
