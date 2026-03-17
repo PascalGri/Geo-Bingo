@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
@@ -301,7 +302,10 @@ fun GameScreen(gameState: GameState) {
                         GameRepository.submitEndVote(gameId, gameState.myPlayerId ?: return@launch)
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        gameState.hasVotedToEnd = false
+                        val msg = e.message ?: ""
+                        if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)) {
+                            gameState.hasVotedToEnd = false
+                        }
                         return@launch
                     }
                     // Vote submitted — now check count (failure here is non-fatal; polling will catch up)

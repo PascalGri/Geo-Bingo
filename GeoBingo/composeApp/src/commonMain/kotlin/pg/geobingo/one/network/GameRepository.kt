@@ -164,7 +164,11 @@ object GameRepository {
     }
 
     suspend fun downloadAvatarPhoto(playerId: String): ByteArray? = try {
-        supabase.storage.from("photos").downloadAuthenticated("avatars/$playerId.jpg")
+        try {
+            supabase.storage.from("photos").downloadPublic("avatars/$playerId.jpg")
+        } catch (_: Exception) {
+            supabase.storage.from("photos").downloadAuthenticated("avatars/$playerId.jpg")
+        }
     } catch (_: Exception) { null }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
@@ -215,7 +219,11 @@ object GameRepository {
     }
 
     suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = try {
-        supabase.storage.from("photos").downloadAuthenticated("$gameId/$playerId/$categoryId.jpg")
+        try {
+            supabase.storage.from("photos").downloadPublic("$gameId/$playerId/$categoryId.jpg")
+        } catch (_: Exception) {
+            supabase.storage.from("photos").downloadAuthenticated("$gameId/$playerId/$categoryId.jpg")
+        }
     } catch (_: Exception) { null }
 
     suspend fun getCaptures(gameId: String): List<CaptureDto> =
