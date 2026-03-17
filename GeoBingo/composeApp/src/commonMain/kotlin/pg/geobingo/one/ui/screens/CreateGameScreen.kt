@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -378,9 +379,65 @@ private fun DarkCategorySelectCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showInfo by remember { mutableStateOf(false) }
+
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            containerColor = ColorSurface,
+            icon = {
+                Icon(
+                    imageVector = getCategoryIcon(category.id),
+                    contentDescription = null,
+                    tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = {
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorOnSurface,
+                    textAlign = TextAlign.Center,
+                )
+            },
+            text = if (category.description.isNotBlank()) {
+                {
+                    Text(
+                        text = category.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ColorOnSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else null,
+            confirmButton = {
+                TextButton(onClick = { showInfo = false; onClick() }) {
+                    Icon(
+                        if (isSelected) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (isSelected) "Abwählen" else "Auswählen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInfo = false }) {
+                    Text("Schließen")
+                }
+            },
+        )
+    }
+
     Card(
-        onClick = onClick,
-        modifier = modifier.aspectRatio(0.85f),
+        modifier = modifier
+            .aspectRatio(0.85f)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showInfo = true },
+            ),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) ColorPrimaryContainer else ColorSurfaceVariant,
