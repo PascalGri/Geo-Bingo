@@ -112,6 +112,14 @@ fun GameScreen(gameState: GameState) {
                         gameState.currentScreen = Screen.REVIEW
                     }
                 }
+                // Poll for "all captured" signal from another player
+                if (gameState.isGameRunning && !gameState.allCategoriesCaptured && !gameState.finishSignalDetected) {
+                    try {
+                        if (GameRepository.hasAllCapturedSignal(gameId)) {
+                            gameState.finishSignalDetected = true
+                        }
+                    } catch (_: Exception) {}
+                }
             } catch (_: Exception) {}
         }
     }
@@ -142,6 +150,10 @@ fun GameScreen(gameState: GameState) {
     var finishCountdownSeconds by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(gameState.allCategoriesCaptured) {
         if (!gameState.allCategoriesCaptured) return@LaunchedEffect
+        // Signal to other players that someone finished
+        if (gameId != null) {
+            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (_: Exception) {}
+        }
         finishCountdownSeconds = 30
         repeat(30) {
             delay(1000L)
@@ -258,6 +270,29 @@ fun GameScreenContent(
                                 onClick = {},
                             )
                         }
+                    }
+                }
+            }
+
+            // Finish signal banner for players who haven't finished yet
+            if (gameState.finishSignalDetected && !gameState.allCategoriesCaptured) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = ColorPrimaryContainer,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        AnimatedGradientText(
+                            text = "Ein Spieler hat alle Fotos! Beeil dich! \uD83C\uDFC3",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            gradientColors = GradientPrimary,
+                            durationMillis = 1000,
+                        )
                     }
                 }
             }

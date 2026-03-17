@@ -50,6 +50,7 @@ class GameState {
     var hasVotedToEnd by mutableStateOf(false)
     var endVoteCount by mutableStateOf(0)
     var allCategoriesCaptured by mutableStateOf(false)
+    var finishSignalDetected by mutableStateOf(false)
     var allVotes by mutableStateOf(listOf<VoteDto>())
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
@@ -168,6 +169,7 @@ class GameState {
         hasVotedToEnd = false
         endVoteCount = 0
         allCategoriesCaptured = false
+        finishSignalDetected = false
         gameId = null
         gameCode = null
         isHost = false
@@ -197,6 +199,7 @@ class GameState {
         hasVotedToEnd = false
         endVoteCount = 0
         allCategoriesCaptured = false
+        finishSignalDetected = false
         // selectedCategories and gameDurationMinutes are intentionally kept for rematch
         currentScreen = Screen.LOBBY
     }

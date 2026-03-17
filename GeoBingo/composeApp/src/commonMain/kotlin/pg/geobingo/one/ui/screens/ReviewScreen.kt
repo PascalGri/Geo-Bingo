@@ -46,8 +46,12 @@ fun ReviewScreen(gameState: GameState) {
 
     val realtime = remember(gameId) { GameRealtimeManager(gameId) }
 
-    LaunchedEffect(gameId) {
+    // Re-fetch captures on each step change (catches late uploads / timing issues)
+    var stepCapturesLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(gameState.reviewCategoryIndex) {
+        stepCapturesLoading = true
         try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (_: Exception) {}
+        stepCapturesLoading = false
     }
 
     // Realtime: react to step advances and results phase
@@ -162,6 +166,11 @@ fun ReviewScreen(gameState: GameState) {
                 },
             )
         }
+        stepCapturesLoading -> {
+            Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = ColorPrimary)
+            }
+        }
         targetCapture == null -> {
             DarkNoPhotoScreen(
                 playerName = targetPlayer.name,
@@ -172,11 +181,21 @@ fun ReviewScreen(gameState: GameState) {
                 stepIndex = stepIndex,
                 onAutoAdvance = {
                     scope.launch {
-                        try {
-                            GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
-                            gameState.hasSubmittedCurrentCategory = true
-                            advanceStep()
-                        } catch (_: Exception) {}
+                        // Set submitted immediately so we always leave this screen
+                        gameState.hasSubmittedCurrentCategory = true
+                        // Try to submit with one retry
+                        var submitted = false
+                        repeat(2) {
+                            if (!submitted) {
+                                try {
+                                    GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
+                                    submitted = true
+                                } catch (_: Exception) {
+                                    delay(1_500)
+                                }
+                            }
+                        }
+                        advanceStep()
                     }
                 },
             )

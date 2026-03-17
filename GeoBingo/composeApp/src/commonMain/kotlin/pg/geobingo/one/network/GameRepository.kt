@@ -241,4 +241,15 @@ object GameRepository {
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", "__end_vote__") } }
             .decodeList<VoteSubmissionInsertDto>().size
+
+    suspend fun signalAllCaptured(gameId: String, playerId: String) {
+        supabase.from("vote_submissions").insert(
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = playerId, category_id = "__all_captured__")
+        )
+    }
+
+    suspend fun hasAllCapturedSignal(gameId: String): Boolean =
+        supabase.from("vote_submissions")
+            .select { filter { eq("game_id", gameId); eq("category_id", "__all_captured__") } }
+            .decodeList<VoteSubmissionInsertDto>().isNotEmpty()
 }
