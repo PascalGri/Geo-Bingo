@@ -78,7 +78,10 @@ fun LobbyScreen(gameState: GameState) {
                             .takeIf { it >= 0 } ?: 0
                         gameState.currentScreen = Screen.GAME
                     }
-                    "closed" -> gameState.resetGame()
+                    "closed" -> {
+                        gameState.pendingToast = "Der Host hat die Lobby geschlossen."
+                        gameState.resetGame()
+                    }
                 }
             }
         }
@@ -106,7 +109,10 @@ fun LobbyScreen(gameState: GameState) {
                                 .takeIf { it >= 0 } ?: 0
                             gameState.currentScreen = Screen.GAME
                         }
-                        "closed" -> gameState.resetGame()
+                        "closed" -> {
+                            gameState.pendingToast = "Der Host hat die Lobby geschlossen."
+                            gameState.resetGame()
+                        }
                     }
                 }
             } catch (_: Exception) {}

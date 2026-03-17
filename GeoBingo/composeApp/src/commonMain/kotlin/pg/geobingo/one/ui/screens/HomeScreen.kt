@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +25,17 @@ import pg.geobingo.one.ui.theme.*
 
 @Composable
 fun HomeScreen(gameState: GameState) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(gameState.pendingToast) {
+        val msg = gameState.pendingToast ?: return@LaunchedEffect
+        gameState.pendingToast = null
+        snackbarHostState.showSnackbar(msg)
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = ColorBackground,
+    ) { _ ->
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -175,6 +188,7 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(32.dp))
         }
     }
+    } // end Scaffold
 }
 
 @Composable

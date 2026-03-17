@@ -107,6 +107,12 @@ fun generateCode(): String {
     return (1..6).map { chars[Random.nextInt(chars.length)] }.joinToString("")
 }
 
+object VoteKeys {
+    const val END_VOTE = "__end_vote__"
+    const val ALL_CAPTURED = "__all_captured__"
+    fun stepKey(categoryId: String, playerId: String) = "${categoryId}__${playerId}"
+}
+
 object GameRepository {
 
     suspend fun createGame(code: String, durationSeconds: Int): GameDto =
@@ -233,23 +239,23 @@ object GameRepository {
 
     suspend fun submitEndVote(gameId: String, voterId: String) {
         supabase.from("vote_submissions").insert(
-            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = "__end_vote__")
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = VoteKeys.END_VOTE)
         )
     }
 
     suspend fun getEndVoteCount(gameId: String): Int =
         supabase.from("vote_submissions")
-            .select { filter { eq("game_id", gameId); eq("category_id", "__end_vote__") } }
+            .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.END_VOTE) } }
             .decodeList<VoteSubmissionInsertDto>().size
 
     suspend fun signalAllCaptured(gameId: String, playerId: String) {
         supabase.from("vote_submissions").insert(
-            VoteSubmissionInsertDto(game_id = gameId, voter_id = playerId, category_id = "__all_captured__")
+            VoteSubmissionInsertDto(game_id = gameId, voter_id = playerId, category_id = VoteKeys.ALL_CAPTURED)
         )
     }
 
     suspend fun hasAllCapturedSignal(gameId: String): Boolean =
         supabase.from("vote_submissions")
-            .select { filter { eq("game_id", gameId); eq("category_id", "__all_captured__") } }
+            .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
             .decodeList<VoteSubmissionInsertDto>().isNotEmpty()
 }

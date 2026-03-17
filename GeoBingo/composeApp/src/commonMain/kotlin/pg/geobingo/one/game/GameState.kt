@@ -53,6 +53,9 @@ class GameState {
     var finishSignalDetected by mutableStateOf(false)
     var allVotes by mutableStateOf(listOf<VoteDto>())
 
+    // One-shot message shown on the next screen (e.g. "Lobby was closed")
+    var pendingToast by mutableStateOf<String?>(null)
+
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
 
@@ -149,11 +152,9 @@ class GameState {
     fun getRankedPlayers(): List<Pair<Player, Int>> =
         players.map { it to getPlayerScore(it.id) }.sortedByDescending { it.second }
 
-    fun resetGame() {
-        currentScreen = Screen.HOME
+    private fun clearGameplayState() {
         players = listOf()
-        selectedCategories = listOf()
-        gameDurationMinutes = 15
+        lobbyPlayers = listOf()
         timeRemainingSeconds = 0
         isGameRunning = false
         currentPlayerIndex = 0
@@ -170,36 +171,25 @@ class GameState {
         endVoteCount = 0
         allCategoriesCaptured = false
         finishSignalDetected = false
+    }
+
+    fun resetGame() {
+        clearGameplayState()
+        selectedCategories = listOf()
+        gameDurationMinutes = 15
         gameId = null
         gameCode = null
         isHost = false
         myPlayerId = null
-        lobbyPlayers = listOf()
+        currentScreen = Screen.HOME
     }
 
     fun resetForRematch(newGameId: String, newGameCode: String, newPlayerId: String) {
+        clearGameplayState()
         gameId = newGameId
         gameCode = newGameCode
         myPlayerId = newPlayerId
         isHost = true
-        players = listOf()
-        lobbyPlayers = listOf()
-        timeRemainingSeconds = 0
-        isGameRunning = false
-        currentPlayerIndex = 0
-        captures = mapOf()
-        photos = mapOf()
-        votes = mapOf()
-        reviewPlayerIndex = 0
-        reviewCategoryIndex = 0
-        allCaptures = listOf()
-        categoryVotes = mapOf()
-        hasSubmittedCurrentCategory = false
-        allVotes = listOf()
-        hasVotedToEnd = false
-        endVoteCount = 0
-        allCategoriesCaptured = false
-        finishSignalDetected = false
         // selectedCategories and gameDurationMinutes are intentionally kept for rematch
         currentScreen = Screen.LOBBY
     }

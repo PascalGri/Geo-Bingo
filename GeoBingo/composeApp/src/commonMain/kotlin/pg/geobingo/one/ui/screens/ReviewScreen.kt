@@ -30,6 +30,7 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 
@@ -115,7 +116,7 @@ fun ReviewScreen(gameState: GameState) {
     val currentCategory = categories[categoryIndex]
     val targetPlayer = sortedPlayers[targetPlayerIndex]
     // Unique key per step for vote_submissions tracking
-    val stepKey = "${currentCategory.id}__${targetPlayer.id}"
+    val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
 
     val targetCapture = gameState.allCaptures.find {
         it.player_id == targetPlayer.id && it.category_id == currentCategory.id
