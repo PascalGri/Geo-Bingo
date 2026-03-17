@@ -8,9 +8,9 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class GameRealtimeManager(private val gameId: String, channelSuffix: String = "") {
+class GameRealtimeManager(private val gameId: String, channelSuffix: String) {
 
-    private val channel = supabase.channel("room-$gameId")
+    private val channel = supabase.channel("$channelSuffix-$gameId")
 
     /** Emits the updated GameDto whenever this game's row changes. */
     val gameUpdates: Flow<GameDto> =
@@ -40,12 +40,15 @@ class GameRealtimeManager(private val gameId: String, channelSuffix: String = ""
         try {
             channel.subscribe(blockUntilSubscribed = true)
         } catch (e: Exception) {
-            // Ignore if already joined or joining
+            e.printStackTrace()
         }
     }
 
     suspend fun unsubscribe() {
-        // Deliberately empty to keep the websocket alive across screen transitions.
-        // Screen-specific LaunchedEffects handle flow cancellation automatically.
+        try {
+            channel.unsubscribe()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

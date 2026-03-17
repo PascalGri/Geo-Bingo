@@ -141,10 +141,8 @@ fun LobbyScreen(gameState: GameState) {
 
     DisposableEffect(gameId) {
         onDispose {
-            val cleanupScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-            cleanupScope.launch {
+            CoroutineScope(Dispatchers.Default).launch {
                 try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
-                cleanupScope.cancel()
             }
         }
     }
