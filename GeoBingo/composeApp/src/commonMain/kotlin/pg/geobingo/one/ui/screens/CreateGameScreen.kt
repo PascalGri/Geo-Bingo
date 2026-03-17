@@ -90,6 +90,7 @@ fun CreateGameScreen(gameState: GameState) {
                             modifier = Modifier.padding(bottom = 6.dp),
                         )
                     }
+
                     GradientButton(
                         text = when {
                             hostNameInput.trim().isEmpty() -> "Name eingeben"
@@ -136,9 +137,9 @@ fun CreateGameScreen(gameState: GameState) {
                         },
                         enabled = canStart && !isLoading,
                         modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = if (isLoading) ({
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                        }) else null,
+                        leadingIcon = if (isLoading) {
+                            { CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) }
+                        } else null,
                     )
                 }
             }

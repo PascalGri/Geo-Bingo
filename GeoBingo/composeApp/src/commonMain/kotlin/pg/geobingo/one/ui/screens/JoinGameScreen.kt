@@ -252,20 +252,22 @@ fun JoinGameScreen(gameState: GameState) {
                 enabled = canJoin && !isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 gradientColors = GradientHot,
-                leadingIcon = if (isLoading) ({
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                    )
-                }) else ({
-                    Icon(
-                        Icons.Default.Login,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White,
-                    )
-                }),
+                leadingIcon = {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Login,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White,
+                        )
+                    }
+                },
             )
 
             Spacer(Modifier.height(40.dp))
