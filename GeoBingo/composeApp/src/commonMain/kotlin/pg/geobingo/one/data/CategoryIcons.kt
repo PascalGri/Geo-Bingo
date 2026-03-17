@@ -8,7 +8,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     // ── Kleidung ──────────────────────────────────────────────────────────────
     "pants"             -> Icons.Default.Checkroom          // Kleiderschrank / Garderobe
     "jacket"            -> Icons.Default.DryCleaning        // Kleidungsstück an Bügel
-    "hat"               -> Icons.Default.Face               // Gesicht / Kopf
+    "hat"               -> Icons.Default.School             // Absolventenmütze = Hutform
     "sneaker"           -> Icons.Default.Hiking             // Schuh / Boot
     // ── Fahrzeuge ─────────────────────────────────────────────────────────────
     "car"               -> Icons.Default.DirectionsCar
@@ -17,7 +17,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "unusual_vehicle"   -> Icons.Default.ElectricScooter    // E-Scooter / ungewöhnliches Fahrzeug
     // ── Tiere ─────────────────────────────────────────────────────────────────
     "animal"            -> Icons.Default.Pets               // Pfote
-    "dog_breed"         -> Icons.Default.Cruelty_Free       // Hunde-/Tierpfote (alternativ zu Pets)
+    "dog_breed"         -> Icons.Default.Pets               // Pfote / Hund
     "bird"              -> Icons.Default.Flight             // Flügel / Fliegen
     // ── Natur ─────────────────────────────────────────────────────────────────
     "nature"            -> Icons.Default.Eco                // Blatt / Natur
@@ -38,14 +38,14 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     // ── Straßenkunst ─────────────────────────────────────────────────────────
     "street_art"        -> Icons.Default.FormatPaint        // Farbroller / Graffiti
     "mural"             -> Icons.Default.Brush              // Pinsel / Wandbild
-    "sculpture"         -> Icons.Default.Interests          // Formen / Skulptur
+    "sculpture"         -> Icons.Default.ViewInAr            // 3D-Objekt / Skulptur
     "pattern"           -> Icons.Default.Pattern            // Muster
     // ── Schilder ─────────────────────────────────────────────────────────────
     "sign"              -> Icons.Default.Signpost           // Wegweiser / Schild
     "funny_sign"        -> Icons.Default.EmojiEmotions      // Lachendes Gesicht / witziges Schild
     "number"            -> Icons.Default.Tag
     // ── Reflexionen & Licht ───────────────────────────────────────────────────
-    "shadow"            -> Icons.Default.Contrast
+    "shadow"            -> Icons.Default.Tonality            // Helligkeitsverlauf / Schatten
     "reflection"        -> Icons.Default.Flip               // Spiegelung
     "light"             -> Icons.Default.Flare              // Lichtreflex / Sonnenstrahlen
     // ── Sport ─────────────────────────────────────────────────────────────────
@@ -65,9 +65,9 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "lamp"              -> Icons.Default.Lightbulb
     // ── Menschen ─────────────────────────────────────────────────────────────
     "people"            -> Icons.Default.Groups             // Personengruppe
-    "person_accessory"  -> Icons.Default.Headset            // Kopfhörer / Accessoire
+    "person_accessory"  -> Icons.Default.Watch               // Uhr / Accessoire
     "musician"          -> Icons.Default.Piano              // Klavier / Musiker
-    "funny_pose"        -> Icons.Default.SentimentVerySatisfied // Lachgesicht / witzige Pose
+    "funny_pose"        -> Icons.Default.AccessibilityNew    // Person mit ausgebreiteten Armen = Pose
     "tourist"           -> Icons.Default.CameraAlt
     // ── Shops ─────────────────────────────────────────────────────────────────
     "shop"              -> Icons.Default.Store
