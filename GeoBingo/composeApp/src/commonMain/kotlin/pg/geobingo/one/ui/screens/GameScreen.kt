@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -343,6 +344,54 @@ private fun DarkBingoCategoryCard(
     thumbnail: ImageBitmap?,
     onCameraClick: () -> Unit,
 ) {
+    var showInfo by remember { mutableStateOf(false) }
+
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            containerColor = ColorSurface,
+            icon = {
+                Icon(
+                    imageVector = getCategoryIcon(category.id),
+                    contentDescription = null,
+                    tint = if (isCaptured) playerColor else ColorOnSurfaceVariant,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = {
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorOnSurface,
+                    textAlign = TextAlign.Center,
+                )
+            },
+            text = if (category.description.isNotBlank()) {
+                {
+                    Text(
+                        text = category.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ColorOnSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else null,
+            confirmButton = {
+                TextButton(onClick = { showInfo = false; onCameraClick() }) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Foto machen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInfo = false }) {
+                    Text("Schließen")
+                }
+            },
+        )
+    }
+
     val containerColor by animateColorAsState(
         targetValue = if (isCaptured) playerColor.copy(alpha = 0.18f) else ColorSurface,
         animationSpec = tween(300),
@@ -350,7 +399,13 @@ private fun DarkBingoCategoryCard(
     val borderColor = if (isCaptured) playerColor.copy(alpha = 0.5f) else ColorOutlineVariant
 
     Card(
-        modifier = Modifier.aspectRatio(0.9f).fillMaxWidth().clickable { onCameraClick() },
+        modifier = Modifier
+            .aspectRatio(0.9f)
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { onCameraClick() },
+                onLongClick = { showInfo = true },
+            ),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
