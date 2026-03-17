@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.skia.Image
 
 @Composable
 actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer {
@@ -37,6 +39,7 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.capture = 'environment';
     input.style.display = 'none';
     input.addEventListener('change', function() {
         var file = input.files && input.files[0];
@@ -75,4 +78,6 @@ private external fun getJsArrayByte(arr: JsAny, i: Int): Byte
 @JsFun("() => { window._katchit_done = false; window._katchit_bytes = null; }")
 private external fun clearWebPickerState()
 
-actual fun ByteArray.toImageBitmap(): ImageBitmap? = null
+actual fun ByteArray.toImageBitmap(): ImageBitmap? = try {
+    Image.makeFromEncoded(this).toComposeImageBitmap()
+} catch (_: Exception) { null }
