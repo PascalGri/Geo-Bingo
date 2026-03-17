@@ -67,15 +67,21 @@ fun GameScreen(gameState: GameState) {
             
             if (gameId != null) {
                 scope.launch {
-                    try {
-                        GameRepository.recordCapture(gameId, pid, cid, bytes)
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (isJoker) GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    } finally {
-                        gameState.uploadingCategories = gameState.uploadingCategories - cid
+                    var attempt = 0
+                    var success = false
+                    while (attempt < 3 && !success) {
+                        try {
+                            if (attempt > 0) delay(2_000L * attempt)
+                            GameRepository.recordCapture(gameId, pid, cid, bytes)
+                            if (isJoker) GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            success = true
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            attempt++
+                        }
                     }
+                    gameState.uploadingCategories = gameState.uploadingCategories - cid
                 }
             } else {
                 gameState.uploadingCategories = gameState.uploadingCategories - cid
@@ -219,6 +225,20 @@ fun GameScreen(gameState: GameState) {
 
     DisposableEffect(gameId) {
         onDispose { scope.launch { try { realtime?.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
+    }
+
+    // Download avatar photos for players that weren't cached in the lobby
+    LaunchedEffect(gameState.players) {
+        gameState.players
+            .filter { it.avatar == "selfie" && it.id !in gameState.playerAvatarBytes }
+            .forEach { player ->
+                scope.launch {
+                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                    if (bytes != null) {
+                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    }
+                }
+            }
     }
 
     // Main countdown timer — stops ticking once all categories are captured

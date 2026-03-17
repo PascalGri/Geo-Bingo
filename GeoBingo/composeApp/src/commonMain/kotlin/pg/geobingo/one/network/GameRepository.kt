@@ -171,7 +171,8 @@ object GameRepository {
         val dtos = categories.mapIndexed { i, cat ->
             CategoryInsertDto(game_id = gameId, label = cat.name, icon_id = cat.id, sort_order = i)
         }
-        return supabase.from("categories").insert(dtos) { select() }.decodeList()
+        return supabase.from("categories").insert(dtos) { select() }.decodeList<CategoryDto>()
+            .sortedBy { it.sort_order }
     }
 
     suspend fun getGameByCode(code: String): GameDto? =
@@ -192,7 +193,7 @@ object GameRepository {
     suspend fun getCategories(gameId: String): List<CategoryDto> =
         supabase.from("categories")
             .select { filter { eq("game_id", gameId) } }
-            .decodeList()
+            .decodeList<CategoryDto>().sortedBy { it.sort_order }
 
     suspend fun startGame(gameId: String) {
         supabase.from("games").update({ set("status", "running") }) {
