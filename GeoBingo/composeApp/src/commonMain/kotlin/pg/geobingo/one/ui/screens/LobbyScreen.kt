@@ -192,19 +192,21 @@ fun LobbyScreen(gameState: GameState) {
                             modifier = Modifier.fillMaxWidth(),
                             gradientColors = GradientPrimary,
                             leadingIcon = {
-                                if (isStarting) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp,
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp),
-                                    )
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (isStarting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp,
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
                                 }
                             },
                         )

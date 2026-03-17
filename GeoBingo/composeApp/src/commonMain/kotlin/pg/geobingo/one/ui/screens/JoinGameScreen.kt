@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -40,6 +42,8 @@ fun JoinGameScreen(gameState: GameState) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) selectedAvatarBytes = bytes
@@ -207,6 +211,8 @@ fun JoinGameScreen(gameState: GameState) {
             GradientButton(
                 text = "Beitreten",
                 onClick = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
                     scope.launch {
                         isLoading = true
                         errorMessage = null
@@ -253,19 +259,21 @@ fun JoinGameScreen(gameState: GameState) {
                 modifier = Modifier.fillMaxWidth(),
                 gradientColors = GradientHot,
                 leadingIcon = {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.Login,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White,
-                        )
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.White,
+                            )
+                        }
                     }
                 },
             )
