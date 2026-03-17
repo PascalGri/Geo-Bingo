@@ -8,9 +8,9 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class GameRealtimeManager(private val gameId: String) {
+class GameRealtimeManager(private val gameId: String, channelSuffix: String = "game") {
 
-    private val channel = supabase.channel("game-$gameId")
+    private val channel = supabase.channel("$channelSuffix-$gameId")
 
     /** Emits the updated GameDto whenever this game's row changes. */
     val gameUpdates: Flow<GameDto> =

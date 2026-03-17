@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
@@ -158,7 +161,7 @@ fun GameScreen(gameState: GameState) {
         )
     }
 
-    val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it) } }
+    val realtime = remember(gameId) { gameId?.let { GameRealtimeManager(it, "game") } }
 
     // Realtime: detect when another player ends the game early
     LaunchedEffect(gameId) {
@@ -224,7 +227,13 @@ fun GameScreen(gameState: GameState) {
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime?.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
+        onDispose {
+            val cleanupScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            cleanupScope.launch {
+                try { realtime?.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
+                cleanupScope.cancel()
+            }
+        }
     }
 
     // Download avatar photos for players that weren't cached in the lobby
@@ -290,6 +299,13 @@ fun GameScreen(gameState: GameState) {
                     gameState.hasVotedToEnd = true
                     try {
                         GameRepository.submitEndVote(gameId, gameState.myPlayerId ?: return@launch)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        gameState.hasVotedToEnd = false
+                        return@launch
+                    }
+                    // Vote submitted — now check count (failure here is non-fatal; polling will catch up)
+                    try {
                         val count = GameRepository.getEndVoteCount(gameId)
                         gameState.endVoteCount = count
                         if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
@@ -300,7 +316,7 @@ fun GameScreen(gameState: GameState) {
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        gameState.hasVotedToEnd = false
+                        // hasVotedToEnd stays true — polling loop will trigger navigation
                     }
                 }
             }

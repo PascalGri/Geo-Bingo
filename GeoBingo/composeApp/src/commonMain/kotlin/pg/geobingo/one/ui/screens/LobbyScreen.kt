@@ -18,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameState
@@ -37,7 +40,7 @@ fun LobbyScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.gameId ?: return
-    val realtime = remember(gameId) { GameRealtimeManager(gameId) }
+    val realtime = remember(gameId) { GameRealtimeManager(gameId, "lobby") }
 
     // Lobby auto-close timeout (host only): 5 min without a second player joining
     var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
@@ -136,7 +139,13 @@ fun LobbyScreen(gameState: GameState) {
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
+        onDispose {
+            val cleanupScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            cleanupScope.launch {
+                try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
+                cleanupScope.cancel()
+            }
+        }
     }
 
     SystemBackHandler { gameState.resetGame() }

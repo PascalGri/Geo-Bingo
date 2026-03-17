@@ -23,13 +23,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
-import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
@@ -47,7 +49,7 @@ fun ReviewScreen(gameState: GameState) {
     val sortedPlayers = remember(gameState.players) { gameState.players.sortedBy { it.id } }
     val numPlayers = sortedPlayers.size
 
-    val realtime = remember(gameId) { GameRealtimeManager(gameId) }
+    val realtime = remember(gameId) { GameRealtimeManager(gameId, "review") }
 
     // On first load: fetch joker labels and append virtual joker categories
     LaunchedEffect(gameId) {
@@ -69,12 +71,9 @@ fun ReviewScreen(gameState: GameState) {
         }
     }
 
-    // Re-fetch captures on each step change (catches late uploads / timing issues)
-    var stepCapturesLoading by remember { mutableStateOf(true) }
+    // Re-fetch captures on each step change (used for scoring in ResultsScreen)
     LaunchedEffect(gameState.reviewCategoryIndex) {
-        stepCapturesLoading = true
         try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { e.printStackTrace() }
-        stepCapturesLoading = false
     }
 
     // Realtime: react to step advances and results phase
@@ -117,7 +116,13 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     DisposableEffect(gameId) {
-        onDispose { scope.launch { try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() } } }
+        onDispose {
+            val cleanupScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            cleanupScope.launch {
+                try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
+                cleanupScope.cancel()
+            }
+        }
     }
 
     if (numPlayers == 0 || categories.isEmpty()) {
@@ -144,10 +149,6 @@ fun ReviewScreen(gameState: GameState) {
     // Unique key per step for vote_submissions tracking
     val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
 
-    val targetCapture = gameState.allCaptures.find {
-        it.player_id == targetPlayer.id && it.category_id == currentCategory.id
-    }
-
     suspend fun advanceStep() {
         try {
             val submissionCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
@@ -162,6 +163,25 @@ fun ReviewScreen(gameState: GameState) {
                 }
             }
         } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    val noPhotoAction: () -> Unit = {
+        scope.launch {
+            gameState.hasSubmittedCurrentCategory = true
+            var submitted = false
+            repeat(2) {
+                if (!submitted) {
+                    try {
+                        GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
+                        submitted = true
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        delay(1_500)
+                    }
+                }
+            }
+            advanceStep()
+        }
     }
 
     when {
@@ -194,42 +214,8 @@ fun ReviewScreen(gameState: GameState) {
                 },
             )
         }
-        stepCapturesLoading -> {
-            Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ColorPrimary)
-            }
-        }
-        targetCapture == null -> {
-            DarkNoPhotoScreen(
-                playerName = targetPlayer.name,
-                playerColor = targetPlayer.color,
-                categoryName = currentCategory.name,
-                categoryIndex = categoryIndex,
-                totalCategories = categories.size,
-                stepIndex = stepIndex,
-                onAutoAdvance = {
-                    scope.launch {
-                        // Set submitted immediately so we always leave this screen
-                        gameState.hasSubmittedCurrentCategory = true
-                        // Try to submit with one retry
-                        var submitted = false
-                        repeat(2) {
-                            if (!submitted) {
-                                try {
-                                    GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
-                                    submitted = true
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    delay(1_500)
-                                }
-                            }
-                        }
-                        advanceStep()
-                    }
-                },
-            )
-        }
         else -> {
+            // Always attempt to load from storage — bypasses captures-table RLS issues
             DarkSinglePhotoVotingScreen(
                 gameId = gameId,
                 currentCategory = currentCategory,
@@ -239,7 +225,6 @@ fun ReviewScreen(gameState: GameState) {
                 targetPlayerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 stepIndex = stepIndex,
-                capture = targetCapture,
                 onVote = { approved ->
                     scope.launch {
                         try {
@@ -256,6 +241,7 @@ fun ReviewScreen(gameState: GameState) {
                         } catch (e: Exception) { e.printStackTrace() }
                     }
                 },
+                onNoPhoto = noPhotoAction,
             )
         }
     }
@@ -272,8 +258,8 @@ private fun DarkSinglePhotoVotingScreen(
     targetPlayerIndex: Int,
     totalPlayers: Int,
     stepIndex: Int,
-    capture: CaptureDto,
     onVote: (Boolean) -> Unit,
+    onNoPhoto: () -> Unit,
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
@@ -282,9 +268,14 @@ private fun DarkSinglePhotoVotingScreen(
     LaunchedEffect(stepIndex) {
         photoLoading = true
         photo = null
-        val bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
+        val bytes = GameRepository.downloadPhoto(gameId, targetPlayer.id, currentCategory.id)
         photo = bytes?.toImageBitmap()
         photoLoading = false
+        if (photo == null) {
+            // No photo in storage → auto-advance after brief display
+            delay(3_000)
+            onNoPhoto()
+        }
     }
 
     Scaffold(
@@ -455,102 +446,6 @@ private fun DarkSinglePhotoVotingScreen(
                     },
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun DarkNoPhotoScreen(
-    playerName: String,
-    playerColor: Color,
-    categoryName: String,
-    categoryIndex: Int,
-    totalCategories: Int,
-    stepIndex: Int,
-    onAutoAdvance: () -> Unit,
-) {
-    var countdown by remember(stepIndex) { mutableStateOf(4) }
-
-    LaunchedEffect(stepIndex) {
-        repeat(4) {
-            delay(1_000)
-            countdown--
-        }
-        onAutoAdvance()
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize().background(ColorBackground),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp),
-        ) {
-            Text(
-                "Kategorie ${categoryIndex + 1} / $totalCategories: $categoryName",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-
-            Box(
-                modifier = Modifier.size(80.dp).clip(CircleShape).background(playerColor),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    playerName.take(1).uppercase(),
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            Text(
-                playerName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = ColorErrorContainer),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, ColorError.copy(alpha = 0.5f)),
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = null,
-                        tint = ColorError,
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Text(
-                        "Kein Bild gefunden",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorError,
-                    )
-                    Text(
-                        "Keine Punkte für $playerName",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = ColorError.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            Text(
-                "Weiter in $countdown...",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-            )
         }
     }
 }
