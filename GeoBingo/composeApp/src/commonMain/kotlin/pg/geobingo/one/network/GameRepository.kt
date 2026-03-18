@@ -170,15 +170,20 @@ object GameRepository {
         supabase.storage.from("photos").upload(path, bytes) { upsert = true }
     }
 
-    suspend fun downloadAvatarPhoto(playerId: String): ByteArray? = try {
+    suspend fun downloadAvatarPhoto(playerId: String): ByteArray? {
         // Try local cache first
-        LocalPhotoStore.loadAvatar(playerId)?.let { return it }
-        val path = "avatars/$playerId.jpg"
-        val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
-        val bytes = httpClient.get(url).readRawBytes()
-        try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (_: Exception) {}
-        bytes
-    } catch (_: Exception) { null }
+        try {
+            val cached = LocalPhotoStore.loadAvatar(playerId)
+            if (cached != null) return cached
+        } catch (_: Exception) {}
+        return try {
+            val path = "avatars/$playerId.jpg"
+            val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+            val bytes = httpClient.get(url).readRawBytes()
+            try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (_: Exception) {}
+            bytes
+        } catch (_: Exception) { null }
+    }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
         val dtos = categories.mapIndexed { i, cat ->

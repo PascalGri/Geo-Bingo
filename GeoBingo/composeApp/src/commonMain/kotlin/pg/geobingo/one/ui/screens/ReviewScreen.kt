@@ -95,6 +95,50 @@ fun ReviewScreen(gameState: GameState) {
         }
     }
 
+    // Realtime: detect vote submissions to trigger faster advancement
+    LaunchedEffect(gameId) {
+        if (realtime == null) return@LaunchedEffect
+        realtime.voteSubmissionInserts.collect { _ ->
+            // When any vote submission arrives, check if we can advance
+            if (gameState.hasSubmittedCurrentCategory) {
+                val currentStepIndex = gameState.reviewCategoryIndex
+                val currentCatIndex = currentStepIndex / numPlayers
+                val currentPlayerIdx = currentStepIndex % numPlayers
+                if (currentCatIndex < categories.size && currentPlayerIdx < sortedPlayers.size) {
+                    val currentStepKey = VoteKeys.stepKey(categories[currentCatIndex].id, sortedPlayers[currentPlayerIdx].id)
+                    try {
+                        val count = GameRepository.getVoteSubmissionCount(gameId, currentStepKey)
+                        if (count >= numPlayers) {
+                            val nextStep = currentStepIndex + 1
+                            val totalSteps = categories.size * numPlayers
+                            if (nextStep >= totalSteps) {
+                                for (attempt in 0 until 3) {
+                                    try {
+                                        if (attempt > 0) delay(1_000L * attempt)
+                                        GameRepository.setGameStatus(gameId, "results")
+                                        break
+                                    } catch (_: Exception) {}
+                                }
+                                try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                                gameState.currentScreen = Screen.RESULTS
+                            } else {
+                                for (attempt in 0 until 3) {
+                                    try {
+                                        if (attempt > 0) delay(1_000L * attempt)
+                                        GameRepository.setReviewCategoryIndex(gameId, nextStep)
+                                        break
+                                    } catch (_: Exception) {}
+                                }
+                                gameState.reviewCategoryIndex = nextStep
+                                gameState.hasSubmittedCurrentCategory = false
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
     LaunchedEffect(gameId) {
         while (true) {
             delay(3_000)
@@ -138,13 +182,29 @@ fun ReviewScreen(gameState: GameState) {
             if (submissionCount >= numPlayers) {
                 val nextStep = stepIndex + 1
                 if (nextStep >= totalSteps) {
-                    try { GameRepository.setGameStatus(gameId, "results") } catch (_: Exception) {}
+                    for (attempt in 0 until 3) {
+                        try {
+                            if (attempt > 0) delay(1_000L * attempt)
+                            GameRepository.setGameStatus(gameId, "results")
+                            break
+                        } catch (_: Exception) {}
+                    }
                     try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
                     gameState.currentScreen = Screen.RESULTS
                 } else {
-                    try { GameRepository.setReviewCategoryIndex(gameId, nextStep) } catch (_: Exception) {}
-                    gameState.reviewCategoryIndex = nextStep
-                    gameState.hasSubmittedCurrentCategory = false
+                    var serverUpdated = false
+                    for (attempt in 0 until 3) {
+                        try {
+                            if (attempt > 0) delay(1_000L * attempt)
+                            GameRepository.setReviewCategoryIndex(gameId, nextStep)
+                            serverUpdated = true
+                            break
+                        } catch (_: Exception) {}
+                    }
+                    if (serverUpdated) {
+                        gameState.reviewCategoryIndex = nextStep
+                        gameState.hasSubmittedCurrentCategory = false
+                    }
                 }
             }
         } catch (e: Exception) { e.printStackTrace() }
@@ -307,7 +367,7 @@ private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: Str
                     onReadyToAdvance()
                 }
             } catch (e: Exception) { e.printStackTrace() }
-            delay(2_000)
+            delay(1_500)
         }
     }
     Box(modifier = Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {

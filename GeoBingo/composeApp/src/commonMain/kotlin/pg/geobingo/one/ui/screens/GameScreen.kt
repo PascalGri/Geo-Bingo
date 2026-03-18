@@ -186,7 +186,7 @@ fun GameScreen(gameState: GameState) {
                 try {
                     val count = GameRepository.getEndVoteCount(gid)
                     gameState.endVoteCount = count
-                    if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
+                    if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
@@ -238,7 +238,7 @@ fun GameScreen(gameState: GameState) {
 
                     val count = GameRepository.getEndVoteCount(gameId)
                     gameState.endVoteCount = count
-                    if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
+                    if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
@@ -275,6 +275,25 @@ fun GameScreen(gameState: GameState) {
                     }
                 }
             }
+    }
+
+    // Retry avatar downloads for players still missing avatars (handles iOS failures)
+    LaunchedEffect(gameId) {
+        var retries = 0
+        while (retries < 5) {
+            delay(5_000)
+            val missing = gameState.players.filter { it.id !in gameState.playerAvatarBytes }
+            if (missing.isEmpty()) break
+            missing.forEach { player ->
+                scope.launch {
+                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                    if (bytes != null) {
+                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    }
+                }
+            }
+            retries++
+        }
     }
 
     // Timer logic
@@ -315,7 +334,14 @@ fun GameScreen(gameState: GameState) {
             .first { it }
         // Signal to server if we were the one who captured all
         if (gameState.allCategoriesCaptured && gameId != null) {
-            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (_: Exception) {}
+            val pid = gameState.myPlayerId ?: ""
+            for (attempt in 0 until 3) {
+                try {
+                    if (attempt > 0) delay(1_000L * attempt)
+                    GameRepository.signalAllCaptured(gameId, pid)
+                    break
+                } catch (_: Exception) {}
+            }
         }
         finishCountdownSeconds = 30
         repeat(30) {
@@ -341,6 +367,7 @@ fun GameScreen(gameState: GameState) {
                 if (gameId != null && !gameState.hasVotedToEnd) {
                     val pid = gameState.myPlayerId ?: return@launch
                     gameState.hasVotedToEnd = true
+                    gameState.endVoteCount = gameState.endVoteCount + 1
                     var attempt = 0
                     var success = false
                     while (attempt < 3) {
@@ -354,7 +381,19 @@ fun GameScreen(gameState: GameState) {
                             attempt++
                         }
                     }
-                    if (!success) gameState.hasVotedToEnd = false
+                    if (!success) {
+                        gameState.hasVotedToEnd = false
+                        gameState.endVoteCount = (gameState.endVoteCount - 1).coerceAtLeast(0)
+                    } else {
+                        // Check if majority reached after own vote
+                        val count = gameState.endVoteCount
+                        if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
+                            gameState.isGameRunning = false
+                            try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                            gameState.reviewCategoryIndex = 0
+                            gameState.currentScreen = Screen.REVIEW
+                        }
+                    }
                 }
             }
         },
@@ -509,9 +548,10 @@ fun GameScreenContent(
                                 shape = RoundedCornerShape(20.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             ) {
+                                val needed = gameState.players.size / 2 + 1
                                 Text(
-                                    if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/${gameState.players.size}) ✓"
-                                    else "Vorzeitig beenden (${gameState.endVoteCount}/${gameState.players.size})",
+                                    if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/$needed) ✓"
+                                    else "Vorzeitig beenden (${gameState.endVoteCount}/$needed)",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                             }

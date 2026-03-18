@@ -63,9 +63,14 @@ fun LobbyScreen(gameState: GameState) {
             .forEach { player ->
                 scope.launch {
                     gameState.triedAvatarDownloads = gameState.triedAvatarDownloads + player.id
-                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
-                    if (bytes != null) {
-                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    // Retry up to 3 times with backoff
+                    for (attempt in 0 until 3) {
+                        if (attempt > 0) delay(2_000L * attempt)
+                        val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                        if (bytes != null) {
+                            gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                            break
+                        }
                     }
                 }
             }
