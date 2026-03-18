@@ -6,11 +6,18 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -305,14 +312,14 @@ fun ReviewScreen(gameState: GameState) {
                 totalPlayers = numPlayers,
                 stepIndex = stepIndex,
                 playerAvatarBytes = gameState.playerAvatarBytes[targetPlayer.id],
-                onVote = { approved ->
+                onVote = { rating ->
                     scope.launch {
                         gameState.hasSubmittedCurrentCategory = true
                         var attempt = 0
                         while (attempt < 3) {
                             try {
                                 if (attempt > 0) delay(1_000L * attempt)
-                                GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, approved)
+                                GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, rating)
                                 break
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -351,11 +358,22 @@ private fun DarkSinglePhotoVotingScreen(
     gameId: String, currentCategory: Category, categoryIndex: Int, totalCategories: Int,
     targetPlayer: Player, targetPlayerIndex: Int, totalPlayers: Int, stepIndex: Int,
     playerAvatarBytes: ByteArray? = null,
-    onVote: (Boolean) -> Unit, onNoPhoto: () -> Unit
+    onVote: (Int) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+
+    // Star rating state
+    var selectedRating by remember(stepIndex) { mutableStateOf(0) }
+    var submitted by remember(stepIndex) { mutableStateOf(false) }
+
+    // Star scale animations (one per star)
+    val starScales = remember(stepIndex) { List(5) { Animatable(1f) } }
+    // Submission animation
+    val submitScale = remember(stepIndex) { Animatable(1f) }
+    val submitAlpha = remember(stepIndex) { Animatable(1f) }
 
     // Slide-in from right per step
     val stepAlpha = remember(stepIndex) { Animatable(0f) }
@@ -374,6 +392,41 @@ private fun DarkSinglePhotoVotingScreen(
         photo = bytes?.toImageBitmap()
         photoLoading = false
         if (photo == null) { delay(2500); onNoPhoto() }
+    }
+
+    fun animateStarSelection(rating: Int) {
+        scope.launch {
+            for (i in 0 until 5) {
+                launch {
+                    if (i < rating) {
+                        delay(i * 60L)
+                        starScales[i].animateTo(1.4f, tween(100))
+                        starScales[i].animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                    } else {
+                        starScales[i].snapTo(1f)
+                    }
+                }
+            }
+        }
+    }
+
+    fun animateSubmission(rating: Int) {
+        submitted = true
+        scope.launch {
+            // All stars pulse together
+            for (i in 0 until rating) {
+                launch {
+                    delay(i * 40L)
+                    starScales[i].animateTo(1.3f, tween(120))
+                    starScales[i].animateTo(1f, tween(100))
+                }
+            }
+            delay(300)
+            // Fade out rating section
+            launch { submitScale.animateTo(0.8f, tween(200)) }
+            submitAlpha.animateTo(0f, tween(200))
+            onVote(rating)
+        }
     }
 
     Scaffold(
@@ -398,7 +451,7 @@ private fun DarkSinglePhotoVotingScreen(
             GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = GradientPrimary, backgroundColor = ColorPrimaryContainer) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
-                    Text("Erfüllt dieses Bild die Kategorie?", style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
+                    Text("Wie gut passt dieses Bild?", style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -422,13 +475,95 @@ private fun DarkSinglePhotoVotingScreen(
                     Text("Keine Einsendung – wird übersprungen...", color = ColorError, fontWeight = FontWeight.Bold)
                 }
             } else {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(false) }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = ColorError), shape = RoundedCornerShape(14.dp)) {
-                        Icon(Icons.Default.Close, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Nein", fontWeight = FontWeight.Bold)
+                // Star rating section
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { scaleX = submitScale.value; scaleY = submitScale.value; alpha = submitAlpha.value },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Star row with drag support
+                    val starPositions = remember { FloatArray(5) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pointerInput(submitted) {
+                                if (submitted) return@pointerInput
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset ->
+                                        val newRating = starPositions.indexOfLast { offset.x >= it }.coerceIn(0, 4) + 1
+                                        if (newRating != selectedRating) {
+                                            selectedRating = newRating
+                                            animateStarSelection(newRating)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        }
+                                    },
+                                    onHorizontalDrag = { change, _ ->
+                                        change.consume()
+                                        val x = change.position.x
+                                        val newRating = (starPositions.indexOfLast { x >= it }.coerceIn(0, 4) + 1)
+                                        if (newRating != selectedRating) {
+                                            selectedRating = newRating
+                                            animateStarSelection(newRating)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        }
+                                    },
+                                )
+                            },
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (i in 1..5) {
+                            val isSelected = i <= selectedRating
+                            val starColor = if (isSelected) Color(0xFFFBBF24) else ColorOnSurfaceVariant.copy(alpha = 0.3f)
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = "$i Sterne",
+                                tint = starColor,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .onGloballyPositioned { coords ->
+                                        starPositions[i - 1] = coords.positionInParent().x
+                                    }
+                                    .graphicsLayer { scaleX = starScales[i - 1].value; scaleY = starScales[i - 1].value }
+                                    .clickable(enabled = !submitted) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        selectedRating = i
+                                        animateStarSelection(i)
+                                    },
+                            )
+                        }
                     }
-                    GradientButton(text = "Ja", onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(true) }, modifier = Modifier.weight(1f), gradientColors = GradientPrimary, leadingIcon = { Icon(Icons.Default.Check, null, tint = Color.White) })
+                    // Rating label
+                    Text(
+                        text = when (selectedRating) {
+                            0 -> "Tippe auf die Sterne"
+                            1 -> "Passt gar nicht"
+                            2 -> "Passt kaum"
+                            3 -> "Passt okay"
+                            4 -> "Passt gut"
+                            5 -> "Perfekt!"
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selectedRating > 0) Color(0xFFFBBF24) else ColorOnSurfaceVariant,
+                        fontWeight = if (selectedRating > 0) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                    // Confirm button
+                    GradientButton(
+                        text = "Bewerten",
+                        onClick = {
+                            if (selectedRating > 0 && !submitted) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                animateSubmission(selectedRating)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        enabled = selectedRating > 0 && !submitted,
+                        gradientColors = GradientPrimary,
+                        leadingIcon = { Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                    )
                 }
             }
         }

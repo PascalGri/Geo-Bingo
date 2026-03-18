@@ -202,25 +202,40 @@ class GameState {
         return firstCapturers.values.count { it == playerId }
     }
 
+    /** Average star rating (1-5) for a specific player+category, or null if no votes. */
+    fun getCategoryAverageRating(playerId: String, categoryId: String): Double? {
+        val votesForThis = allVotes.filter { it.target_player_id == playerId && it.category_id == categoryId }
+        if (votesForThis.isEmpty()) return null
+        return votesForThis.map { it.rating }.average()
+    }
+
+    /** Overall average star rating across all categories for a player. */
+    fun getPlayerAverageRating(playerId: String): Double? {
+        val ratings = selectedCategories.mapNotNull { getCategoryAverageRating(playerId, it.id) }
+        if (ratings.isEmpty()) return null
+        return ratings.average()
+    }
+
+    /** Score = sum of average star ratings per category (rounded) + speed bonus. */
     fun getPlayerScore(playerId: String): Int {
-        val baseScore: Int
-        // If we have server votes, use them
+        val starScore: Int
         if (allVotes.isNotEmpty()) {
-            baseScore = selectedCategories.count { category ->
+            var sum = 0.0
+            for (category in selectedCategories) {
                 val capturesForPlayer = allCaptures.filter { it.player_id == playerId && it.category_id == category.id }
-                if (capturesForPlayer.isEmpty()) return@count false
-                val votesForThis = allVotes.filter { it.target_player_id == playerId && it.category_id == category.id }
-                if (votesForThis.isEmpty()) return@count true // no votes = approved by default
-                votesForThis.count { it.approved } > votesForThis.size / 2
+                if (capturesForPlayer.isEmpty()) continue
+                val avg = getCategoryAverageRating(playerId, category.id) ?: continue
+                sum += avg
             }
+            starScore = (sum + 0.5).toInt() // round
         } else {
-            // Fallback: local votes
-            baseScore = selectedCategories.count { category ->
+            // Fallback: local votes (legacy)
+            starScore = selectedCategories.count { category ->
                 if (!isCaptured(playerId, category.id)) return@count false
                 getVoteResult(playerId, category.id) ?: true
             }
         }
-        return baseScore + getSpeedBonusCount(playerId)
+        return starScore + getSpeedBonusCount(playerId)
     }
 
     fun getPlayerCaptures(playerId: String): List<Category> {

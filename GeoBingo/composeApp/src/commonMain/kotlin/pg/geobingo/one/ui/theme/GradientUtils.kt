@@ -55,7 +55,7 @@ fun AnimatedGradientText(
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     gradientColors: List<Color> = GradientPrimary,
-    durationMillis: Int = 2500,
+    durationMillis: Int = 5000,
 ) {
     val transition = rememberInfiniteTransition(label = "gradText")
     val offset by transition.animateFloat(
@@ -90,7 +90,7 @@ fun GradientBorderCard(
     borderColors: List<Color> = GradientPrimary,
     backgroundColor: Color = ColorSurface,
     borderWidth: Dp = 1.5.dp,
-    durationMillis: Int = 3000,
+    durationMillis: Int = 6000,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val transition = rememberInfiniteTransition(label = "cardBorder")
@@ -132,7 +132,7 @@ fun GradientBorderCard(
 fun AnimatedGradientBox(
     modifier: Modifier = Modifier,
     gradientColors: List<Color> = GradientPrimary,
-    durationMillis: Int = 4000,
+    durationMillis: Int = 8000,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val transition = rememberInfiniteTransition(label = "boxGradient")
@@ -177,7 +177,7 @@ fun GradientButton(
         initialValue = 0f,
         targetValue = 600f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
+            animation = tween(4000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "btnOffset",

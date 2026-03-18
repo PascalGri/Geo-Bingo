@@ -1,6 +1,5 @@
 package pg.geobingo.one.ui.screens
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,8 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,15 +31,6 @@ fun VoteTransitionScreen(gameState: GameState) {
         gameState.currentScreen = Screen.REVIEW
     }
 
-    val pulseScale by rememberInfiniteTransition().animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse,
-        ),
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -60,8 +48,6 @@ fun VoteTransitionScreen(gameState: GameState) {
                     letterSpacing = 2.sp,
                 ),
                 gradientColors = GradientPrimary,
-                durationMillis = 800,
-                modifier = Modifier.scale(pulseScale),
             )
 
             Text(

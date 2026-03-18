@@ -100,21 +100,21 @@ fun HowToPlayScreen(gameState: GameState) {
                 number = "3",
                 icon = Icons.Default.CameraAlt,
                 title = "Fotos aufnehmen",
-                body = "Findet ihr ein Motiv, tippt auf die Kategorie und macht ein Foto. Mehrere Spieler können dieselbe Kategorie fotografieren – das Beste gewinnt.",
+                body = "Findet ihr ein Motiv, tippt auf die Kategorie und macht ein Foto. Jeder Spieler kann jede Kategorie fotografieren.",
                 modifier = Modifier.staggered(3),
             )
             StepCard(
                 number = "4",
                 icon = Icons.Default.HowToVote,
-                title = "Abstimmen",
-                body = "Nach der Zeit seht ihr alle Fotos. Jeder stimmt pro Kategorie ab, welches Foto am besten passt. Schnell, fair, lustig.",
+                title = "Bewerten",
+                body = "Nach der Zeit bewertet ihr alle Fotos mit 1–5 Sternen. Je besser das Bild zur Kategorie passt, desto mehr Sterne – und jeder Stern zählt als ein Punkt.",
                 modifier = Modifier.staggered(4),
             )
             StepCard(
                 number = "5",
                 icon = Icons.Default.EmojiEvents,
                 title = "Sieger küren",
-                body = "Wer die meisten Votes sammelt, gewinnt. Am Ende seht ihr das Ranking aller Spieler und die besten Bilder der Runde.",
+                body = "Die Sterne aller Mitspieler werden pro Kategorie gemittelt und ergeben deine Punkte. Wer insgesamt die meisten Punkte sammelt, gewinnt!",
                 modifier = Modifier.staggered(5),
             )
 
@@ -136,7 +136,7 @@ fun HowToPlayScreen(gameState: GameState) {
                         )
                     }
                     Text(
-                        "Wer als Erster eine Kategorie fotografiert, bekommt automatisch +1 Bonuspunkt – zusätzlich zu den Abstimmungspunkten. Schnell sein lohnt sich!",
+                        "Wer als Erster eine Kategorie fotografiert, bekommt +1 Bonuspunkt obendrauf. Schnell sein lohnt sich!",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFFBBF24).copy(alpha = 0.85f),
                         lineHeight = 18.sp,

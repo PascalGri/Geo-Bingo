@@ -45,11 +45,11 @@ data class VoteDto(
     val voter_id: String = "",
     val target_player_id: String = "",
     val category_id: String = "",
-    val approved: Boolean = false
+    val rating: Int = 0
 )
 
 @Serializable
-private data class VoteInsertDto(val game_id: String, val voter_id: String, val target_player_id: String, val category_id: String, val approved: Boolean)
+private data class VoteInsertDto(val game_id: String, val voter_id: String, val target_player_id: String, val category_id: String, val rating: Int)
 
 @Serializable
 data class VoteSubmissionDto(val id: String = "", val game_id: String = "", val voter_id: String = "", val category_id: String = "")
@@ -247,12 +247,12 @@ object GameRepository {
         targetPlayerId: String,
         categoryId: String,
         stepKey: String,
-        approved: Boolean,
+        rating: Int,
     ) {
         // Insert vote - may fail if duplicate, but we still need to submit the vote_submission
         try {
             supabase.from("votes").insert(
-                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, approved = approved)
+                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, rating = rating)
             )
         } catch (e: Exception) {
             // Duplicate vote is OK - continue to submit vote_submission
@@ -286,10 +286,10 @@ object GameRepository {
         }
     }
 
-    suspend fun submitCategoryVotes(gameId: String, voterId: String, categoryId: String, votes: List<Pair<String, Boolean>>) {
+    suspend fun submitCategoryVotes(gameId: String, voterId: String, categoryId: String, votes: List<Pair<String, Int>>) {
         if (votes.isNotEmpty()) {
-            val dtos = votes.map { (targetId, approved) ->
-                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetId, category_id = categoryId, approved = approved)
+            val dtos = votes.map { (targetId, rating) ->
+                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetId, category_id = categoryId, rating = rating)
             }
             supabase.from("votes").insert(dtos)
         }

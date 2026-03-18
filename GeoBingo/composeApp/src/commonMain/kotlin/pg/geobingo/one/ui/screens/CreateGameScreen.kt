@@ -429,7 +429,7 @@ fun CreateGameScreen(gameState: GameState) {
                 ) {
                     Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFFBBF24))
                     Text(
-                        "Wer eine Kategorie als Erster fotografiert, bekommt +1 Schnelligkeitsbonus.",
+                        "Wer eine Kategorie als Erster fotografiert, bekommt +1 Tempopunkt.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFFBBF24).copy(alpha = 0.85f),
                         lineHeight = 17.sp,

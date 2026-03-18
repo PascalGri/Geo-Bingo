@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
@@ -48,6 +49,11 @@ import pg.geobingo.one.ui.theme.ConfettiEffect
 import pg.geobingo.one.ui.theme.ShimmerPlaceholder
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
+
+private fun formatRating(value: Double): String {
+    val rounded = (value * 10).toInt()
+    return "${rounded / 10}.${rounded % 10}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,7 +213,9 @@ fun ResultsScreen(gameState: GameState) {
                                 append("KatchIt! Runde beendet\n\n")
                                 ranked.take(3).forEachIndexed { index, (player, score) ->
                                     val medal = when(index) { 0 -> "#1"; 1 -> "#2"; 2 -> "#3"; else -> "" }
-                                    append("$medal ${player.name}: $score Pkt.\n")
+                                    val avg = gameState.getPlayerAverageRating(player.id)
+                                    val starText = if (avg != null) " (${formatRating(avg)})" else ""
+                                    append("$medal ${player.name}: $score Pkt.$starText\n")
                                 }
                                 append("\nZeig, was du kannst und spiele KatchIt!")
                             }
@@ -275,7 +283,7 @@ fun ResultsScreen(gameState: GameState) {
             if (ranked.size >= 2) {
                 Spacer(Modifier.height(20.dp))
                 Box(modifier = Modifier.staggered(1)) {
-                    DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.playerAvatarBytes)
+                    DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.playerAvatarBytes, gameState = gameState)
                 }
             }
 
@@ -293,6 +301,7 @@ fun ResultsScreen(gameState: GameState) {
                 ranked.forEachIndexed { index, (player, score) ->
                     val capturedCount = gameState.allCaptures.count { it.player_id == player.id }
                     val speedBonus = gameState.getSpeedBonusCount(player.id)
+                    val avgRating = gameState.getPlayerAverageRating(player.id)
                     DarkRankCard(
                         rank = index + 1,
                         player = player,
@@ -302,6 +311,7 @@ fun ResultsScreen(gameState: GameState) {
                         captures = gameState.getPlayerCaptures(player.id).map { it.name },
                         isWinner = index == 0,
                         speedBonus = speedBonus,
+                        averageRating = avgRating,
                         photoBytes = gameState.playerAvatarBytes[player.id],
                     )
                 }
@@ -355,7 +365,7 @@ fun ResultsScreen(gameState: GameState) {
 }
 
 @Composable
-private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes: Map<String, ByteArray>) {
+private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes: Map<String, ByteArray>, gameState: GameState) {
     val heights = listOf(100.dp, 72.dp, 56.dp)
     val podiumOrder = when (ranked.size) {
         1 -> listOf(ranked[0] to 0)
@@ -411,6 +421,17 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
                     fontWeight = FontWeight.Bold,
                     color = player.color,
                 )
+                val avgRating = gameState.getPlayerAverageRating(player.id)
+                if (avgRating != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, null, modifier = Modifier.size(11.dp), tint = Color(0xFFFBBF24))
+                        Text(
+                            " ${formatRating(avgRating)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFBBF24),
+                        )
+                    }
+                }
                 Spacer(Modifier.height(4.dp))
                 // Animated podium bar growing from bottom
                 val targetHeight = heights[rank]
@@ -436,6 +457,7 @@ private fun DarkRankCard(
     captures: List<String>,
     isWinner: Boolean,
     speedBonus: Int = 0,
+    averageRating: Double? = null,
     photoBytes: ByteArray? = null,
 ) {
     val cardBg = if (isWinner) ColorPrimaryContainer else ColorSurface
@@ -517,6 +539,17 @@ private fun DarkRankCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorOnSurfaceVariant,
                 )
+                if (averageRating != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, null, modifier = Modifier.size(13.dp), tint = Color(0xFFFBBF24))
+                        Text(
+                            " ${formatRating(averageRating)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFFBBF24),
+                        )
+                    }
+                }
                 if (capturedCount > score) {
                     Text(
                         "$capturedCount gefunden",
@@ -528,7 +561,7 @@ private fun DarkRankCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Bolt, null, modifier = Modifier.size(12.dp), tint = Color(0xFFFBBF24))
                         Text(
-                            " +$speedBonus schnell",
+                            " +$speedBonus Tempo",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFFFBBF24),
                         )
