@@ -29,6 +29,7 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
@@ -232,6 +233,7 @@ fun JoinGameScreen(gameState: GameState) {
                                         GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
                                         GameRepository.setPlayerAvatar(playerDto.id, "selfie")
                                     } catch (e: Exception) { e.printStackTrace() }
+                                    try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (_: Exception) {}
                                 }
                                 if (avatarBytes != null) {
                                     gameState.playerAvatarBytes = gameState.playerAvatarBytes + (playerDto.id to avatarBytes)

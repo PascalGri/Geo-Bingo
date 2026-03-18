@@ -52,6 +52,9 @@ data class VoteDto(
 private data class VoteInsertDto(val game_id: String, val voter_id: String, val target_player_id: String, val category_id: String, val approved: Boolean)
 
 @Serializable
+data class VoteSubmissionDto(val id: String = "", val game_id: String = "", val voter_id: String = "", val category_id: String = "")
+
+@Serializable
 private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: String, val category_id: String)
 
 @Serializable
@@ -250,15 +253,32 @@ object GameRepository {
             // Duplicate vote is OK - continue to submit vote_submission
             e.printStackTrace()
         }
-        supabase.from("vote_submissions").insert(
-            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
-        )
+        try {
+            supabase.from("vote_submissions").insert(
+                VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
+            )
+        } catch (e: Exception) {
+            // Duplicate submission is OK - vote was already counted
+            val msg = e.message ?: ""
+            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
+                && !msg.contains("23505", ignoreCase = true)) {
+                throw e
+            }
+        }
     }
 
     suspend fun submitStepSubmission(gameId: String, voterId: String, stepKey: String) {
-        supabase.from("vote_submissions").insert(
-            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
-        )
+        try {
+            supabase.from("vote_submissions").insert(
+                VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
+            )
+        } catch (e: Exception) {
+            val msg = e.message ?: ""
+            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
+                && !msg.contains("23505", ignoreCase = true)) {
+                throw e
+            }
+        }
     }
 
     suspend fun submitCategoryVotes(gameId: String, voterId: String, categoryId: String, votes: List<Pair<String, Boolean>>) {

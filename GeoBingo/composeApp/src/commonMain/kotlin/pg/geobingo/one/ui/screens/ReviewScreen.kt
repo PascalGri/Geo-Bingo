@@ -138,9 +138,11 @@ fun ReviewScreen(gameState: GameState) {
             if (submissionCount >= numPlayers) {
                 val nextStep = stepIndex + 1
                 if (nextStep >= totalSteps) {
-                    GameRepository.setGameStatus(gameId, "results")
+                    try { GameRepository.setGameStatus(gameId, "results") } catch (_: Exception) {}
+                    try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                    gameState.currentScreen = Screen.RESULTS
                 } else {
-                    GameRepository.setReviewCategoryIndex(gameId, nextStep)
+                    try { GameRepository.setReviewCategoryIndex(gameId, nextStep) } catch (_: Exception) {}
                     gameState.reviewCategoryIndex = nextStep
                     gameState.hasSubmittedCurrentCategory = false
                 }
@@ -294,18 +296,18 @@ private fun DarkSinglePhotoVotingScreen(
 @Composable
 private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
+    var advanceCalled by remember(stepKey) { mutableStateOf(false) }
     LaunchedEffect(stepKey) {
-        // Fetch immediately, then poll
-        try {
-            submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
-            if (submittedCount >= totalPlayers) { onReadyToAdvance(); return@LaunchedEffect }
-        } catch (e: Exception) { e.printStackTrace() }
+        // Keep polling until the step actually changes (composable is destroyed)
         while (true) {
-            delay(2_000)
             try {
                 submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
-                if (submittedCount >= totalPlayers) { onReadyToAdvance(); break }
+                if (submittedCount >= totalPlayers && !advanceCalled) {
+                    advanceCalled = true
+                    onReadyToAdvance()
+                }
             } catch (e: Exception) { e.printStackTrace() }
+            delay(2_000)
         }
     }
     Box(modifier = Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {

@@ -34,6 +34,12 @@ class GameRealtimeManager(private val gameId: String) {
             filter("game_id", FilterOperator.EQ, gameId)
         }.map { it.decodeRecord<VoteDto>() }
 
+    val voteSubmissionInserts: Flow<VoteSubmissionDto> =
+        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "vote_submissions"
+            filter("game_id", FilterOperator.EQ, gameId)
+        }.map { it.decodeRecord<VoteSubmissionDto>() }
+
     suspend fun subscribe() {
         try {
             channel.subscribe(blockUntilSubscribed = true)

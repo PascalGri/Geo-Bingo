@@ -181,8 +181,8 @@ fun GameScreen(gameState: GameState) {
     LaunchedEffect(gameId) {
         if (realtime == null || gameId == null) return@LaunchedEffect
         val gid = gameId
-        realtime.voteInserts.collect { vote ->
-            if (vote.category_id == VoteKeys.END_VOTE) {
+        realtime.voteSubmissionInserts.collect { submission ->
+            if (submission.category_id == VoteKeys.END_VOTE) {
                 try {
                     val count = GameRepository.getEndVoteCount(gid)
                     gameState.endVoteCount = count
@@ -193,6 +193,10 @@ fun GameScreen(gameState: GameState) {
                         gameState.currentScreen = Screen.REVIEW
                     }
                 } catch (e: Exception) { e.printStackTrace() }
+            }
+            // Also detect finish signal via realtime
+            if (submission.category_id == VoteKeys.ALL_CAPTURED && !gameState.finishSignalDetected && !gameState.allCategoriesCaptured) {
+                gameState.finishSignalDetected = true
             }
         }
     }
@@ -239,6 +243,15 @@ fun GameScreen(gameState: GameState) {
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
                         gameState.currentScreen = Screen.REVIEW
+                    }
+
+                    // Check if any player completed all categories (for countdown)
+                    if (!gameState.finishSignalDetected && !gameState.allCategoriesCaptured) {
+                        try {
+                            if (GameRepository.hasAllCapturedSignal(gameId)) {
+                                gameState.finishSignalDetected = true
+                            }
+                        } catch (_: Exception) {}
                     }
                 }
                 gameState.consecutiveNetworkErrors = 0
@@ -329,17 +342,19 @@ fun GameScreen(gameState: GameState) {
                     val pid = gameState.myPlayerId ?: return@launch
                     gameState.hasVotedToEnd = true
                     var attempt = 0
+                    var success = false
                     while (attempt < 3) {
                         try {
                             if (attempt > 0) delay(1_000L * attempt)
                             GameRepository.submitEndVote(gameId, pid)
+                            success = true
                             break
                         } catch (e: Exception) {
                             e.printStackTrace()
                             attempt++
                         }
                     }
-                    // Never reset hasVotedToEnd - the UI stays "voted"
+                    if (!success) gameState.hasVotedToEnd = false
                 }
             }
         },
@@ -495,8 +510,8 @@ fun GameScreenContent(
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             ) {
                                 Text(
-                                    if (gameState.hasVotedToEnd) "Votiert (${gameState.endVoteCount}/${gameState.players.size}) ✓"
-                                    else "Runde beenden (${gameState.endVoteCount}/${gameState.players.size})",
+                                    if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/${gameState.players.size}) ✓"
+                                    else "Vorzeitig beenden (${gameState.endVoteCount}/${gameState.players.size})",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                             }

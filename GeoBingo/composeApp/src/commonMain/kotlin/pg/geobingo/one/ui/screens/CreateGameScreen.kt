@@ -30,6 +30,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
@@ -114,6 +115,7 @@ fun CreateGameScreen(gameState: GameState) {
                                             GameRepository.uploadAvatarPhoto(hostDto.id, avatarBytes)
                                             GameRepository.setPlayerAvatar(hostDto.id, "selfie")
                                         } catch (e: Exception) { e.printStackTrace() }
+                                        try { LocalPhotoStore.saveAvatar(hostDto.id, avatarBytes) } catch (_: Exception) {}
                                     }
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
                                     if (avatarBytes != null) {
