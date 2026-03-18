@@ -19,7 +19,9 @@ fun App() {
             Screen.JOIN_GAME -> JoinGameScreen(gameState)
             Screen.LOBBY -> LobbyScreen(gameState)
             Screen.GAME -> GameScreen(gameState)
+            Screen.VOTE_TRANSITION -> VoteTransitionScreen(gameState)
             Screen.REVIEW -> ReviewScreen(gameState)
+            Screen.RESULTS_TRANSITION -> ResultsTransitionScreen(gameState)
             Screen.RESULTS -> ResultsScreen(gameState)
             Screen.HISTORY -> HistoryScreen(gameState)
         }

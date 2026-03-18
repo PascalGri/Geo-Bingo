@@ -173,7 +173,7 @@ fun GameScreen(gameState: GameState) {
             if (game.status == "voting" && gameState.currentScreen == Screen.GAME) {
                 gameState.isGameRunning = false
                 gameState.reviewCategoryIndex = game.review_category_index
-                gameState.currentScreen = Screen.REVIEW
+                gameState.currentScreen = Screen.VOTE_TRANSITION
             }
         }
     }
@@ -190,7 +190,7 @@ fun GameScreen(gameState: GameState) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
-                        gameState.currentScreen = Screen.REVIEW
+                        gameState.currentScreen = Screen.VOTE_TRANSITION
                     }
                 } catch (e: Exception) { e.printStackTrace() }
             }
@@ -222,7 +222,7 @@ fun GameScreen(gameState: GameState) {
                 if (game?.status == "voting" && gameState.currentScreen == Screen.GAME) {
                     gameState.isGameRunning = false
                     gameState.reviewCategoryIndex = game.review_category_index
-                    gameState.currentScreen = Screen.REVIEW
+                    gameState.currentScreen = Screen.VOTE_TRANSITION
                 }
                 if (gameState.isGameRunning) {
                     // Poll other players' captures
@@ -242,7 +242,7 @@ fun GameScreen(gameState: GameState) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
-                        gameState.currentScreen = Screen.REVIEW
+                        gameState.currentScreen = Screen.VOTE_TRANSITION
                     }
 
                     // Check if any player completed all categories (for countdown)
@@ -309,7 +309,7 @@ fun GameScreen(gameState: GameState) {
                 try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
             }
             gameState.reviewCategoryIndex = 0
-            gameState.currentScreen = Screen.REVIEW
+            gameState.currentScreen = Screen.VOTE_TRANSITION
         }
     }
 
@@ -354,7 +354,7 @@ fun GameScreen(gameState: GameState) {
                 try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
             }
             gameState.reviewCategoryIndex = 0
-            gameState.currentScreen = Screen.REVIEW
+            gameState.currentScreen = Screen.VOTE_TRANSITION
         }
     }
 
@@ -391,7 +391,7 @@ fun GameScreen(gameState: GameState) {
                             gameState.isGameRunning = false
                             try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
                             gameState.reviewCategoryIndex = 0
-                            gameState.currentScreen = Screen.REVIEW
+                            gameState.currentScreen = Screen.VOTE_TRANSITION
                         }
                     }
                 }

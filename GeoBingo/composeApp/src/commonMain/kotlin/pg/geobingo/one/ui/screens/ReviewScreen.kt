@@ -90,7 +90,7 @@ fun ReviewScreen(gameState: GameState) {
             }
             if (game.status == "results") {
                 try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { e.printStackTrace() }
-                gameState.currentScreen = Screen.RESULTS
+                gameState.currentScreen = Screen.RESULTS_TRANSITION
             }
         }
     }
@@ -120,7 +120,7 @@ fun ReviewScreen(gameState: GameState) {
                                     } catch (_: Exception) {}
                                 }
                                 try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
-                                gameState.currentScreen = Screen.RESULTS
+                                gameState.currentScreen = Screen.RESULTS_TRANSITION
                             } else {
                                 for (attempt in 0 until 3) {
                                     try {
@@ -151,7 +151,7 @@ fun ReviewScreen(gameState: GameState) {
                 }
                 if (game?.status == "results" && gameState.currentScreen == Screen.REVIEW) {
                     gameState.allVotes = GameRepository.getVotes(gameId)
-                    gameState.currentScreen = Screen.RESULTS
+                    gameState.currentScreen = Screen.RESULTS_TRANSITION
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -190,7 +190,7 @@ fun ReviewScreen(gameState: GameState) {
                         } catch (_: Exception) {}
                     }
                     try { gameState.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
-                    gameState.currentScreen = Screen.RESULTS
+                    gameState.currentScreen = Screen.RESULTS_TRANSITION
                 } else {
                     var serverUpdated = false
                     for (attempt in 0 until 3) {

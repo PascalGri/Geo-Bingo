@@ -12,7 +12,7 @@ import pg.geobingo.one.network.VoteDto
 import pg.geobingo.one.network.toHex
 
 enum class Screen {
-    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS, HISTORY
+    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY
 }
 
 data class HistoryPlayer(
