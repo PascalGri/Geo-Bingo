@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
@@ -76,20 +78,34 @@ fun GameScreen(gameState: GameState) {
 
             if (gameId != null) {
                 scope.launch {
+                    // Upload capture with retries
                     var attempt = 0
-                    var success = false
-                    while (attempt < 3 && !success) {
+                    var captureSuccess = false
+                    while (attempt < 3 && !captureSuccess) {
                         try {
                             if (attempt > 0) delay(2_000L * attempt)
                             GameRepository.recordCapture(gameId, pid, cid, bytes)
-                            if (isJoker) GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            success = true
+                            captureSuccess = true
                         } catch (e: Exception) {
                             e.printStackTrace()
                             attempt++
                         }
                     }
+                    // Save joker label separately (so capture retry doesn't block it)
+                    if (isJoker) {
+                        var jokerAttempt = 0
+                        while (jokerAttempt < 3) {
+                            try {
+                                if (jokerAttempt > 0) delay(1_000L * jokerAttempt)
+                                GameRepository.setJokerLabel(gameId, pid, jokerLabelInput.trim())
+                                break
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                jokerAttempt++
+                            }
+                        }
+                    }
+                    if (captureSuccess) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     gameState.uploadingCategories = gameState.uploadingCategories - cid
                 }
             } else {
@@ -104,12 +120,15 @@ fun GameScreen(gameState: GameState) {
             onDismissRequest = { jokerDialogVisible = false },
             containerColor = ColorSurface,
             title = {
-                Text(
-                    "🃏 Joker verwenden",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorOnSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.Style, null, modifier = Modifier.size(20.dp), tint = ColorPrimary)
+                    Text(
+                        "Joker verwenden",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnSurface,
+                    )
+                }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -148,7 +167,7 @@ fun GameScreen(gameState: GameState) {
                         if (existingJoker == null) {
                             gameState.selectedCategories = gameState.selectedCategories + Category(
                                 id = "joker_$myId",
-                                name = "🃏 $label",
+                                name = label,
                                 emoji = "joker",
                             )
                         }
@@ -537,7 +556,9 @@ fun GameScreenContent(
                                     shape = RoundedCornerShape(20.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                 ) {
-                                    Text("🃏 Joker", style = MaterialTheme.typography.labelMedium)
+                                    Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = ColorPrimary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Joker", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             OutlinedButton(
@@ -550,7 +571,7 @@ fun GameScreenContent(
                             ) {
                                 val needed = gameState.players.size / 2 + 1
                                 Text(
-                                    if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/$needed) ✓"
+                                    if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/$needed)"
                                     else "Vorzeitig beenden (${gameState.endVoteCount}/$needed)",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
@@ -680,7 +701,7 @@ private fun DarkBingoCategoryCard(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
-                if (isCaptured) Text("✓", color = playerColor, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
             }
         }
     }

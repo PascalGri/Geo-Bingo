@@ -41,15 +41,15 @@ fun HomeScreen(gameState: GameState) {
             .fillMaxSize()
             .background(ColorBackground),
     ) {
-        // Top glow
+        // Top glow - subtle
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .height(400.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(Color(0xFF1A3A10).copy(alpha = 0.6f), Color.Transparent),
-                        radius = 600f,
+                        colors = listOf(ColorPrimary.copy(alpha = 0.08f), Color.Transparent),
+                        radius = 800f,
                     )
                 )
         )
@@ -60,78 +60,81 @@ fun HomeScreen(gameState: GameState) {
                 .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(72.dp))
+            Spacer(Modifier.height(80.dp))
 
             // Title
-            AnimatedGradientText(
+            Text(
                 text = "KatchIt!",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 56.sp,
+                    fontSize = 52.sp,
+                    letterSpacing = (-1).sp,
                 ),
-                gradientColors = GradientPrimary,
-                durationMillis = 2500,
+                color = ColorOnBackground,
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "Sei schneller als deine Freunde!",
+                text = "Foto-Schnitzeljagd mit Freunden",
                 style = MaterialTheme.typography.bodyLarge,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(40.dp))
 
-            // Three compact mechanic pills
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            // How it works - vertical steps
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ColorSurface)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                MechanicPill(
+                HomeStep(
                     icon = Icons.Default.GridView,
-                    label = "Kategorien\nwählen",
-                    modifier = Modifier.weight(1f),
+                    number = "1",
+                    text = "Kategorien w\u00E4hlen und Freunde einladen",
                 )
-                MechanicPill(
+                HomeStep(
                     icon = Icons.Default.CameraAlt,
-                    label = "Motive\nfotografieren",
-                    modifier = Modifier.weight(1f),
+                    number = "2",
+                    text = "Raus in die Stadt und Motive fotografieren",
                 )
-                MechanicPill(
-                    icon = Icons.Default.EmojiEvents,
-                    label = "Abstimmen\n& gewinnen",
-                    modifier = Modifier.weight(1f),
+                HomeStep(
+                    icon = Icons.Default.HowToVote,
+                    number = "3",
+                    text = "Abstimmen, wer die besten Fotos hat",
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
             // Datenschutz-Hinweis
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF1C2A1A))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ColorSurface)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.Top,
             ) {
                 Icon(
                     Icons.Default.GppMaybe,
                     contentDescription = null,
-                    tint = Color(0xFF81C784),
-                    modifier = Modifier.size(18.dp).padding(top = 1.dp),
+                    tint = ColorOnSurfaceVariant,
+                    modifier = Modifier.size(16.dp).padding(top = 1.dp),
                 )
                 Text(
-                    text = "Fotografiere keine Personen ohne deren ausdrückliche Zustimmung. " +
-                           "Das Recht am eigenen Bild (§ 22 KUG) schützt jede Person vor unerlaubter " +
-                           "Aufnahme und Weitergabe. Die Verantwortung für rechtmäßige Aufnahmen " +
-                           "liegt ausschließlich beim jeweiligen Nutzer.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFAED581),
-                    lineHeight = 17.sp,
+                    text = "Fotografiere keine Personen ohne deren Zustimmung. " +
+                           "Das Recht am eigenen Bild (\u00A7 22 KUG) sch\u00FCtzt jede Person. " +
+                           "Die Verantwortung liegt beim jeweiligen Nutzer.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant,
+                    lineHeight = 15.sp,
                 )
             }
 
@@ -147,23 +150,23 @@ fun HomeScreen(gameState: GameState) {
                 },
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
                 onClick = { gameState.currentScreen = Screen.JOIN_GAME },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(28.dp),
-                border = BorderStroke(1.5.dp, ColorPrimary),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                border = BorderStroke(1.dp, ColorOutline),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
             ) {
-                Icon(Icons.Default.Login, null, modifier = Modifier.size(20.dp), tint = ColorPrimary)
+                Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Runde beitreten",
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 16.sp,
-                    color = ColorPrimary,
+                    color = ColorOnSurface,
                 )
             }
 
@@ -203,38 +206,33 @@ fun HomeScreen(gameState: GameState) {
             }
 
             Text("KatchIt! v1.0", style = MaterialTheme.typography.bodySmall, color = ColorOutline)
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(28.dp))
         }
     }
     } // end Scaffold
 }
 
 @Composable
-private fun MechanicPill(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(ColorSurface)
-            .padding(vertical = 14.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun HomeStep(icon: ImageVector, number: String, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Brush.linearGradient(GradientPrimary)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(ColorSurfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
         }
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Medium,
-            color = ColorOnSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 14.sp,
+            color = ColorOnSurface,
+            modifier = Modifier.weight(1f),
         )
     }
 }

@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -371,7 +374,7 @@ fun CreateGameScreen(gameState: GameState) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Text("⚡", fontSize = 16.sp)
+                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFFBBF24))
                     Text(
                         "Wer eine Kategorie als Erster fotografiert, bekommt +1 Schnelligkeitsbonus.",
                         style = MaterialTheme.typography.bodySmall,
@@ -410,12 +413,15 @@ fun CreateGameScreen(gameState: GameState) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "🃏 Joker-Modus",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ColorOnSurface,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Style, null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
+                            Text(
+                                "Joker-Modus",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ColorOnSurface,
+                            )
+                        }
                         Text(
                             "Jeder Spieler darf einmal ein Wildcard-Foto machen – mit eigenem Thema.",
                             style = MaterialTheme.typography.bodySmall,
@@ -446,9 +452,9 @@ fun CreateGameScreen(gameState: GameState) {
                             modifier = Modifier.padding(10.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text("💡", fontSize = 14.sp)
+                            Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
                             Text(
-                                "Spieler tippen auf den 🃏 Button, geben ein Thema ein und machen ein Foto. Das Joker-Bild wird ganz normal abgestimmt.",
+                                "Spieler tippen auf den Joker-Button, geben ein Thema ein und machen ein Foto. Das Joker-Bild wird ganz normal abgestimmt.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = ColorOnPrimaryContainer,
                                 lineHeight = 16.sp,

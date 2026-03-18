@@ -111,7 +111,7 @@ fun HowToPlayScreen(gameState: GameState) {
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("⚡", fontSize = 18.sp)
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(20.dp), tint = Color(0xFFFBBF24))
                         Text(
                             "Schnelligkeitsbonus",
                             style = MaterialTheme.typography.labelLarge,

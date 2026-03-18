@@ -69,7 +69,7 @@ fun ReviewScreen(gameState: GameState) {
                 val labels = GameRepository.getJokerLabels(gameId)
                 gameState.jokerLabels = labels
                 val jokerCats = labels.entries.map { (playerId, label) ->
-                    Category(id = "joker_$playerId", name = "🃏 $label", emoji = "joker")
+                    Category(id = "joker_$playerId", name = label, emoji = "joker")
                 }.filter { jokerCat -> gameState.selectedCategories.none { it.id == jokerCat.id } }
                 if (jokerCats.isNotEmpty()) gameState.selectedCategories = gameState.selectedCategories + jokerCats
             } catch (e: Exception) { e.printStackTrace() }

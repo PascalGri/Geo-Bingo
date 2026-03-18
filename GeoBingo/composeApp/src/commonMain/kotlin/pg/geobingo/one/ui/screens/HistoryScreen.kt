@@ -7,6 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +63,7 @@ fun HistoryScreen(gameState: GameState) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text("📋", fontSize = 48.sp)
+                    Icon(Icons.Default.History, null, modifier = Modifier.size(48.dp), tint = ColorOnSurfaceVariant)
                     Text(
                         "Noch keine Runden gespielt",
                         style = MaterialTheme.typography.bodyLarge,
@@ -133,10 +136,7 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
                             durationMillis = 3000,
                         )
                         if (entry.jokerMode) {
-                            Text(
-                                "🃏",
-                                fontSize = 14.sp,
-                            )
+                            Icon(Icons.Default.Style, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
                         }
                     }
                     Text(
@@ -169,13 +169,18 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    val medal = when (i) {
-                        0 -> "🥇"
-                        1 -> "🥈"
-                        2 -> "🥉"
-                        else -> "${i + 1}."
+                    val rankColor = when (i) {
+                        0 -> Color(0xFFFBBF24) // Gold
+                        1 -> Color(0xFF94A3B8) // Silver
+                        2 -> Color(0xFFCD7F32) // Bronze
+                        else -> ColorOnSurfaceVariant
                     }
-                    Text(medal, fontSize = if (i < 3) 16.sp else 12.sp)
+                    Text(
+                        "${i + 1}.",
+                        fontSize = 13.sp,
+                        fontWeight = if (i < 3) FontWeight.Bold else FontWeight.Normal,
+                        color = rankColor,
+                    )
                     PlayerAvatarView(
                         player = Player(id = hp.id, name = hp.name, color = parseHexColor(hp.colorHex)),
                         size = 24.dp,

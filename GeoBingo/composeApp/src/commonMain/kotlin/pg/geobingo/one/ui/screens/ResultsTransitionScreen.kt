@@ -57,14 +57,13 @@ fun ResultsTransitionScreen(gameState: GameState) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            AnimatedGradientText(
+            Text(
                 text = "Ergebnis",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
                 ),
-                gradientColors = GradientGold,
-                durationMillis = 600,
+                color = ColorOnBackground,
             )
 
             Text(
@@ -77,12 +76,11 @@ fun ResultsTransitionScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            AnimatedGradientBox(
+            Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                gradientColors = GradientGold,
-                durationMillis = 500,
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ColorSurfaceVariant),
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
@@ -101,11 +102,11 @@ fun ResultsScreen(gameState: GameState) {
         topBar = {
             TopAppBar(
                 title = {
-                    AnimatedGradientText(
-                        text = "Ergebnisse",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        gradientColors = GradientGold,
-                        durationMillis = 2500,
+                    Text(
+                        "Ergebnisse",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnSurface,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -159,12 +160,12 @@ fun ResultsScreen(gameState: GameState) {
                         Spacer(Modifier.height(8.dp))
                     }
                     GradientButton(
-                        text = "Ergebnis teilen",
+                        text = "Teilen",
                         onClick = {
                             val text = buildString {
-                                append("KatchIt! Runde beendet \uD83C\uDFC6\n\n")
+                                append("KatchIt! Runde beendet\n\n")
                                 ranked.take(3).forEachIndexed { index, (player, score) ->
-                                    val medal = when(index) { 0 -> "\uD83E\uDD47"; 1 -> "\uD83E\uDD48"; 2 -> "\uD83E\uDD49"; else -> "" }
+                                    val medal = when(index) { 0 -> "#1"; 1 -> "#2"; 2 -> "#3"; else -> "" }
                                     append("$medal ${player.name}: $score Pkt.\n")
                                 }
                                 append("\nZeig, was du kannst und spiele KatchIt!")
@@ -200,36 +201,30 @@ fun ResultsScreen(gameState: GameState) {
         ) {
             // Winner banner
             if (winner != null) {
-                AnimatedGradientBox(
-                    modifier = Modifier.fillMaxWidth(),
-                    gradientColors = GradientGold,
-                    durationMillis = 4000,
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            modifier = Modifier.size(60.dp),
-                            tint = Color.White,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            winner.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                        Text(
-                            "gewinnt!",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.85f),
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp),
+                        tint = Color(0xFFFBBF24),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        winner.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnBackground,
+                    )
+                    Text(
+                        "gewinnt!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ColorOnSurfaceVariant,
+                    )
                 }
             }
 
@@ -325,6 +320,11 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
     ) {
         podiumOrder.forEach { (playerScore, rank) ->
             val (player, score) = playerScore
+            val rankColor = when (rank) {
+                0 -> Color(0xFFFBBF24).copy(alpha = 0.7f)
+                1 -> Color(0xFF94A3B8).copy(alpha = 0.5f)
+                else -> Color(0xFFCD7F32).copy(alpha = 0.5f)
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f),
@@ -333,11 +333,7 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
                     text = when (rank) { 0 -> "1." ; 1 -> "2."; else -> "3." },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = when (rank) {
-                        0 -> Color(0xFFFBBF24) // Gold
-                        1 -> Color(0xFF94A3B8) // Silver
-                        else -> Color(0xFFCD7F32) // Bronze
-                    },
+                    color = rankColor,
                 )
                 Spacer(Modifier.height(4.dp))
                 PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp, photoBytes = playerAvatarBytes[player.id])
@@ -361,13 +357,7 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
                         .fillMaxWidth()
                         .height(heights[rank])
                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                        .background(
-                            when (rank) {
-                                0 -> Brush.linearGradient(GradientGold)
-                                1 -> Brush.linearGradient(listOf(Color(0xFF64748B), Color(0xFF94A3B8)))
-                                else -> Brush.linearGradient(listOf(Color(0xFF92400E), Color(0xFFCD7F32)))
-                            }
-                        ),
+                        .background(ColorSurfaceVariant),
                 )
             }
         }
@@ -407,10 +397,10 @@ private fun DarkRankCard(
                     .clip(CircleShape)
                     .background(
                         when (rank) {
-                            1 -> Brush.linearGradient(GradientGold)
-                            2 -> Brush.linearGradient(listOf(Color(0xFF64748B), Color(0xFF94A3B8)))
-                            3 -> Brush.linearGradient(listOf(Color(0xFF92400E), Color(0xFFCD7F32)))
-                            else -> Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            1 -> Color(0xFF3A3010) // Muted gold bg
+                            2 -> Color(0xFF2A2E34) // Muted silver bg
+                            3 -> Color(0xFF2E2218) // Muted bronze bg
+                            else -> ColorSurfaceVariant
                         }
                     ),
                 contentAlignment = Alignment.Center,
@@ -419,7 +409,12 @@ private fun DarkRankCard(
                     text = "$rank",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = when (rank) {
+                        1 -> Color(0xFFFBBF24)
+                        2 -> Color(0xFF94A3B8)
+                        3 -> Color(0xFFCD7F32)
+                        else -> ColorOnSurfaceVariant
+                    },
                 )
             }
 
@@ -468,11 +463,14 @@ private fun DarkRankCard(
                     )
                 }
                 if (speedBonus > 0) {
-                    Text(
-                        "⚡ +$speedBonus schnell",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFBBF24),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(12.dp), tint = Color(0xFFFBBF24))
+                        Text(
+                            " +$speedBonus schnell",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFBBF24),
+                        )
+                    }
                 }
             }
         }
@@ -549,7 +547,7 @@ private fun GalleryPhotoItem(
                         }) {
                             Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(if (saveSuccess == true) "Gespeichert ✓" else "Speichern")
+                            Text(if (saveSuccess == true) "Gespeichert" else "Speichern")
                         }
                     }
                     TextButton(onClick = { showFullscreen = false }) { Text("Schließen") }
