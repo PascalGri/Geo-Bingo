@@ -210,8 +210,28 @@ fun ReviewScreen(gameState: GameState) {
         } catch (e: Exception) { e.printStackTrace() }
     }
 
+    // Auto-skip self-voting: submit immediately without showing UI
+    val isSelf = targetPlayer.id == myPlayerId
+    LaunchedEffect(stepIndex, isSelf) {
+        if (isSelf && !gameState.hasSubmittedCurrentCategory) {
+            gameState.hasSubmittedCurrentCategory = true
+            var attempt = 0
+            while (attempt < 3) {
+                try {
+                    if (attempt > 0) delay(1_000L * attempt)
+                    GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
+                    break
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    attempt++
+                }
+            }
+            advanceStep()
+        }
+    }
+
     key(stepIndex) {
-        if (gameState.hasSubmittedCurrentCategory) {
+        if (isSelf || gameState.hasSubmittedCurrentCategory) {
             DarkWaitingScreen(
                 gameId = gameId,
                 stepKey = stepKey,
@@ -341,13 +361,22 @@ private fun DarkSinglePhotoVotingScreen(
                     Text("Kein Foto gefunden", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(false) }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = ColorError), shape = RoundedCornerShape(14.dp)) {
-                    Icon(Icons.Default.Close, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Nein", fontWeight = FontWeight.Bold)
+            if (!photoLoading && photo == null) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(14.dp)).background(ColorError.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Keine Einsendung – wird übersprungen...", color = ColorError, fontWeight = FontWeight.Bold)
                 }
-                GradientButton(text = "Ja", onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(true) }, modifier = Modifier.weight(1f), gradientColors = GradientPrimary, leadingIcon = { Icon(Icons.Default.Check, null, tint = Color.White) })
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(false) }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = ColorError), shape = RoundedCornerShape(14.dp)) {
+                        Icon(Icons.Default.Close, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Nein", fontWeight = FontWeight.Bold)
+                    }
+                    GradientButton(text = "Ja", onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(true) }, modifier = Modifier.weight(1f), gradientColors = GradientPrimary, leadingIcon = { Icon(Icons.Default.Check, null, tint = Color.White) })
+                }
             }
         }
     }

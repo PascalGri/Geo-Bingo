@@ -63,14 +63,15 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(80.dp))
 
             // Title
-            Text(
+            AnimatedGradientText(
                 text = "KatchIt!",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 52.sp,
                     letterSpacing = (-1).sp,
                 ),
-                color = ColorOnBackground,
+                gradientColors = GradientPrimary,
+                durationMillis = 2500,
             )
 
             Spacer(Modifier.height(6.dp))
