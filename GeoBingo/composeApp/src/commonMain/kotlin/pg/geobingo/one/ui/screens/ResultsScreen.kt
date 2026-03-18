@@ -50,6 +50,23 @@ fun ResultsScreen(gameState: GameState) {
     val winner = ranked.firstOrNull()?.first
     val shareManager = rememberShareManager()
 
+    // Load joker categories if not yet present
+    LaunchedEffect(Unit) {
+        if (gameState.jokerMode) {
+            val gid = gameState.gameId ?: return@LaunchedEffect
+            try {
+                val labels = GameRepository.getJokerLabels(gid)
+                gameState.jokerLabels = labels
+                val jokerCats = labels.entries.map { (playerId, label) ->
+                    Category(id = "joker_$playerId", name = label, emoji = "joker")
+                }.filter { jokerCat -> gameState.selectedCategories.none { it.id == jokerCat.id } }
+                if (jokerCats.isNotEmpty()) gameState.selectedCategories = gameState.selectedCategories + jokerCats
+            } catch (_: Exception) {}
+            // Refresh captures to include joker captures
+            try { gameState.allCaptures = GameRepository.getCaptures(gid) } catch (_: Exception) {}
+        }
+    }
+
     // Save to history once on entry, then cleanup server storage
     LaunchedEffect(Unit) {
         gameState.saveToHistory()
@@ -102,11 +119,10 @@ fun ResultsScreen(gameState: GameState) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Ergebnisse",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "Ergebnisse",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        gradientColors = GradientPrimary,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),

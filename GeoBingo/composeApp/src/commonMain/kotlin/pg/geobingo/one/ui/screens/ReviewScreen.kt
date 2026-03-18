@@ -242,6 +242,7 @@ fun ReviewScreen(gameState: GameState) {
                 playerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 isHost = gameState.isHost,
+                isSelf = isSelf,
                 onReadyToAdvance = { scope.launch { advanceStep() } },
                 onForceAdvance = {
                     scope.launch {
@@ -383,7 +384,7 @@ private fun DarkSinglePhotoVotingScreen(
 }
 
 @Composable
-private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
+private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, isSelf: Boolean = false, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
     var advanceCalled by remember(stepKey) { mutableStateOf(false) }
     LaunchedEffect(stepKey) {
@@ -402,8 +403,17 @@ private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: Str
     Box(modifier = Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CircularProgressIndicator(color = ColorPrimary)
-            AnimatedGradientText(text = "Abgestimmt!", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
-            Text("$submittedCount von $totalPlayers haben abgestimmt", style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
+            AnimatedGradientText(
+                text = if (isSelf) "Dein Bild wird bewertet" else "Abgestimmt!",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                gradientColors = GradientPrimary,
+            )
+            Text(
+                if (isSelf) "Die anderen stimmen gerade über dein Foto ab"
+                else "$submittedCount von $totalPlayers haben abgestimmt",
+                style = MaterialTheme.typography.bodyMedium,
+                color = ColorOnSurfaceVariant,
+            )
             if (isHost) {
                 OutlinedButton(onClick = onForceAdvance, modifier = Modifier.padding(top = 16.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant), border = BorderStroke(1.dp, ColorOutlineVariant), shape = RoundedCornerShape(20.dp)) {
                     Text("Überspringen (Host-Option)", style = MaterialTheme.typography.labelSmall)

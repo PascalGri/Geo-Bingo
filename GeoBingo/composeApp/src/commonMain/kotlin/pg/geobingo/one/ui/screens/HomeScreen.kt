@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,11 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import pg.geobingo.one.game.*
 import pg.geobingo.one.ui.theme.*
 
@@ -31,6 +35,25 @@ fun HomeScreen(gameState: GameState) {
         gameState.pendingToast = null
         snackbarHostState.showSnackbar(msg)
     }
+
+    // Staggered entrance animations (8 elements)
+    val animOffsets = (0..7).map { remember { Animatable(40f) } }
+    val animAlphas = (0..7).map { remember { Animatable(0f) } }
+    LaunchedEffect(Unit) {
+        for (i in animOffsets.indices) {
+            launch {
+                delay(i * 60L)
+                launch { animOffsets[i].animateTo(0f, tween(400)) }
+                animAlphas[i].animateTo(1f, tween(400))
+            }
+        }
+    }
+
+    fun Modifier.staggered(index: Int): Modifier = this
+        .graphicsLayer {
+            translationY = animOffsets[index].value
+            alpha = animAlphas[index].value
+        }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -72,15 +95,17 @@ fun HomeScreen(gameState: GameState) {
                 ),
                 gradientColors = GradientPrimary,
                 durationMillis = 2500,
+                modifier = Modifier.staggered(0),
             )
 
             Spacer(Modifier.height(6.dp))
 
-            Text(
+            AnimatedGradientText(
                 text = "Foto-Schnitzeljagd mit Freunden",
                 style = MaterialTheme.typography.bodyLarge,
-                color = ColorOnSurfaceVariant,
-                textAlign = TextAlign.Center,
+                gradientColors = GradientCool,
+                durationMillis = 3000,
+                modifier = Modifier.staggered(1),
             )
 
             Spacer(Modifier.height(40.dp))
@@ -88,6 +113,7 @@ fun HomeScreen(gameState: GameState) {
             // How it works - vertical steps
             Column(
                 modifier = Modifier
+                    .staggered(2)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(ColorSurface)
@@ -116,6 +142,7 @@ fun HomeScreen(gameState: GameState) {
             // Datenschutz-Hinweis
             Row(
                 modifier = Modifier
+                    .staggered(3)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(ColorSurface)
@@ -144,7 +171,7 @@ fun HomeScreen(gameState: GameState) {
             GradientButton(
                 text = "Runde erstellen",
                 onClick = { gameState.currentScreen = Screen.CREATE_GAME },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(4),
                 gradientColors = GradientPrimary,
                 leadingIcon = {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
@@ -153,27 +180,22 @@ fun HomeScreen(gameState: GameState) {
 
             Spacer(Modifier.height(10.dp))
 
-            OutlinedButton(
+            GradientButton(
+                text = "Runde beitreten",
                 onClick = { gameState.currentScreen = Screen.JOIN_GAME },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                border = BorderStroke(1.dp, ColorOutline),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
-            ) {
-                Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Runde beitreten",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp,
-                    color = ColorOnSurface,
-                )
-            }
+                modifier = Modifier.fillMaxWidth().staggered(5),
+                gradientColors = GradientCool,
+                leadingIcon = {
+                    Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                },
+            )
 
             Spacer(Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.staggered(6),
+            ) {
                 TextButton(onClick = { gameState.currentScreen = Screen.HOW_TO_PLAY }) {
                     Icon(
                         Icons.Default.HelpOutline,
@@ -206,7 +228,12 @@ fun HomeScreen(gameState: GameState) {
                 }
             }
 
-            Text("KatchIt! v1.0", style = MaterialTheme.typography.bodySmall, color = ColorOutline)
+            Text(
+                "KatchIt! v1.0",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorOutline,
+                modifier = Modifier.staggered(7),
+            )
             Spacer(Modifier.height(28.dp))
         }
     }
@@ -219,21 +246,24 @@ private fun HomeStep(icon: ImageVector, number: String, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
+        AnimatedGradientBox(
             modifier = Modifier
                 .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(ColorSurfaceVariant),
-            contentAlignment = Alignment.Center,
+                .clip(RoundedCornerShape(10.dp)),
+            gradientColors = GradientPrimary,
+            durationMillis = 3000,
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+            }
         }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = ColorOnSurface,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = ColorOnSurface,
+            )
+        }
     }
 }
