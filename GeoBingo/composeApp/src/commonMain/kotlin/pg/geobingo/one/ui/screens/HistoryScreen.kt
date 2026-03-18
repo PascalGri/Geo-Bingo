@@ -8,16 +8,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameHistoryEntry
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.game.HistoryPlayer
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.network.parseHexColor
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 
@@ -88,6 +92,19 @@ fun HistoryScreen(gameState: GameState) {
 
 @Composable
 private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
+    // Load avatars from local cache
+    var avatarBytes by remember { mutableStateOf(mapOf<String, ByteArray>()) }
+    LaunchedEffect(entry) {
+        val loaded = mutableMapOf<String, ByteArray>()
+        entry.players.forEach { hp ->
+            try {
+                val bytes = LocalPhotoStore.loadAvatar(hp.id)
+                if (bytes != null) loaded[hp.id] = bytes
+            } catch (_: Exception) {}
+        }
+        if (loaded.isNotEmpty()) avatarBytes = loaded
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -145,8 +162,8 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
 
             HorizontalDivider(color = ColorOutlineVariant)
 
-            // Rankings
-            entry.players.forEachIndexed { i, (name, score) ->
+            // Rankings with avatars
+            entry.players.forEachIndexed { i, hp ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -159,15 +176,21 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
                         else -> "${i + 1}."
                     }
                     Text(medal, fontSize = if (i < 3) 16.sp else 12.sp)
+                    PlayerAvatarView(
+                        player = Player(id = hp.id, name = hp.name, color = parseHexColor(hp.colorHex)),
+                        size = 24.dp,
+                        fontSize = 10.sp,
+                        photoBytes = avatarBytes[hp.id],
+                    )
                     Text(
-                        name,
+                        hp.name,
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (name == entry.playerName) FontWeight.Bold else FontWeight.Normal,
-                        color = if (name == entry.playerName) ColorPrimary else ColorOnSurface,
+                        fontWeight = if (hp.name == entry.playerName) FontWeight.Bold else FontWeight.Normal,
+                        color = if (hp.name == entry.playerName) ColorPrimary else ColorOnSurface,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        "$score Pkt.",
+                        "${hp.score} Pkt.",
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorOnSurfaceVariant,
                     )

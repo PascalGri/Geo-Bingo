@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -279,12 +281,28 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Finish countdown
+    // Detect remote "all captured" signal from other players
+    LaunchedEffect(gameId) {
+        if (gameId == null) return@LaunchedEffect
+        while (gameState.isGameRunning && !gameState.allCategoriesCaptured && !gameState.finishSignalDetected) {
+            delay(2_000)
+            try {
+                if (GameRepository.hasAllCapturedSignal(gameId)) {
+                    gameState.finishSignalDetected = true
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Finish countdown – triggered by local completion OR remote signal
     var finishCountdownSeconds by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(gameState.allCategoriesCaptured) {
-        if (!gameState.allCategoriesCaptured) return@LaunchedEffect
-        if (gameId != null) {
-            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (e: Exception) { e.printStackTrace() }
+    LaunchedEffect(Unit) {
+        // Wait until either the local player or a remote player signals "all captured"
+        snapshotFlow { gameState.allCategoriesCaptured || gameState.finishSignalDetected }
+            .first { it }
+        // Signal to server if we were the one who captured all
+        if (gameState.allCategoriesCaptured && gameId != null) {
+            try { GameRepository.signalAllCaptured(gameId, gameState.myPlayerId ?: "") } catch (_: Exception) {}
         }
         finishCountdownSeconds = 30
         repeat(30) {
@@ -294,7 +312,7 @@ fun GameScreen(gameState: GameState) {
         if (gameState.isGameRunning) {
             gameState.isGameRunning = false
             if (gameId != null) {
-                try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
+                try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
             }
             gameState.reviewCategoryIndex = 0
             gameState.currentScreen = Screen.REVIEW
@@ -386,13 +404,36 @@ fun GameScreenContent(
                         }
 
                         if (finishCountdownSeconds != null) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "⏳ Jemand hat alle gefunden! Noch ${finishCountdownSeconds}s",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = ColorPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Spacer(Modifier.height(10.dp))
+                            AnimatedGradientBox(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp)),
+                                gradientColors = GradientHot,
+                                durationMillis = 800,
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Text(
+                                        if (gameState.allCategoriesCaptured) "Du hast alle gefunden!"
+                                        else "Jemand hat alle gefunden!",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        "Noch ${finishCountdownSeconds}s",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 2.sp,
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(Modifier.height(12.dp))

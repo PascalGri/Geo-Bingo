@@ -9,17 +9,25 @@ import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.VoteDto
+import pg.geobingo.one.network.toHex
 
 enum class Screen {
     HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, REVIEW, RESULTS, HISTORY
 }
+
+data class HistoryPlayer(
+    val id: String,
+    val name: String,
+    val score: Int,
+    val colorHex: String,
+)
 
 data class GameHistoryEntry(
     val gameCode: String,
     val playerName: String,
     val score: Int,
     val totalCategories: Int,
-    val players: List<Pair<String, Int>>, // name to score
+    val players: List<HistoryPlayer>,
     val jokerMode: Boolean,
 )
 
@@ -232,7 +240,7 @@ class GameState {
             playerName = myPlayer.name,
             score = getPlayerScore(myId),
             totalCategories = selectedCategories.size,
-            players = getRankedPlayers().map { (p, s) -> p.name to s },
+            players = getRankedPlayers().map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = jokerMode,
         )
         gameHistory = listOf(entry) + gameHistory

@@ -62,7 +62,7 @@ fun ResultsScreen(gameState: GameState) {
                     append("\"date\":\"${kotlinx.datetime.Clock.System.now()}\",")
                     append("\"jokerMode\":${gameState.jokerMode},")
                     append("\"players\":[")
-                    append(ranked.joinToString(",") { (p, s) -> "{\"name\":\"${p.name}\",\"id\":\"${p.id}\",\"score\":$s}" })
+                    append(ranked.joinToString(",") { (p, s) -> "{\"name\":\"${p.name}\",\"id\":\"${p.id}\",\"score\":$s,\"color\":\"${p.color.toHex()}\"}" })
                     append("],")
                     append("\"categories\":[")
                     append(gameState.selectedCategories.joinToString(",") { "{\"id\":\"${it.id}\",\"name\":\"${it.name}\"}" })

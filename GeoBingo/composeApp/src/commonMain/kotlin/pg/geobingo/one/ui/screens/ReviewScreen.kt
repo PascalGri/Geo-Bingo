@@ -295,6 +295,11 @@ private fun DarkSinglePhotoVotingScreen(
 private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
     LaunchedEffect(stepKey) {
+        // Fetch immediately, then poll
+        try {
+            submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
+            if (submittedCount >= totalPlayers) { onReadyToAdvance(); return@LaunchedEffect }
+        } catch (e: Exception) { e.printStackTrace() }
         while (true) {
             delay(2_000)
             try {
