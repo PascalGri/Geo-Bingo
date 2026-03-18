@@ -7,7 +7,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.Animatable as AnimatableValue
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,18 +28,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────
 //  Animated gradient text
@@ -185,18 +191,26 @@ fun GradientButton(
     } else {
         Brush.linearGradient(listOf(Color(0xFF2A2A50), Color(0xFF2A2A50)))
     }
-    val interactionSource = remember { MutableInteractionSource() }
+    // Press animation: scale down to 0.95f
+    val pressScale = remember { AnimatableValue(1f) }
+    val scope = rememberCoroutineScope()
     Box(
         modifier = modifier
+            .graphicsLayer { scaleX = pressScale.value; scaleY = pressScale.value }
             .height(height)
             .clip(RoundedCornerShape(height / 2))
             .background(brush)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = androidx.compose.foundation.LocalIndication.current,
-                onClick = onClick,
-            ),
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures(
+                    onPress = {
+                        scope.launch { pressScale.animateTo(0.95f, tween(80)) }
+                        tryAwaitRelease()
+                        scope.launch { pressScale.animateTo(1f, tween(120)) }
+                    },
+                    onTap = { onClick() },
+                )
+            },
         contentAlignment = Alignment.Center,
     ) {
         Row(

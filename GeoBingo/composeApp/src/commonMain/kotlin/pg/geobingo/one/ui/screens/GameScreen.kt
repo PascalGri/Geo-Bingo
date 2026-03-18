@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -35,6 +37,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
@@ -49,6 +52,7 @@ import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
+import pg.geobingo.one.ui.theme.Spacing
 
 @Composable
 fun GameScreen(gameState: GameState) {
@@ -60,6 +64,7 @@ fun GameScreen(gameState: GameState) {
     var photoTargetCategoryId by remember { mutableStateOf("") }
     var jokerDialogVisible by remember { mutableStateOf(false) }
     var jokerLabelInput by remember { mutableStateOf("") }
+    var uploadSuccessCategory by remember { mutableStateOf<String?>(null) }
     val haptic = LocalHapticFeedback.current
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
@@ -105,7 +110,12 @@ fun GameScreen(gameState: GameState) {
                             }
                         }
                     }
-                    if (captureSuccess) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (captureSuccess) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        uploadSuccessCategory = cid
+                        delay(1500)
+                        uploadSuccessCategory = null
+                    }
                     gameState.uploadingCategories = gameState.uploadingCategories - cid
                 }
             } else {
@@ -380,6 +390,7 @@ fun GameScreen(gameState: GameState) {
     GameScreenContent(
         gameState = gameState,
         finishCountdownSeconds = finishCountdownSeconds,
+        uploadSuccessCategory = uploadSuccessCategory,
         onJokerClick = { jokerDialogVisible = true },
         onVoteToEnd = {
             scope.launch {
@@ -428,10 +439,15 @@ fun GameScreen(gameState: GameState) {
 fun GameScreenContent(
     gameState: GameState,
     finishCountdownSeconds: Int? = null,
+    uploadSuccessCategory: String? = null,
     onJokerClick: () -> Unit = {},
     onVoteToEnd: () -> Unit = {},
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
+    // Fade-in animation
+    val contentAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(400)) }
+
     val isLow = gameState.timeRemainingSeconds in 1..60
     val timerColor by animateColorAsState(
         targetValue = if (isLow) ColorError else ColorPrimary,
@@ -441,7 +457,7 @@ fun GameScreenContent(
     val myPlayer = gameState.players.find { it.id == gameState.myPlayerId }
 
     Scaffold(containerColor = ColorBackground) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { alpha = contentAlpha.value }) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Top bar: timer
                 Surface(
@@ -533,18 +549,34 @@ fun GameScreenContent(
 
                 // Player info + controls
                 if (myPlayer != null) {
+                    val myCount = gameState.captures[myPlayer.id]?.size ?: 0
+                    val totalCats = gameState.selectedCategories.size
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.screenHorizontal),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            PlayerAvatarView(player = myPlayer, size = 32.dp, fontSize = 13.sp, photoBytes = gameState.playerAvatarBytes[myPlayer.id])
+                            // Animated progress ring around avatar
+                            val ringProgress = remember { Animatable(0f) }
+                            val targetProgress = if (totalCats > 0) myCount.toFloat() / totalCats else 0f
+                            LaunchedEffect(myCount) {
+                                ringProgress.animateTo(targetProgress, tween(500))
+                            }
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(
+                                    progress = { ringProgress.value },
+                                    modifier = Modifier.size(40.dp),
+                                    color = myPlayer.color,
+                                    trackColor = ColorSurfaceVariant,
+                                    strokeWidth = 3.dp,
+                                )
+                                PlayerAvatarView(player = myPlayer, size = 30.dp, fontSize = 12.sp, photoBytes = gameState.playerAvatarBytes[myPlayer.id])
+                            }
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(myPlayer.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
-                                val count = gameState.captures[myPlayer.id]?.size ?: 0
-                                Text("$count/${gameState.selectedCategories.size} gefunden", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                Text("$myCount/$totalCats gefunden", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                             }
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -602,10 +634,12 @@ fun GameScreenContent(
                                 p.id != myPlayer.id && (gameState.captures[p.id]?.contains(category.id) == true)
                             }
                             val isUploading = category.id in gameState.uploadingCategories
+                            val showUploadSuccess = uploadSuccessCategory == category.id
                             DarkBingoCategoryCard(
                                 category = category,
                                 isCaptured = captured,
                                 isUploading = isUploading,
+                                showUploadSuccess = showUploadSuccess,
                                 playerColor = myPlayer.color,
                                 thumbnail = thumbnail,
                                 otherCapturingPlayers = otherCapturers,
@@ -656,6 +690,7 @@ private fun DarkBingoCategoryCard(
     category: Category,
     isCaptured: Boolean,
     isUploading: Boolean,
+    showUploadSuccess: Boolean = false,
     playerColor: Color,
     thumbnail: ImageBitmap?,
     otherCapturingPlayers: List<Player> = emptyList(),
@@ -680,6 +715,17 @@ private fun DarkBingoCategoryCard(
     val containerColor by animateColorAsState(if (isCaptured) playerColor.copy(alpha = 0.15f) else ColorSurface)
     val borderColor = if (isCaptured) playerColor.copy(alpha = 0.5f) else ColorOutlineVariant
 
+    // Upload success checkmark scale animation
+    val checkScale = remember { Animatable(0f) }
+    LaunchedEffect(showUploadSuccess) {
+        if (showUploadSuccess) {
+            checkScale.animateTo(1.2f, tween(200))
+            checkScale.animateTo(1f, tween(150))
+        } else {
+            checkScale.snapTo(0f)
+        }
+    }
+
     Card(
         modifier = Modifier.aspectRatio(0.9f).fillMaxWidth().combinedClickable(onClick = { onCameraClick() }, onLongClick = { showInfo = true }),
         shape = RoundedCornerShape(12.dp),
@@ -702,6 +748,27 @@ private fun DarkBingoCategoryCard(
                 Spacer(Modifier.height(4.dp))
                 Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
                 if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
+            }
+            // Upload success overlay with animated checkmark
+            if (showUploadSuccess) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(playerColor.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .graphicsLayer {
+                                scaleX = checkScale.value
+                                scaleY = checkScale.value
+                            },
+                        tint = playerColor,
+                    )
+                }
             }
         }
     }

@@ -1,10 +1,20 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,14 +28,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.*
@@ -38,6 +51,8 @@ import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,20 +74,42 @@ fun CreateGameScreen(gameState: GameState) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Shuffle fade animation for preset grid
+    val shuffleAlpha = remember { Animatable(1f) }
+
     val totalCategories = customCategories.size + selectedPresetIds.size
     val canStart = hostNameInput.trim().isNotEmpty() && totalCategories >= 2
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(errorMessage) {
+        val msg = errorMessage ?: return@LaunchedEffect
+        errorMessage = null
+        snackbarHostState.showSnackbar(msg)
+    }
+
+    val anim = rememberStaggeredAnimation(count = 5)
+    val bottomBarOffset = remember { Animatable(80f) }
+    val bottomBarAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        launch {
+            delay(200L)
+            launch { bottomBarOffset.animateTo(0f, tween(400)) }
+            bottomBarAlpha.animateTo(1f, tween(400))
+        }
+    }
+
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Neues Spiel",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "Neues Spiel",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
@@ -84,17 +121,15 @@ fun CreateGameScreen(gameState: GameState) {
             )
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = ColorSurface) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    if (errorMessage != null) {
-                        Text(
-                            errorMessage!!,
-                            color = ColorError,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(bottom = 6.dp),
-                        )
-                    }
-
+            Surface(
+                shadowElevation = 8.dp,
+                color = ColorSurface,
+                modifier = Modifier.graphicsLayer {
+                    translationY = bottomBarOffset.value
+                    alpha = bottomBarAlpha.value
+                },
+            ) {
+                Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp)) {
                     GradientButton(
                         text = when {
                             hostNameInput.trim().isEmpty() -> "Name eingeben"
@@ -156,12 +191,12 @@ fun CreateGameScreen(gameState: GameState) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(Spacing.screenHorizontal),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
             // ── 1. Name & Avatar ─────────────────────────────────────────────
-            DarkSectionCard(title = "Name & Avatar") {
+            DarkSectionCard(title = "Name & Avatar", modifier = Modifier.staggered(0)) {
                 OutlinedTextField(
                     value = hostNameInput,
                     onValueChange = { if (it.length <= 20) hostNameInput = it },
@@ -195,7 +230,7 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── 2. Kategorien (eigene + Vorlagen zusammen) ───────────────────
-            DarkSectionCard(title = "Kategorien  ·  $totalCategories ausgewählt") {
+            DarkSectionCard(title = "Kategorien  ·  $totalCategories ausgewählt", modifier = Modifier.staggered(1)) {
 
                 // Custom input row
                 Row(
@@ -247,39 +282,47 @@ fun CreateGameScreen(gameState: GameState) {
                     }
                 }
 
-                // Custom category chips
+                // Custom category chips (animated)
                 if (customCategories.isNotEmpty()) {
                     Spacer(Modifier.height(10.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         customCategories.forEach { cat ->
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = ColorPrimaryContainer,
-                                border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f)),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                            key(cat.id) {
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = expandVertically(tween(300)) + fadeIn(tween(300)),
+                                    exit = shrinkVertically(tween(300)) + fadeOut(tween(300)),
                                 ) {
-                                    Icon(
-                                        imageVector = getCategoryIcon(cat.id),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp).rotate(getCategoryIconRotation(cat.id)),
-                                        tint = ColorPrimary,
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        cat.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.weight(1f),
-                                        color = ColorOnPrimaryContainer,
-                                    )
-                                    IconButton(
-                                        onClick = { customCategories = customCategories.filter { it.id != cat.id } },
-                                        modifier = Modifier.size(28.dp),
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = ColorPrimaryContainer,
+                                        border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f)),
                                     ) {
-                                        Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Icon(
+                                                imageVector = getCategoryIcon(cat.id),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp).rotate(getCategoryIconRotation(cat.id)),
+                                                tint = ColorPrimary,
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                cat.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.weight(1f),
+                                                color = ColorOnPrimaryContainer,
+                                            )
+                                            IconButton(
+                                                onClick = { customCategories = customCategories.filter { it.id != cat.id } },
+                                                modifier = Modifier.size(28.dp),
+                                            ) {
+                                                Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -303,8 +346,11 @@ fun CreateGameScreen(gameState: GameState) {
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // Preset grid (3 columns)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Preset grid (3 columns) with shuffle fade
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.graphicsLayer { alpha = shuffleAlpha.value },
+                ) {
                     visiblePresets.chunked(3).forEach { rowItems ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -331,18 +377,24 @@ fun CreateGameScreen(gameState: GameState) {
 
                 Spacer(Modifier.height(10.dp))
 
-                // Shuffle button
+                // Shuffle button with fade animation
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(Brush.linearGradient(GradientPrimary))
                         .clickable {
-                            // Keep already-selected ones visible, fill rest with new suggestions
-                            val selectedOnes = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
-                            val unselectedPool = PRESET_CATEGORIES.filter { it.id !in selectedPresetIds }.shuffled()
-                            val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
-                            visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                            scope.launch {
+                                // Fade out
+                                shuffleAlpha.animateTo(0f, tween(150))
+                                // Swap presets
+                                val selectedOnes = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
+                                val unselectedPool = PRESET_CATEGORIES.filter { it.id !in selectedPresetIds }.shuffled()
+                                val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
+                                visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                                // Fade in
+                                shuffleAlpha.animateTo(1f, tween(250))
+                            }
                         }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center,
@@ -363,11 +415,12 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── Speed Bonus Hinweis ───────────────────────────────────────────
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF1A1A2E),
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, Color(0xFFFBBF24).copy(alpha = 0.35f)),
+            GradientBorderCard(
+                modifier = Modifier.fillMaxWidth().staggered(2),
+                cornerRadius = 12.dp,
+                borderColors = GradientGold,
+                backgroundColor = Color(0xFF1A1A2E),
+                borderWidth = 1.dp,
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -385,29 +438,78 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── 3. Spielzeit ─────────────────────────────────────────────────
-            DarkSectionCard(title = "Spielzeit  ·  ${durationMinutes.toInt()} Min.") {
-                Slider(
-                    value = durationMinutes,
-                    onValueChange = { durationMinutes = it },
-                    valueRange = 5f..60f,
-                    steps = 10,
-                    colors = SliderDefaults.colors(
-                        thumbColor = ColorPrimary,
-                        activeTrackColor = ColorPrimary,
-                        inactiveTrackColor = ColorSurfaceVariant,
-                    ),
-                )
+            DarkSectionCard(title = "Spielzeit", modifier = Modifier.staggered(3)) {
+                var isDragging by remember { mutableStateOf(false) }
+                val bubbleScale = remember { Animatable(0f) }
+
+                LaunchedEffect(isDragging) {
+                    if (isDragging) {
+                        bubbleScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                    } else {
+                        delay(300)
+                        bubbleScale.animateTo(0f, tween(200))
+                    }
+                }
+
+                // Slider with value bubble
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val fraction = ((durationMinutes - 5f) / (60f - 5f)).coerceIn(0f, 1f)
+                    val thumbRadius = 10.dp
+                    val trackPadding = thumbRadius
+                    val availableWidth = maxWidth - trackPadding * 2
+
+                    // Value bubble above thumb
+                    if (bubbleScale.value > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = trackPadding + availableWidth * fraction - 20.dp)
+                                .scale(bubbleScale.value)
+                                .graphicsLayer { transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) },
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = ColorPrimary,
+                                shadowElevation = 4.dp,
+                            ) {
+                                Text(
+                                    "${durationMinutes.toInt()} Min",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+                    }
+
+                    Slider(
+                        value = durationMinutes,
+                        onValueChange = {
+                            durationMinutes = it
+                            isDragging = true
+                        },
+                        onValueChangeFinished = { isDragging = false },
+                        valueRange = 5f..60f,
+                        steps = 10,
+                        colors = SliderDefaults.colors(
+                            thumbColor = ColorPrimary,
+                            activeTrackColor = ColorPrimary,
+                            inactiveTrackColor = ColorSurfaceVariant,
+                        ),
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("5 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                    Text("${durationMinutes.toInt()} Min", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = ColorPrimary)
                     Text("60 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                 }
             }
 
             // ── 4. Joker-Modus ───────────────────────────────────────────────
-            DarkSectionCard(title = "Optionen") {
+            DarkSectionCard(title = "Optionen", modifier = Modifier.staggered(4)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -480,32 +582,49 @@ fun SelfiePicker(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(68.dp)
-                .clip(CircleShape)
-                .background(if (imageBitmap != null) Color.Transparent else ColorSurfaceVariant)
-                .clickable { onTakePhoto() },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (imageBitmap != null) {
-                Image(
-                    bitmap = imageBitmap,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-                // Dark overlay with camera icon for retake
+        if (imageBitmap != null) {
+            GradientBorderCard(
+                modifier = Modifier.size(68.dp),
+                cornerRadius = 34.dp,
+                borderColors = GradientPrimary,
+                backgroundColor = Color.Transparent,
+                borderWidth = 2.dp,
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f)),
+                        .clip(CircleShape)
+                        .clickable { onTakePhoto() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                    }
                 }
-            } else {
-                Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(28.dp), tint = ColorOnSurfaceVariant)
+            }
+        } else {
+            AnimatedGradientBox(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(CircleShape)
+                    .clickable { onTakePhoto() },
+                gradientColors = listOf(ColorSurfaceVariant, ColorOutline, ColorSurfaceVariant),
+                durationMillis = 3000,
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(28.dp), tint = ColorOnSurfaceVariant)
+                }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -538,13 +657,13 @@ fun SelfiePicker(
 }
 
 @Composable
-private fun DarkSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ColorSurface),
-        border = BorderStroke(1.dp, ColorOutlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+private fun DarkSectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    GradientBorderCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        borderColors = GradientPrimary,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.dp,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             AnimatedGradientText(
@@ -568,6 +687,13 @@ private fun DarkCategorySelectCard(
     modifier: Modifier = Modifier,
 ) {
     var showInfo by remember { mutableStateOf(false) }
+
+    // Scale bounce on selection change
+    val scaleAnim = remember { Animatable(1f) }
+    LaunchedEffect(isSelected) {
+        scaleAnim.animateTo(1.12f, tween(100))
+        scaleAnim.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+    }
 
     if (showInfo) {
         AlertDialog(
@@ -619,42 +745,80 @@ private fun DarkCategorySelectCard(
         )
     }
 
-    Card(
-        modifier = modifier
-            .aspectRatio(0.85f)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showInfo = true },
-            ),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) ColorPrimaryContainer else ColorSurfaceVariant,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = if (isSelected) BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.7f)) else null,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+    if (isSelected) {
+        GradientBorderCard(
+            modifier = modifier
+                .scale(scaleAnim.value)
+                .aspectRatio(0.85f)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { showInfo = true },
+                ),
+            cornerRadius = 10.dp,
+            borderColors = GradientPrimary,
+            backgroundColor = ColorPrimaryContainer,
+            borderWidth = 1.5.dp,
         ) {
-            Icon(
-                imageVector = getCategoryIcon(category.id),
-                contentDescription = category.name,
-                modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
-                tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = category.name,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) ColorOnPrimaryContainer else ColorOnSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 12.sp,
-            )
+            Column(
+                modifier = Modifier.fillMaxSize().padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = getCategoryIcon(category.id),
+                    contentDescription = category.name,
+                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
+                    tint = ColorPrimary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = ColorOnPrimaryContainer,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 12.sp,
+                )
+            }
+        }
+    } else {
+        Card(
+            modifier = modifier
+                .scale(scaleAnim.value)
+                .aspectRatio(0.85f)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { showInfo = true },
+                ),
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = getCategoryIcon(category.id),
+                    contentDescription = category.name,
+                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
+                    tint = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = ColorOnSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 12.sp,
+                )
+            }
         }
     }
 }

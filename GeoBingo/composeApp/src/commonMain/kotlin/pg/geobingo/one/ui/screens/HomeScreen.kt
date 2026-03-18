@@ -27,6 +27,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.*
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @Composable
 fun HomeScreen(gameState: GameState) {
@@ -37,24 +39,22 @@ fun HomeScreen(gameState: GameState) {
         snackbarHostState.showSnackbar(msg)
     }
 
-    // Staggered entrance animations (8 elements)
-    val animOffsets = (0..7).map { remember { Animatable(40f) } }
-    val animAlphas = (0..7).map { remember { Animatable(0f) } }
+    // Staggered entrance animations
+    val anim = rememberStaggeredAnimation(count = 8)
+    // Bottom buttons slide-up (more pronounced)
+    val btnOffsets = (0..1).map { remember { Animatable(80f) } }
+    val btnAlphas = (0..1).map { remember { Animatable(0f) } }
     LaunchedEffect(Unit) {
-        for (i in animOffsets.indices) {
+        for (i in btnOffsets.indices) {
             launch {
-                delay(i * 60L)
-                launch { animOffsets[i].animateTo(0f, tween(400)) }
-                animAlphas[i].animateTo(1f, tween(400))
+                delay(300L + i * 80L)
+                launch { btnOffsets[i].animateTo(0f, tween(450)) }
+                btnAlphas[i].animateTo(1f, tween(450))
             }
         }
     }
 
-    fun Modifier.staggered(index: Int): Modifier = this
-        .graphicsLayer {
-            translationY = animOffsets[index].value
-            alpha = animAlphas[index].value
-        }
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -81,7 +81,7 @@ fun HomeScreen(gameState: GameState) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = Spacing.screenHorizontal),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(80.dp))
@@ -172,7 +172,10 @@ fun HomeScreen(gameState: GameState) {
             GradientButton(
                 text = "Runde erstellen",
                 onClick = { gameState.currentScreen = Screen.CREATE_GAME },
-                modifier = Modifier.fillMaxWidth().staggered(4),
+                modifier = Modifier.fillMaxWidth().graphicsLayer {
+                    translationY = btnOffsets[0].value
+                    alpha = btnAlphas[0].value
+                },
                 gradientColors = GradientPrimary,
                 leadingIcon = {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
@@ -183,7 +186,10 @@ fun HomeScreen(gameState: GameState) {
 
             OutlinedButton(
                 onClick = { gameState.currentScreen = Screen.JOIN_GAME },
-                modifier = Modifier.fillMaxWidth().height(56.dp).staggered(5),
+                modifier = Modifier.fillMaxWidth().height(56.dp).graphicsLayer {
+                    translationY = btnOffsets[1].value
+                    alpha = btnAlphas[1].value
+                },
                 shape = RoundedCornerShape(28.dp),
                 border = BorderStroke(1.dp, ColorOutline),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),

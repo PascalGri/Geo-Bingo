@@ -1,11 +1,16 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Style
@@ -14,10 +19,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameHistoryEntry
 import pg.geobingo.one.game.GameState
@@ -27,21 +36,29 @@ import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(gameState: GameState) {
     SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
+    // Fade-in animation for content
+    val contentAlpha = remember { Animatable(0f) }
+    val contentOffset = remember { Animatable(40f) }
+    LaunchedEffect(Unit) {
+        launch { contentOffset.animateTo(0f, tween(400)) }
+        contentAlpha.animateTo(1f, tween(400))
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Spielverlauf",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "Spielverlauf",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
@@ -56,7 +73,7 @@ fun HistoryScreen(gameState: GameState) {
     ) { padding ->
         if (gameState.gameHistory.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { translationY = contentOffset.value; alpha = contentAlpha.value },
                 contentAlignment = Alignment.Center,
             ) {
                 Column(
@@ -80,12 +97,41 @@ fun HistoryScreen(gameState: GameState) {
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.screenHorizontal).graphicsLayer { translationY = contentOffset.value; alpha = contentAlpha.value },
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
-                itemsIndexed(gameState.gameHistory) { index, entry ->
-                    HistoryEntryCard(entry = entry, isLatest = index == 0)
+                itemsIndexed(gameState.gameHistory, key = { _, entry -> entry.gameCode }) { index, entry ->
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                gameState.gameHistory = gameState.gameHistory.filterIndexed { i, _ -> i != index }
+                                true
+                            } else false
+                        },
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val color by animateColorAsState(
+                                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) ColorError.copy(alpha = 0.3f) else Color.Transparent,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(color)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = ColorError)
+                            }
+                        },
+                        enableDismissFromStartToEnd = false,
+                        enableDismissFromEndToStart = true,
+                    ) {
+                        HistoryEntryCard(entry = entry, isLatest = index == 0)
+                    }
                 }
                 item { Spacer(Modifier.height(8.dp)) }
             }

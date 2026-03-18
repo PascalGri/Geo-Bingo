@@ -1,5 +1,7 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +25,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.PLAYER_COLORS
 import pg.geobingo.one.game.GameState
@@ -33,6 +37,8 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +56,27 @@ fun JoinGameScreen(gameState: GameState) {
         if (bytes != null) selectedAvatarBytes = bytes
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(errorMessage) {
+        val msg = errorMessage ?: return@LaunchedEffect
+        errorMessage = null
+        snackbarHostState.showSnackbar(msg)
+    }
+
     val canJoin = codeInput.trim().length == 6 && nameInput.trim().isNotEmpty()
+
+    val anim = rememberStaggeredAnimation(count = 6)
+    val btnOffset = remember { Animatable(80f) }
+    val btnAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        launch {
+            delay(300L)
+            launch { btnOffset.animateTo(0f, tween(450)) }
+            btnAlpha.animateTo(1f, tween(450))
+        }
+    }
+
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
@@ -58,11 +84,10 @@ fun JoinGameScreen(gameState: GameState) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Runde beitreten",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "Runde beitreten",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientHot,
                     )
                 },
                 navigationIcon = {
@@ -79,6 +104,7 @@ fun JoinGameScreen(gameState: GameState) {
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = ColorBackground,
     ) { padding ->
         Column(
@@ -86,7 +112,7 @@ fun JoinGameScreen(gameState: GameState) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = Spacing.screenHorizontal),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(48.dp))
@@ -94,6 +120,7 @@ fun JoinGameScreen(gameState: GameState) {
             // Icon with gradient box
             Box(
                 modifier = Modifier
+                    .staggered(0)
                     .size(80.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Brush.linearGradient(GradientHot)),
@@ -114,6 +141,7 @@ fun JoinGameScreen(gameState: GameState) {
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 gradientColors = GradientHot,
                 durationMillis = 2500,
+                modifier = Modifier.staggered(1),
             )
 
             Spacer(Modifier.height(8.dp))
@@ -123,6 +151,7 @@ fun JoinGameScreen(gameState: GameState) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.staggered(2),
             )
 
             Spacer(Modifier.height(40.dp))
@@ -133,7 +162,7 @@ fun JoinGameScreen(gameState: GameState) {
                 onValueChange = { if (it.length <= 6) codeInput = it.uppercase() },
                 label = { Text("Rundencode", color = ColorOnSurfaceVariant) },
                 placeholder = { Text("ABC123", color = ColorOutline) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(3),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
@@ -166,7 +195,7 @@ fun JoinGameScreen(gameState: GameState) {
                 onValueChange = { if (it.length <= 20) nameInput = it },
                 label = { Text("Dein Name", color = ColorOnSurfaceVariant) },
                 placeholder = { Text("z.B. Anna", color = ColorOutline) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(4),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -186,31 +215,22 @@ fun JoinGameScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            SelfiePicker(
-                avatarBytes = selectedAvatarBytes,
-                onTakePhoto = { photoCapturer.launch() },
-                onClear = { selectedAvatarBytes = null },
-            )
-
-            if (errorMessage != null) {
-                Spacer(Modifier.height(12.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = ColorErrorContainer,
-                ) {
-                    Text(
-                        errorMessage!!,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        color = ColorOnErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+            Box(modifier = Modifier.staggered(5)) {
+                SelfiePicker(
+                    avatarBytes = selectedAvatarBytes,
+                    onTakePhoto = { photoCapturer.launch() },
+                    onClear = { selectedAvatarBytes = null },
+                )
             }
 
             Spacer(Modifier.weight(1f))
 
             GradientButton(
                 text = "Beitreten",
+                modifier = Modifier.fillMaxWidth().graphicsLayer {
+                    translationY = btnOffset.value
+                    alpha = btnAlpha.value
+                },
                 onClick = {
                     keyboardController?.hide()
                     focusManager.clearFocus()
@@ -258,7 +278,6 @@ fun JoinGameScreen(gameState: GameState) {
                     }
                 },
                 enabled = canJoin && !isLoading,
-                modifier = Modifier.fillMaxWidth(),
                 gradientColors = GradientHot,
                 leadingIcon = {
                     Box(contentAlignment = Alignment.Center) {

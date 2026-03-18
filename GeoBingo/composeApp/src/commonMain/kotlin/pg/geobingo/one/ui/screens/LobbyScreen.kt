@@ -1,5 +1,8 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,6 +35,8 @@ import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,17 +145,29 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
+    val anim = rememberStaggeredAnimation(count = 3)
+    val btnOffset = remember { Animatable(80f) }
+    val btnAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        launch {
+            delay(200L)
+            launch { btnOffset.animateTo(0f, tween(450)) }
+            btnAlpha.animateTo(1f, tween(450))
+        }
+    }
+
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
+
     SystemBackHandler { gameState.resetGame() }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Wartezimmer",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "Wartezimmer",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
@@ -160,8 +180,29 @@ fun LobbyScreen(gameState: GameState) {
         },
         bottomBar = {
             if (gameState.isHost) {
-                Surface(shadowElevation = 8.dp, color = ColorSurface) {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
+                    Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp)) {
+                        // Lobby timeout warning (visible when < 60s remaining and still waiting for players)
+                        if (lobbyTimeoutSeconds in 1..59 && gameState.lobbyPlayers.size < 2) {
+                            val timeoutMin = lobbyTimeoutSeconds / 60
+                            val timeoutSec = lobbyTimeoutSeconds % 60
+                            val timeStr = if (timeoutMin > 0) "${timeoutMin}:${timeoutSec.toString().padStart(2, '0')}"
+                                else "${timeoutSec}s"
+                            val pulseAlpha = if (lobbyTimeoutSeconds < 30) {
+                                if (lobbyTimeoutSeconds % 2 == 0) 1f else 0.6f
+                            } else 1f
+                            Text(
+                                "Lobby schließt in $timeStr",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ColorError,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                                    .graphicsLayer { alpha = pulseAlpha },
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                         GradientButton(
                             text = if (gameState.lobbyPlayers.size < 2)
                                 "Mind. 2 Spieler nötig"
@@ -210,6 +251,31 @@ fun LobbyScreen(gameState: GameState) {
                         )
                     }
                 }
+            } else {
+                // Guest hint: "Warte auf den Host..."
+                Surface(shadowElevation = 4.dp, color = ColorSurface) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.screenHorizontal, 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = ColorPrimary,
+                            )
+                            Text(
+                                "Warte auf den Host...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ColorOnSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
             }
         },
         containerColor = ColorBackground,
@@ -218,13 +284,13 @@ fun LobbyScreen(gameState: GameState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = Spacing.screenHorizontal),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Spacer(Modifier.height(16.dp))
                 GradientBorderCard(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().staggered(0),
                     cornerRadius = 20.dp,
                     borderColors = GradientPrimary,
                     backgroundColor = ColorPrimaryContainer,
@@ -254,7 +320,7 @@ fun LobbyScreen(gameState: GameState) {
 
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().staggered(1),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -266,15 +332,16 @@ fun LobbyScreen(gameState: GameState) {
                 }
             }
 
+            val hostPlayerId = gameState.lobbyPlayers.firstOrNull()?.id
             items(gameState.lobbyPlayers) { player ->
-                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId, photoBytes = gameState.playerAvatarBytes[player.id])
+                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId, isHost = player.id == hostPlayerId, photoBytes = gameState.playerAvatarBytes[player.id])
             }
         }
     }
 }
 
 @Composable
-private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArray?) {
+private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, isHost: Boolean, photoBytes: ByteArray?) {
     val color = parseHexColor(player.color)
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -295,6 +362,10 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArr
                 photoBytes = photoBytes,
             )
             Spacer(Modifier.width(12.dp))
+            if (isHost) {
+                CrownIcon(modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+            }
             Text(
                 player.name,
                 style = MaterialTheme.typography.bodyMedium,
@@ -313,5 +384,36 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArr
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CrownIcon(modifier: Modifier = Modifier, color: Color = Color(0xFFFBBF24)) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            // Crown shape matching Material Symbols "Crown"
+            // Bottom band
+            moveTo(w * 0.12f, h * 0.88f)
+            lineTo(w * 0.88f, h * 0.88f)
+            lineTo(w * 0.88f, h * 0.72f)
+            lineTo(w * 0.12f, h * 0.72f)
+            close()
+            // Crown body with 3 pointed peaks
+            moveTo(w * 0.12f, h * 0.72f)
+            lineTo(w * 0.04f, h * 0.18f)  // left tip
+            lineTo(w * 0.32f, h * 0.46f)  // left valley
+            lineTo(w * 0.50f, h * 0.12f)  // center peak
+            lineTo(w * 0.68f, h * 0.46f)  // right valley
+            lineTo(w * 0.96f, h * 0.18f)  // right tip
+            lineTo(w * 0.88f, h * 0.72f)  // back to base right
+            close()
+        }
+        drawPath(path, color, style = Fill)
+        // Small circles on the 3 tips
+        drawCircle(color, radius = w * 0.045f, center = androidx.compose.ui.geometry.Offset(w * 0.04f, h * 0.15f))
+        drawCircle(color, radius = w * 0.045f, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.09f))
+        drawCircle(color, radius = w * 0.045f, center = androidx.compose.ui.geometry.Offset(w * 0.96f, h * 0.15f))
     }
 }

@@ -1,5 +1,7 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,9 +20,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -35,6 +39,8 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
+import pg.geobingo.one.ui.theme.ShimmerPlaceholder
+import pg.geobingo.one.ui.theme.Spacing
 
 @Composable
 fun ReviewScreen(gameState: GameState) {
@@ -210,10 +216,14 @@ fun ReviewScreen(gameState: GameState) {
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // Auto-skip self-voting: submit immediately without showing UI
+    // Auto-skip self-voting: show brief toast, then submit
     val isSelf = targetPlayer.id == myPlayerId
+    var selfVoteToast by remember(stepIndex) { mutableStateOf(false) }
     LaunchedEffect(stepIndex, isSelf) {
         if (isSelf && !gameState.hasSubmittedCurrentCategory) {
+            selfVoteToast = true
+            delay(1200)
+            selfVoteToast = false
             gameState.hasSubmittedCurrentCategory = true
             var attempt = 0
             while (attempt < 3) {
@@ -231,7 +241,37 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     key(stepIndex) {
-        if (isSelf || gameState.hasSubmittedCurrentCategory) {
+        // Self-vote toast overlay
+        if (selfVoteToast) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(ColorBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = ColorPrimaryContainer,
+                    border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.4f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = ColorPrimary,
+                        )
+                        Text(
+                            "Dein Bild wird bewertet...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ColorOnPrimaryContainer,
+                        )
+                    }
+                }
+            }
+        } else if (isSelf || gameState.hasSubmittedCurrentCategory) {
             DarkWaitingScreen(
                 gameId = gameId,
                 stepKey = stepKey,
@@ -317,6 +357,14 @@ private fun DarkSinglePhotoVotingScreen(
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
 
+    // Slide-in from right per step
+    val stepAlpha = remember(stepIndex) { Animatable(0f) }
+    val stepSlideX = remember(stepIndex) { Animatable(300f) }
+    LaunchedEffect(stepIndex) {
+        launch { stepSlideX.animateTo(0f, tween(350)) }
+        stepAlpha.animateTo(1f, tween(350))
+    }
+
     LaunchedEffect(stepIndex) {
         photoLoading = true
         val bytes = GameRepository.downloadPhoto(gameId, targetPlayer.id, currentCategory.id)
@@ -333,7 +381,11 @@ private fun DarkSinglePhotoVotingScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Abstimmung", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                        AnimatedGradientText(
+                            text = "Abstimmung",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            gradientColors = GradientPrimary,
+                        )
                         Text("Kategorie ${categoryIndex + 1}/$totalCategories • Spieler ${targetPlayerIndex + 1}/$totalPlayers", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                     }
                 },
@@ -342,7 +394,7 @@ private fun DarkSinglePhotoVotingScreen(
         },
         containerColor = ColorBackground,
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.screenHorizontal).graphicsLayer { alpha = stepAlpha.value; translationX = stepSlideX.value }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = GradientPrimary, backgroundColor = ColorPrimaryContainer) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
@@ -355,7 +407,7 @@ private fun DarkSinglePhotoVotingScreen(
                 Text(targetPlayer.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
             }
             Box(modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
-                if (photoLoading) CircularProgressIndicator(color = ColorPrimary)
+                if (photoLoading) ShimmerPlaceholder(modifier = Modifier.fillMaxSize(), cornerRadius = 14.dp)
                 else if (photo != null) Image(bitmap = photo!!, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 else Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)

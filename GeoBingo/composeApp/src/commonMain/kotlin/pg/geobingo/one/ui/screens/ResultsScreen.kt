@@ -1,5 +1,7 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +44,10 @@ import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
+import pg.geobingo.one.ui.theme.ConfettiEffect
+import pg.geobingo.one.ui.theme.ShimmerPlaceholder
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +56,24 @@ fun ResultsScreen(gameState: GameState) {
     val ranked = gameState.getRankedPlayers()
     val winner = ranked.firstOrNull()?.first
     val shareManager = rememberShareManager()
+    var showConfetti by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(600)
+        showConfetti = true
+    }
+
+    val anim = rememberStaggeredAnimation(count = 4, staggerDelay = 80L)
+    val btnOffset = remember { Animatable(80f) }
+    val btnAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        launch {
+            kotlinx.coroutines.delay(250L)
+            launch { btnOffset.animateTo(0f, tween(450)) }
+            btnAlpha.animateTo(1f, tween(450))
+        }
+    }
+
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     // Load joker categories if not yet present
     LaunchedEffect(Unit) {
@@ -129,7 +154,7 @@ fun ResultsScreen(gameState: GameState) {
             )
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = ColorSurface) {
+            Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
                 var rematchLoading by remember { mutableStateOf(false) }
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     if (gameState.isHost) {
@@ -209,6 +234,7 @@ fun ResultsScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -220,6 +246,7 @@ fun ResultsScreen(gameState: GameState) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .staggered(0)
                         .padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -247,12 +274,14 @@ fun ResultsScreen(gameState: GameState) {
             // Podium
             if (ranked.size >= 2) {
                 Spacer(Modifier.height(20.dp))
-                DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.playerAvatarBytes)
+                Box(modifier = Modifier.staggered(1)) {
+                    DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.playerAvatarBytes)
+                }
             }
 
             // Full ranking
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(16.dp).staggered(2),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
@@ -284,7 +313,7 @@ fun ResultsScreen(gameState: GameState) {
                 val gameId = gameState.gameId
                 if (gameId != null) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(16.dp).staggered(3),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
@@ -317,6 +346,11 @@ fun ResultsScreen(gameState: GameState) {
                 }
             }
         }
+        // Winner confetti overlay
+        if (winner != null) {
+            ConfettiEffect(trigger = showConfetti, modifier = Modifier.fillMaxSize())
+        }
+        } // end Box
     }
 }
 
@@ -329,12 +363,22 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
         else -> listOf(ranked[1] to 1, ranked[0] to 0, ranked[2] to 2)
     }
 
+    // Podium grow animations
+    val podiumHeights = podiumOrder.map { (_, rank) ->
+        val anim = remember { Animatable(0f) }
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(rank * 200L + 300L)
+            anim.animateTo(1f, tween(600))
+        }
+        anim
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.Bottom,
     ) {
-        podiumOrder.forEach { (playerScore, rank) ->
+        podiumOrder.forEachIndexed { i, (playerScore, rank) ->
             val (player, score) = playerScore
             val rankColor = when (rank) {
                 0 -> Color(0xFFFBBF24).copy(alpha = 0.7f)
@@ -368,10 +412,12 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
                     color = player.color,
                 )
                 Spacer(Modifier.height(4.dp))
+                // Animated podium bar growing from bottom
+                val targetHeight = heights[rank]
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(heights[rank])
+                        .height(targetHeight * podiumHeights[i].value)
                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                         .background(ColorSurfaceVariant),
                 )
@@ -581,16 +627,7 @@ private fun GalleryPhotoItem(
     ) {
         when {
             loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = ColorPrimary,
-                    )
-                }
+                ShimmerPlaceholder(modifier = Modifier.fillMaxSize(), cornerRadius = 10.dp)
             }
             photo != null -> {
                 Image(

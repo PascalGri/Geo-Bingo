@@ -1,5 +1,7 @@
 package pg.geobingo.one.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,34 +12,43 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HowToPlayScreen(gameState: GameState) {
     SystemBackHandler { gameState.currentScreen = Screen.HOME }
 
+    val anim = rememberStaggeredAnimation(count = 9)
+    fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "So geht's",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
+                    AnimatedGradientText(
+                        text = "So geht's",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
@@ -55,7 +66,7 @@ fun HowToPlayScreen(gameState: GameState) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(horizontal = Spacing.screenHorizontal, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
 
@@ -67,7 +78,7 @@ fun HowToPlayScreen(gameState: GameState) {
                     brush = Brush.linearGradient(GradientPrimary),
                 ),
                 lineHeight = 34.sp,
-                modifier = Modifier.padding(vertical = 8.dp),
+                modifier = Modifier.padding(vertical = 8.dp).staggered(0),
             )
 
             // Steps
@@ -76,37 +87,42 @@ fun HowToPlayScreen(gameState: GameState) {
                 icon = Icons.Default.GroupAdd,
                 title = "Runde erstellen",
                 body = "Eine Person erstellt eine Runde und wählt Kategorien – z.B. \"Roter Porsche\" oder \"Straßenmusiker\". Die anderen treten per Code bei.",
+                modifier = Modifier.staggered(1),
             )
             StepCard(
                 number = "2",
                 icon = Icons.Default.DirectionsWalk,
                 title = "Raus in die Stadt",
                 body = "Sobald alle dabei sind, startet der Host das Spiel. Jetzt habt ihr eine festgelegte Zeit, um so viele Kategorien wie möglich zu fotografieren.",
+                modifier = Modifier.staggered(2),
             )
             StepCard(
                 number = "3",
                 icon = Icons.Default.CameraAlt,
                 title = "Fotos aufnehmen",
                 body = "Findet ihr ein Motiv, tippt auf die Kategorie und macht ein Foto. Mehrere Spieler können dieselbe Kategorie fotografieren – das Beste gewinnt.",
+                modifier = Modifier.staggered(3),
             )
             StepCard(
                 number = "4",
                 icon = Icons.Default.HowToVote,
                 title = "Abstimmen",
                 body = "Nach der Zeit seht ihr alle Fotos. Jeder stimmt pro Kategorie ab, welches Foto am besten passt. Schnell, fair, lustig.",
+                modifier = Modifier.staggered(4),
             )
             StepCard(
                 number = "5",
                 icon = Icons.Default.EmojiEvents,
                 title = "Sieger küren",
                 body = "Wer die meisten Votes sammelt, gewinnt. Am Ende seht ihr das Ranking aller Spieler und die besten Bilder der Runde.",
+                modifier = Modifier.staggered(5),
             )
 
             // Speed bonus info card
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color(0xFF1A1A2E),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(6),
                 border = BorderStroke(1.dp, Color(0xFFFBBF24).copy(alpha = 0.4f)),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -133,7 +149,7 @@ fun HowToPlayScreen(gameState: GameState) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = ColorPrimaryContainer,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(7),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -156,7 +172,7 @@ fun HowToPlayScreen(gameState: GameState) {
             GradientButton(
                 text = "Runde erstellen",
                 onClick = { gameState.currentScreen = Screen.CREATE_GAME },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().staggered(8),
                 gradientColors = GradientPrimary,
                 leadingIcon = {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
@@ -169,9 +185,9 @@ fun HowToPlayScreen(gameState: GameState) {
 }
 
 @Composable
-private fun StepCard(number: String, icon: ImageVector, title: String, body: String) {
+private fun StepCard(number: String, icon: ImageVector, title: String, body: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(ColorSurface)
