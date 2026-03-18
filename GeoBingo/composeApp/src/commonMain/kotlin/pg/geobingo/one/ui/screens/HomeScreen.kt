@@ -2,6 +2,7 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -180,15 +181,23 @@ fun HomeScreen(gameState: GameState) {
 
             Spacer(Modifier.height(10.dp))
 
-            GradientButton(
-                text = "Runde beitreten",
+            OutlinedButton(
                 onClick = { gameState.currentScreen = Screen.JOIN_GAME },
-                modifier = Modifier.fillMaxWidth().staggered(5),
-                gradientColors = GradientCool,
-                leadingIcon = {
-                    Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = Color.White)
-                },
-            )
+                modifier = Modifier.fillMaxWidth().height(56.dp).staggered(5),
+                shape = RoundedCornerShape(28.dp),
+                border = BorderStroke(1.dp, ColorOutline),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
+            ) {
+                Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Runde beitreten",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp,
+                    color = ColorOnSurface,
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
