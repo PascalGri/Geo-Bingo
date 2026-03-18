@@ -8,6 +8,7 @@ import pg.geobingo.one.data.CATEGORY_DESCRIPTIONS
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.PLAYER_COLORS
+import pg.geobingo.one.platform.LocalPhotoStore
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 import io.ktor.client.HttpClient
@@ -156,11 +157,9 @@ object GameRepository {
         ) { select() }.decodeSingle()
 
     suspend fun setPlayerAvatar(playerId: String, avatar: String) {
-        try {
-            supabase.from("players").update({ set("avatar", avatar) }) {
-                filter { eq("id", playerId) }
-            }
-        } catch (_: Exception) {} // Graceful: column may not exist yet
+        supabase.from("players").update({ set("avatar", avatar) }) {
+            filter { eq("id", playerId) }
+        }
     }
 
     suspend fun uploadAvatarPhoto(playerId: String, bytes: ByteArray) {
@@ -169,9 +168,13 @@ object GameRepository {
     }
 
     suspend fun downloadAvatarPhoto(playerId: String): ByteArray? = try {
+        // Try local cache first
+        LocalPhotoStore.loadAvatar(playerId)?.let { return it }
         val path = "avatars/$playerId.jpg"
         val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
-        httpClient.get(url).readRawBytes()
+        val bytes = httpClient.get(url).readRawBytes()
+        try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (_: Exception) {}
+        bytes
     } catch (_: Exception) { null }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
@@ -238,9 +241,15 @@ object GameRepository {
         stepKey: String,
         approved: Boolean,
     ) {
-        supabase.from("votes").insert(
-            VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, approved = approved)
-        )
+        // Insert vote - may fail if duplicate, but we still need to submit the vote_submission
+        try {
+            supabase.from("votes").insert(
+                VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, approved = approved)
+            )
+        } catch (e: Exception) {
+            // Duplicate vote is OK - continue to submit vote_submission
+            e.printStackTrace()
+        }
         supabase.from("vote_submissions").insert(
             VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
         )
@@ -290,9 +299,18 @@ object GameRepository {
     }
 
     suspend fun submitEndVote(gameId: String, voterId: String) {
-        supabase.from("vote_submissions").insert(
-            VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = VoteKeys.END_VOTE)
-        )
+        try {
+            supabase.from("vote_submissions").insert(
+                VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = VoteKeys.END_VOTE)
+            )
+        } catch (e: Exception) {
+            // Duplicate is OK - vote was already recorded
+            val msg = e.message ?: ""
+            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
+                && !msg.contains("23505", ignoreCase = true)) {
+                throw e
+            }
+        }
     }
 
     suspend fun getEndVoteCount(gameId: String): Int =
@@ -310,4 +328,27 @@ object GameRepository {
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
             .decodeList<VoteSubmissionInsertDto>().isNotEmpty()
+
+    /** Delete all game photos and avatars from Supabase Storage to free space. */
+    suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {
+        try {
+            // List and delete game photos
+            val gameFiles = supabase.storage.from("photos").list(gameId)
+            for (playerFolder in gameFiles) {
+                val playerPath = "$gameId/${playerFolder.name}"
+                val photos = supabase.storage.from("photos").list(playerPath)
+                val paths = photos.map { "$playerPath/${it.name}" }
+                if (paths.isNotEmpty()) {
+                    supabase.storage.from("photos").delete(paths)
+                }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+        try {
+            // Delete avatar photos
+            val avatarPaths = playerIds.map { "avatars/$it.jpg" }
+            if (avatarPaths.isNotEmpty()) {
+                supabase.storage.from("photos").delete(avatarPaths)
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
 }

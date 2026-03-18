@@ -194,7 +194,7 @@ fun GradientButton(
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = androidx.compose.foundation.LocalIndication.current,
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,

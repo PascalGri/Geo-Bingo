@@ -1,16 +1,14 @@
 package pg.geobingo.one.network
 
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
-import io.github.jan.supabase.realtime.PostgresAction
-import io.github.jan.supabase.realtime.channel
-import io.github.jan.supabase.realtime.decodeRecord
-import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class GameRealtimeManager(private val gameId: String, private val channelSuffix: String) {
+class GameRealtimeManager(private val gameId: String) {
 
-    private val channel = supabase.channel("$channelSuffix-$gameId")
+    // Shared channel for this gameId across different screens
+    private val channel = supabase.channel("room-$gameId")
 
     val gameUpdates: Flow<GameDto> =
         channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
@@ -29,6 +27,12 @@ class GameRealtimeManager(private val gameId: String, private val channelSuffix:
             table = "captures"
             filter("game_id", FilterOperator.EQ, gameId)
         }.map { it.decodeRecord<CaptureDto>() }
+
+    val voteInserts: Flow<VoteDto> =
+        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "votes"
+            filter("game_id", FilterOperator.EQ, gameId)
+        }.map { it.decodeRecord<VoteDto>() }
 
     suspend fun subscribe() {
         try {

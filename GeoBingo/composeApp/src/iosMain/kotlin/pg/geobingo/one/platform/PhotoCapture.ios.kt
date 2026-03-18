@@ -7,8 +7,14 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readBytes
+import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Image
+import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.UIKit.UIApplication
+import platform.UIKit.UIGraphicsBeginImageContextWithOptions
+import platform.UIKit.UIGraphicsEndImageContext
+import platform.UIKit.UIGraphicsGetImageFromCurrentImageContext
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
 import platform.UIKit.UIImagePickerController
@@ -31,8 +37,9 @@ private class ImagePickerDelegate :
         didFinishPickingMediaWithInfo: Map<Any?, *>
     ) {
         picker.dismissViewControllerAnimated(true, completion = null)
-        val image = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
-        val jpegData = image?.let { UIImageJPEGRepresentation(it, 0.85) }
+        val originalImage = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
+        val image = originalImage?.let { resizeImage(it, maxWidth = 1200.0) }
+        val jpegData = image?.let { UIImageJPEGRepresentation(it, 0.7) }
         val bytes = jpegData?.let { data ->
             data.bytes?.readBytes(data.length.toInt())
         }
@@ -43,6 +50,20 @@ private class ImagePickerDelegate :
         picker.dismissViewControllerAnimated(true, completion = null)
         onResult?.invoke(null)
     }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun resizeImage(image: UIImage, maxWidth: Double): UIImage {
+    val w = image.size.useContents { width }
+    val h = image.size.useContents { height }
+    if (w <= maxWidth) return image
+    val ratio = maxWidth / w
+    val newSize = CGSizeMake(maxWidth, h * ratio)
+    UIGraphicsBeginImageContextWithOptions(newSize, true, 1.0)
+    image.drawInRect(CGRectMake(0.0, 0.0, maxWidth, h * ratio))
+    val resized = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return resized ?: image
 }
 
 @Composable

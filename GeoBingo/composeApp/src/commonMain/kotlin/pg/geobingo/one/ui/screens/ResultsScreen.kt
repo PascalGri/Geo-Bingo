@@ -33,6 +33,7 @@ import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.saveImageToDevice
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
@@ -48,9 +49,52 @@ fun ResultsScreen(gameState: GameState) {
     val winner = ranked.firstOrNull()?.first
     val shareManager = rememberShareManager()
 
-    // Save to history once on entry
-    LaunchedEffect(Unit) { gameState.saveToHistory() }
-    
+    // Save to history once on entry, then cleanup server storage
+    LaunchedEffect(Unit) {
+        gameState.saveToHistory()
+        // Save game metadata locally
+        val gid = gameState.gameId
+        if (gid != null) {
+            try {
+                val metaJson = buildString {
+                    append("{")
+                    append("\"gameCode\":\"${gameState.gameCode ?: ""}\",")
+                    append("\"date\":\"${kotlinx.datetime.Clock.System.now()}\",")
+                    append("\"jokerMode\":${gameState.jokerMode},")
+                    append("\"players\":[")
+                    append(ranked.joinToString(",") { (p, s) -> "{\"name\":\"${p.name}\",\"id\":\"${p.id}\",\"score\":$s}" })
+                    append("],")
+                    append("\"categories\":[")
+                    append(gameState.selectedCategories.joinToString(",") { "{\"id\":\"${it.id}\",\"name\":\"${it.name}\"}" })
+                    append("]}")
+                }
+                LocalPhotoStore.saveGameMeta(gid, metaJson)
+            } catch (_: Exception) {}
+        }
+        // Host cleans up server storage after a delay (let other players download photos first)
+        if (gameState.isHost && gid != null) {
+            kotlinx.coroutines.delay(10_000)
+            try {
+                GameRepository.cleanupStoragePhotos(gid, gameState.players.map { it.id })
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Download avatar photos for all players not yet cached or tried
+    LaunchedEffect(gameState.players) {
+        gameState.players
+            .filter { it.id !in gameState.playerAvatarBytes && it.id !in gameState.triedAvatarDownloads }
+            .forEach { player ->
+                scope.launch {
+                    gameState.triedAvatarDownloads = gameState.triedAvatarDownloads + player.id
+                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                    if (bytes != null) {
+                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    }
+                }
+            }
+    }
+
     SystemBackHandler { gameState.resetGame() }
 
     Scaffold(
@@ -452,7 +496,14 @@ private fun GalleryPhotoItem(
 
     LaunchedEffect(capture.id) {
         loading = true
-        val bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
+        // Try local first, then server
+        var bytes = LocalPhotoStore.loadPhoto(gameId, capture.player_id, capture.category_id)
+        if (bytes == null) {
+            bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
+            if (bytes != null) {
+                try { LocalPhotoStore.savePhoto(gameId, capture.player_id, capture.category_id, bytes) } catch (_: Exception) {}
+            }
+        }
         photoBytes = bytes
         photo = bytes?.toImageBitmap()
         loading = false

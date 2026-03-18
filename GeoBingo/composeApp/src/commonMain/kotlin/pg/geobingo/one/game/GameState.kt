@@ -1,8 +1,12 @@
 package pg.geobingo.one.game
 
 import androidx.compose.runtime.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.network.CaptureDto
+import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.VoteDto
 
@@ -21,6 +25,26 @@ data class GameHistoryEntry(
 
 class GameState {
     var currentScreen by mutableStateOf(Screen.HOME)
+
+    // Shared realtime manager – created once per game, survives screen transitions
+    var realtime: GameRealtimeManager? = null
+        private set
+
+    fun ensureRealtime(gameId: String): GameRealtimeManager {
+        val existing = realtime
+        if (existing != null) return existing
+        val mgr = GameRealtimeManager(gameId)
+        realtime = mgr
+        return mgr
+    }
+
+    private fun cleanupRealtime() {
+        val rt = realtime ?: return
+        realtime = null
+        CoroutineScope(Dispatchers.Default).launch {
+            try { rt.unsubscribe() } catch (_: Exception) {}
+        }
+    }
 
     // Multiplayer
     var gameId by mutableStateOf<String?>(null)
@@ -78,6 +102,8 @@ class GameState {
 
     // Avatar photos: playerId → ByteArray (in-memory cache, populated from selfie upload/download)
     var playerAvatarBytes by mutableStateOf(mapOf<String, ByteArray>())
+    // Track players we already tried downloading avatars for (to avoid retrying every poll)
+    var triedAvatarDownloads by mutableStateOf(setOf<String>())
 
     // Uploading state
     var uploadingCategories by mutableStateOf(setOf<String>())
@@ -235,10 +261,12 @@ class GameState {
         jokerLabels = mapOf()
         consecutiveNetworkErrors = 0
         playerAvatarBytes = mapOf()
+        triedAvatarDownloads = setOf()
         uploadingCategories = setOf()
     }
 
     fun resetGame() {
+        cleanupRealtime()
         clearGameplayState()
         selectedCategories = listOf()
         gameDurationMinutes = 15
@@ -251,6 +279,7 @@ class GameState {
     }
 
     fun resetForRematch(newGameId: String, newGameCode: String, newPlayerId: String) {
+        cleanupRealtime()
         clearGameplayState()
         gameId = newGameId
         gameCode = newGameCode

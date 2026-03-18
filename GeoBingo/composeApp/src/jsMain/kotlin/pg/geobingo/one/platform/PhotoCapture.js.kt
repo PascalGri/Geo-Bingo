@@ -37,19 +37,38 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
                     if (file == null) {
                         scope.launch { channel.trySend(null) }
                     } else {
-                        val reader = FileReader()
-                        reader.onload = {
-                            val buffer = reader.result.unsafeCast<ArrayBuffer>()
-                            val int8 = Int8Array(buffer)
-                            val bytes = ByteArray(int8.length) { i -> int8[i] }
-                            scope.launch { channel.trySend(bytes) }
+                        // Use Canvas to resize + compress as JPEG
+                        val url = js("URL.createObjectURL(file)").unsafeCast<String>()
+                        val img = js("new Image()").asDynamic()
+                        img.onload = {
+                            val maxW = 1200
+                            var w: Int = img.width as Int
+                            var h: Int = img.height as Int
+                            if (w > maxW) { h = (h * maxW.toDouble() / w).toInt(); w = maxW }
+                            val canvas = document.createElement("canvas").asDynamic()
+                            canvas.width = w; canvas.height = h
+                            val ctx = canvas.getContext("2d")
+                            ctx.drawImage(img, 0, 0, w, h)
+                            js("URL.revokeObjectURL(url)")
+                            canvas.toBlob({ blob: dynamic ->
+                                if (blob == null) {
+                                    scope.launch { channel.trySend(null) }
+                                } else {
+                                    blob.arrayBuffer().then { buf: dynamic ->
+                                        val arr = js("new Int8Array(buf)").asDynamic()
+                                        val len = (arr.length as Int)
+                                        val bytes = ByteArray(len) { i -> (arr[i] as Byte) }
+                                        scope.launch { channel.trySend(bytes) }
+                                    }
+                                }
+                            }, "image/jpeg", 0.7)
                             null
                         }
-                        reader.onerror = {
+                        img.onerror = {
                             scope.launch { channel.trySend(null) }
                             null
                         }
-                        reader.readAsArrayBuffer(file)
+                        img.src = url
                     }
                     null
                 }

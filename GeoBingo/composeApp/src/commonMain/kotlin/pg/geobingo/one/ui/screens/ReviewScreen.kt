@@ -23,21 +23,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
-import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.PlayerAvatarView
 
 @Composable
 fun ReviewScreen(gameState: GameState) {
@@ -46,44 +43,45 @@ fun ReviewScreen(gameState: GameState) {
     val categories = gameState.selectedCategories
     val myPlayerId = gameState.myPlayerId ?: return
 
-    // Consistent player order across all clients
     val sortedPlayers = remember(gameState.players) { gameState.players.sortedBy { it.id } }
     val numPlayers = sortedPlayers.size
 
-    val realtime = remember(gameId) { GameRealtimeManager(gameId, "review") }
+    val realtime = gameState.realtime
 
-    // On first load: fetch joker labels and append virtual joker categories
+    // Download avatar photos for all players not yet cached or tried
+    LaunchedEffect(gameState.players) {
+        gameState.players
+            .filter { it.id !in gameState.playerAvatarBytes && it.id !in gameState.triedAvatarDownloads }
+            .forEach { player ->
+                scope.launch {
+                    gameState.triedAvatarDownloads = gameState.triedAvatarDownloads + player.id
+                    val bytes = GameRepository.downloadAvatarPhoto(player.id)
+                    if (bytes != null) {
+                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
+                    }
+                }
+            }
+    }
+
     LaunchedEffect(gameId) {
         if (gameState.jokerMode) {
             try {
                 val labels = GameRepository.getJokerLabels(gameId)
                 gameState.jokerLabels = labels
                 val jokerCats = labels.entries.map { (playerId, label) ->
-                    Category(
-                        id = "joker_$playerId",
-                        name = "🃏 $label",
-                        emoji = "joker",
-                    )
+                    Category(id = "joker_$playerId", name = "🃏 $label", emoji = "joker")
                 }.filter { jokerCat -> gameState.selectedCategories.none { it.id == jokerCat.id } }
-                if (jokerCats.isNotEmpty()) {
-                    gameState.selectedCategories = gameState.selectedCategories + jokerCats
-                }
+                if (jokerCats.isNotEmpty()) gameState.selectedCategories = gameState.selectedCategories + jokerCats
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    // Re-fetch captures on each step change (used for scoring in ResultsScreen)
     LaunchedEffect(gameState.reviewCategoryIndex) {
         try { gameState.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // 1. Subscribe first - before any collect()
     LaunchedEffect(gameId) {
-        realtime.subscribe()
-    }
-
-    // 2. Realtime: react to step advances and results phase
-    LaunchedEffect(gameId) {
+        if (realtime == null) return@LaunchedEffect
         realtime.gameUpdates.collect { game ->
             val newStep = game.review_category_index
             if (newStep != gameState.reviewCategoryIndex) {
@@ -97,7 +95,6 @@ fun ReviewScreen(gameState: GameState) {
         }
     }
 
-    // 3. Polling fallback every 3 seconds (no subscribe here!)
     LaunchedEffect(gameId) {
         while (true) {
             delay(3_000)
@@ -112,26 +109,12 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.allVotes = GameRepository.getVotes(gameId)
                     gameState.currentScreen = Screen.RESULTS
                 }
-                gameState.consecutiveNetworkErrors = 0
-            } catch (e: Exception) {
-                e.printStackTrace()
-                gameState.consecutiveNetworkErrors++
-            }
-        }
-    }
-
-    DisposableEffect(gameId) {
-        onDispose {
-            CoroutineScope(Dispatchers.Default).launch {
-                try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
     if (numPlayers == 0 || categories.isEmpty()) {
-        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = ColorPrimary)
-        }
+        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorPrimary) }
         return
     }
 
@@ -139,9 +122,7 @@ fun ReviewScreen(gameState: GameState) {
     val totalSteps = categories.size * numPlayers
 
     if (stepIndex >= totalSteps) {
-        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = ColorPrimary)
-        }
+        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorPrimary) }
         return
     }
 
@@ -149,7 +130,6 @@ fun ReviewScreen(gameState: GameState) {
     val targetPlayerIndex = stepIndex % numPlayers
     val currentCategory = categories[categoryIndex]
     val targetPlayer = sortedPlayers[targetPlayerIndex]
-    // Unique key per step for vote_submissions tracking
     val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
 
     suspend fun advanceStep() {
@@ -168,27 +148,8 @@ fun ReviewScreen(gameState: GameState) {
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    val noPhotoAction: () -> Unit = {
-        scope.launch {
-            gameState.hasSubmittedCurrentCategory = true
-            var submitted = false
-            repeat(2) {
-                if (!submitted) {
-                    try {
-                        GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
-                        submitted = true
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        delay(1_500)
-                    }
-                }
-            }
-            advanceStep()
-        }
-    }
-
-    when {
-        gameState.hasSubmittedCurrentCategory -> {
+    key(stepIndex) {
+        if (gameState.hasSubmittedCurrentCategory) {
             DarkWaitingScreen(
                 gameId = gameId,
                 stepKey = stepKey,
@@ -199,26 +160,18 @@ fun ReviewScreen(gameState: GameState) {
                 playerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 isHost = gameState.isHost,
-                isOffline = gameState.consecutiveNetworkErrors >= 3,
                 onReadyToAdvance = { scope.launch { advanceStep() } },
                 onForceAdvance = {
                     scope.launch {
                         try {
                             val nextStep = stepIndex + 1
-                            if (nextStep >= totalSteps) {
-                                GameRepository.setGameStatus(gameId, "results")
-                            } else {
-                                GameRepository.setReviewCategoryIndex(gameId, nextStep)
-                                gameState.reviewCategoryIndex = nextStep
-                                gameState.hasSubmittedCurrentCategory = false
-                            }
+                            if (nextStep >= totalSteps) GameRepository.setGameStatus(gameId, "results")
+                            else GameRepository.setReviewCategoryIndex(gameId, nextStep)
                         } catch (e: Exception) { e.printStackTrace() }
                     }
                 },
             )
-        }
-        else -> {
-            // Always attempt to load from storage — bypasses captures-table RLS issues
+        } else {
             DarkSinglePhotoVotingScreen(
                 gameId = gameId,
                 currentCategory = currentCategory,
@@ -228,23 +181,42 @@ fun ReviewScreen(gameState: GameState) {
                 targetPlayerIndex = targetPlayerIndex,
                 totalPlayers = numPlayers,
                 stepIndex = stepIndex,
+                playerAvatarBytes = gameState.playerAvatarBytes[targetPlayer.id],
                 onVote = { approved ->
                     scope.launch {
-                        try {
-                            GameRepository.submitStepVote(
-                                gameId = gameId,
-                                voterId = myPlayerId,
-                                targetPlayerId = targetPlayer.id,
-                                categoryId = currentCategory.id,
-                                stepKey = stepKey,
-                                approved = approved,
-                            )
-                            gameState.hasSubmittedCurrentCategory = true
-                            advanceStep()
-                        } catch (e: Exception) { e.printStackTrace() }
+                        gameState.hasSubmittedCurrentCategory = true
+                        var attempt = 0
+                        while (attempt < 3) {
+                            try {
+                                if (attempt > 0) delay(1_000L * attempt)
+                                GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, approved)
+                                break
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                attempt++
+                            }
+                        }
+                        // Always try to advance, even if vote submission had issues
+                        advanceStep()
                     }
                 },
-                onNoPhoto = noPhotoAction,
+                onNoPhoto = {
+                    scope.launch {
+                        gameState.hasSubmittedCurrentCategory = true
+                        var attempt = 0
+                        while (attempt < 3) {
+                            try {
+                                if (attempt > 0) delay(1_000L * attempt)
+                                GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
+                                break
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                attempt++
+                            }
+                        }
+                        advanceStep()
+                    }
+                },
             )
         }
     }
@@ -253,16 +225,10 @@ fun ReviewScreen(gameState: GameState) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DarkSinglePhotoVotingScreen(
-    gameId: String,
-    currentCategory: Category,
-    categoryIndex: Int,
-    totalCategories: Int,
-    targetPlayer: Player,
-    targetPlayerIndex: Int,
-    totalPlayers: Int,
-    stepIndex: Int,
-    onVote: (Boolean) -> Unit,
-    onNoPhoto: () -> Unit,
+    gameId: String, currentCategory: Category, categoryIndex: Int, totalCategories: Int,
+    targetPlayer: Player, targetPlayerIndex: Int, totalPlayers: Int, stepIndex: Int,
+    playerAvatarBytes: ByteArray? = null,
+    onVote: (Boolean) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
@@ -270,15 +236,13 @@ private fun DarkSinglePhotoVotingScreen(
 
     LaunchedEffect(stepIndex) {
         photoLoading = true
-        photo = null
         val bytes = GameRepository.downloadPhoto(gameId, targetPlayer.id, currentCategory.id)
+        if (bytes != null) {
+            try { LocalPhotoStore.savePhoto(gameId, targetPlayer.id, currentCategory.id, bytes) } catch (_: Exception) {}
+        }
         photo = bytes?.toImageBitmap()
         photoLoading = false
-        if (photo == null) {
-            // No photo in storage → auto-advance after brief display
-            delay(3_000)
-            onNoPhoto()
-        }
+        if (photo == null) { delay(2500); onNoPhoto() }
     }
 
     Scaffold(
@@ -286,17 +250,8 @@ private fun DarkSinglePhotoVotingScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            "Abstimmung",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ColorOnSurface,
-                        )
-                        Text(
-                            "Kategorie ${categoryIndex + 1} / $totalCategories  •  Spieler ${targetPlayerIndex + 1} / $totalPlayers",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnSurfaceVariant,
-                        )
+                        Text("Abstimmung", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                        Text("Kategorie ${categoryIndex + 1}/$totalCategories • Spieler ${targetPlayerIndex + 1}/$totalPlayers", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -304,248 +259,58 @@ private fun DarkSinglePhotoVotingScreen(
         },
         containerColor = ColorBackground,
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Category header
-            GradientBorderCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                borderColors = GradientPrimary,
-                backgroundColor = ColorPrimaryContainer,
-                durationMillis = 3000,
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    AnimatedGradientText(
-                        text = currentCategory.name,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        gradientColors = GradientPrimary,
-                        durationMillis = 2000,
-                    )
-                    Text(
-                        "Erfüllt dieses Bild die Kategorie?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center,
-                    )
+        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = GradientPrimary, backgroundColor = ColorPrimaryContainer) {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
+                    Text("Erfüllt dieses Bild die Kategorie?", style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
                 }
             }
-
-            // Player name row
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(36.dp).clip(CircleShape).background(targetPlayer.color),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        targetPlayer.name.take(1).uppercase(),
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                PlayerAvatarView(player = targetPlayer, size = 36.dp, fontSize = 14.sp, photoBytes = playerAvatarBytes)
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    targetPlayer.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurface,
-                )
+                Text(targetPlayer.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
             }
-
-            // Photo area
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(ColorSurfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    photoLoading -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                strokeWidth = 2.dp,
-                                color = ColorPrimary,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Foto lädt...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                    photo != null -> {
-                        Image(
-                            bitmap = photo!!,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
-                    else -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = ColorOnSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Foto konnte nicht geladen werden",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
+            Box(modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
+                if (photoLoading) CircularProgressIndicator(color = ColorPrimary)
+                else if (photo != null) Image(bitmap = photo!!, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                else Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)
+                    Text("Kein Foto gefunden", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                 }
             }
-
-            // Vote buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onVote(false) 
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = ColorError),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Nein", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(false) }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = ColorError), shape = RoundedCornerShape(14.dp)) {
+                    Icon(Icons.Default.Close, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Nein", fontWeight = FontWeight.Bold)
                 }
-                GradientButton(
-                    text = "Ja",
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onVote(true) 
-                    },
-                    modifier = Modifier.weight(1f),
-                    gradientColors = GradientPrimary,
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    },
-                )
+                GradientButton(text = "Ja", onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onVote(true) }, modifier = Modifier.weight(1f), gradientColors = GradientPrimary, leadingIcon = { Icon(Icons.Default.Check, null, tint = Color.White) })
             }
         }
     }
 }
 
 @Composable
-private fun DarkWaitingScreen(
-    gameId: String,
-    stepKey: String,
-    categoryName: String,
-    playerName: String,
-    categoryIndex: Int,
-    totalCategories: Int,
-    playerIndex: Int,
-    totalPlayers: Int,
-    isHost: Boolean,
-    isOffline: Boolean = false,
-    onReadyToAdvance: () -> Unit,
-    onForceAdvance: () -> Unit,
-) {
+private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
-    var waitSeconds by remember(stepKey) { mutableStateOf(0) }
-
     LaunchedEffect(stepKey) {
         while (true) {
             delay(2_000)
-            waitSeconds += 2
             try {
                 submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
-                if (submittedCount >= totalPlayers) {
-                    onReadyToAdvance()
-                    break
-                }
+                if (submittedCount >= totalPlayers) { onReadyToAdvance(); break }
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
-
-    Box(modifier = Modifier.fillMaxSize().background(ColorBackground)) {
-        if (isOffline) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                color = ColorError.copy(alpha = 0.15f),
-            ) {
-                Text(
-                    "Keine Verbindung – versuche erneut zu verbinden…",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorError,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-            }
-        }
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(48.dp), color = ColorPrimary)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = ColorPrimary,
-                    modifier = Modifier.size(28.dp),
-                )
-                AnimatedGradientText(
-                    text = "Abgestimmt!",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    gradientColors = GradientPrimary,
-                    durationMillis = 2000,
-                )
-            }
-            Text(
-                "$submittedCount von $totalPlayers haben abgestimmt",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ColorOnSurfaceVariant,
-            )
-            Text(
-                "Kategorie ${categoryIndex + 1} / $totalCategories: $categoryName  •  $playerName",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            if (isHost && waitSeconds >= 30) {
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onForceAdvance,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant),
-                    border = BorderStroke(1.dp, ColorOutlineVariant),
-                    shape = RoundedCornerShape(20.dp),
-                ) {
-                    Text(
-                        "Nächstes Bild (Spieler überspringen)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorOnSurfaceVariant,
-                    )
+    Box(modifier = Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            CircularProgressIndicator(color = ColorPrimary)
+            AnimatedGradientText(text = "Abgestimmt!", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
+            Text("$submittedCount von $totalPlayers haben abgestimmt", style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
+            if (isHost) {
+                OutlinedButton(onClick = onForceAdvance, modifier = Modifier.padding(top = 16.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant), border = BorderStroke(1.dp, ColorOutlineVariant), shape = RoundedCornerShape(20.dp)) {
+                    Text("Überspringen (Host-Option)", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

@@ -18,8 +18,14 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         if (bitmap != null) {
+            val maxWidth = 1200
+            val scaled = if (bitmap.width > maxWidth) {
+                val ratio = maxWidth.toFloat() / bitmap.width
+                Bitmap.createScaledBitmap(bitmap, maxWidth, (bitmap.height * ratio).toInt(), true)
+            } else bitmap
             val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+            scaled.compress(Bitmap.CompressFormat.JPEG, 70, stream)
+            if (scaled !== bitmap) scaled.recycle()
             currentOnResult.value(stream.toByteArray())
         } else {
             currentOnResult.value(null)

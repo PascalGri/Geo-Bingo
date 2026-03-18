@@ -44,10 +44,27 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
     input.addEventListener('change', function() {
         var file = input.files && input.files[0];
         if (!file) { window._katchit_done = true; return; }
-        file.arrayBuffer().then(function(buf) {
-            window._katchit_bytes = new Uint8Array(buf);
-            window._katchit_done = true;
-        })['catch'](function() { window._katchit_done = true; });
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function() {
+            var maxW = 1200;
+            var w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            canvas.toBlob(function(blob) {
+                if (!blob) { window._katchit_done = true; return; }
+                blob.arrayBuffer().then(function(buf) {
+                    window._katchit_bytes = new Uint8Array(buf);
+                    window._katchit_done = true;
+                })['catch'](function() { window._katchit_done = true; });
+            }, 'image/jpeg', 0.7);
+        };
+        img.onerror = function() { window._katchit_done = true; };
+        img.src = url;
     });
     document.body.appendChild(input);
     input.click();

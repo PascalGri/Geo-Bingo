@@ -18,15 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
-import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
@@ -41,7 +36,7 @@ fun LobbyScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.gameId ?: return
-    val realtime = remember(gameId) { GameRealtimeManager(gameId, "lobby") }
+    val realtime = remember(gameId) { gameState.ensureRealtime(gameId) }
 
     // Lobby auto-close timeout (host only): 5 min without a second player joining
     var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
@@ -61,12 +56,13 @@ fun LobbyScreen(gameState: GameState) {
         try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // Download avatar photos for players who have selfies but aren't cached yet
+    // Download avatar photos for all players not yet cached or tried
     LaunchedEffect(gameState.lobbyPlayers) {
         gameState.lobbyPlayers
-            .filter { it.avatar == "selfie" && it.id !in gameState.playerAvatarBytes }
+            .filter { it.id !in gameState.playerAvatarBytes && it.id !in gameState.triedAvatarDownloads }
             .forEach { player ->
                 scope.launch {
+                    gameState.triedAvatarDownloads = gameState.triedAvatarDownloads + player.id
                     val bytes = GameRepository.downloadAvatarPhoto(player.id)
                     if (bytes != null) {
                         gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
@@ -75,19 +71,19 @@ fun LobbyScreen(gameState: GameState) {
             }
     }
 
-    // 1. Subscribe first (separate LaunchedEffect so it doesn't block anything)
+    // 1. Subscribe first
     LaunchedEffect(gameId) {
         realtime.subscribe()
     }
 
-    // 2. Realtime: new player joined (safe after subscribe)
+    // 2. Realtime: player joined
     LaunchedEffect(gameId) {
         realtime.playerInserts.collect {
             try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    // 3. Realtime: game status changed (guests only)
+    // 3. Realtime: game status changes (guests transition automatically)
     LaunchedEffect(gameId) {
         if (!gameState.isHost) {
             realtime.gameUpdates.collect { game ->
@@ -112,7 +108,7 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // 4. Fallback polling loop (independent of subscribe)
+    // 4. Fallback Polling
     LaunchedEffect(gameId) {
         while (true) {
             delay(3_000)
@@ -120,35 +116,14 @@ fun LobbyScreen(gameState: GameState) {
                 gameState.lobbyPlayers = GameRepository.getPlayers(gameId)
                 if (!gameState.isHost) {
                     val game = GameRepository.getGameById(gameId)
-                    when (game?.status) {
-                        "running" -> {
-                            if (gameState.currentScreen == Screen.LOBBY) {
-                                val playerDtos = GameRepository.getPlayers(gameId)
-                                gameState.players = playerDtos.map { it.toPlayer() }
-                                gameState.captures = playerDtos.associate { it.id to emptySet() }
-                                gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                                gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                                gameState.isGameRunning = true
-                                gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
-                                    .takeIf { it >= 0 } ?: 0
-                                gameState.currentScreen = Screen.GAME
-                            }
-                        }
-                        "closed" -> {
-                            gameState.pendingToast = "Der Host hat die Lobby geschlossen."
-                            gameState.resetGame()
-                        }
+                    if (game?.status == "running" && gameState.currentScreen == Screen.LOBBY) {
+                        val playerDtos = GameRepository.getPlayers(gameId)
+                        gameState.players = playerDtos.map { it.toPlayer() }
+                        gameState.isGameRunning = true
+                        gameState.currentScreen = Screen.GAME
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
-        }
-    }
-
-    DisposableEffect(gameId) {
-        onDispose {
-            CoroutineScope(Dispatchers.Default).launch {
-                try { realtime.unsubscribe() } catch (e: Exception) { e.printStackTrace() }
-            }
         }
     }
 
@@ -238,20 +213,14 @@ fun LobbyScreen(gameState: GameState) {
         ) {
             item {
                 Spacer(Modifier.height(16.dp))
-
-                // Game code card with animated gradient border
                 GradientBorderCard(
                     modifier = Modifier.fillMaxWidth(),
                     cornerRadius = 20.dp,
                     borderColors = GradientPrimary,
                     backgroundColor = ColorPrimaryContainer,
-                    borderWidth = 1.5.dp,
-                    durationMillis = 3000,
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
@@ -269,13 +238,6 @@ fun LobbyScreen(gameState: GameState) {
                             gradientColors = GradientPrimary,
                             durationMillis = 2000,
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Teile diesen Code mit deinen Freunden",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                        )
                     }
                 }
             }
@@ -290,12 +252,6 @@ fun LobbyScreen(gameState: GameState) {
                         text = "Spieler (${gameState.lobbyPlayers.size})",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientCool,
-                        durationMillis = 3500,
-                    )
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = ColorPrimary,
                     )
                 }
             }
@@ -303,86 +259,6 @@ fun LobbyScreen(gameState: GameState) {
             items(gameState.lobbyPlayers) { player ->
                 LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId, photoBytes = gameState.playerAvatarBytes[player.id])
             }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = ColorSecondary,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            buildString {
-                                append("${gameState.selectedCategories.size} Kategorien · ${gameState.gameDurationMinutes} Min.")
-                                if (gameState.jokerMode) append(" · 🃏 Joker-Modus")
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            if (!gameState.isHost) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "Warte auf den Host...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            // Timeout warning for host (last 60 seconds)
-            if (gameState.isHost && gameState.lobbyPlayers.size < 2 && lobbyTimeoutSeconds <= 60) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = ColorError.copy(alpha = 0.1f)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, ColorError.copy(alpha = 0.4f)),
-                        elevation = CardDefaults.cardElevation(0.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = ColorError,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Lobby schließt in ${gameState.formatTime(lobbyTimeoutSeconds)}, falls kein Spieler beitritt",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorError,
-                            )
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 }
@@ -395,12 +271,9 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArr
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = ColorSurface),
         border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
-        elevation = CardDefaults.cardElevation(0.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PlayerAvatarViewRaw(
@@ -426,12 +299,7 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, photoBytes: ByteArr
                         .background(ColorPrimaryContainer)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
-                    Text(
-                        "Du",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Text("Du", style = MaterialTheme.typography.labelSmall, color = ColorPrimary)
                 }
             }
         }
