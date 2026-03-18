@@ -124,7 +124,12 @@ fun LobbyScreen(gameState: GameState) {
                     if (game?.status == "running" && gameState.currentScreen == Screen.LOBBY) {
                         val playerDtos = GameRepository.getPlayers(gameId)
                         gameState.players = playerDtos.map { it.toPlayer() }
+                        gameState.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
                         gameState.isGameRunning = true
+                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                            .takeIf { it >= 0 } ?: 0
                         gameState.currentScreen = Screen.GAME
                     }
                 }

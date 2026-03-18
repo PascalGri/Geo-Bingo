@@ -299,7 +299,7 @@ object GameRepository {
     suspend fun getVoteSubmissionCount(gameId: String, categoryId: String): Int =
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", categoryId) } }
-            .decodeList<VoteSubmissionInsertDto>().size
+            .decodeList<VoteSubmissionDto>().size
 
     suspend fun getVotes(gameId: String): List<VoteDto> =
         supabase.from("votes").select { filter { eq("game_id", gameId) } }.decodeList()
@@ -341,7 +341,7 @@ object GameRepository {
     suspend fun getEndVoteCount(gameId: String): Int =
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.END_VOTE) } }
-            .decodeList<VoteSubmissionInsertDto>().size
+            .decodeList<VoteSubmissionDto>().size
 
     suspend fun signalAllCaptured(gameId: String, playerId: String) {
         supabase.from("vote_submissions").insert(
@@ -352,7 +352,7 @@ object GameRepository {
     suspend fun hasAllCapturedSignal(gameId: String): Boolean =
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
-            .decodeList<VoteSubmissionInsertDto>().isNotEmpty()
+            .decodeList<VoteSubmissionDto>().isNotEmpty()
 
     /** Delete all game photos and avatars from Supabase Storage to free space. */
     suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {

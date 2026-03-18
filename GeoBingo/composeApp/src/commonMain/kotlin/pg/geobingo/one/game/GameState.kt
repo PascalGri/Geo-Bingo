@@ -228,9 +228,20 @@ class GameState {
         return selectedCategories.filter { it.id in capturedIds }
     }
 
+    fun getLastCaptureTime(playerId: String): String {
+        return allCaptures
+            .filter { it.player_id == playerId && it.created_at.isNotEmpty() }
+            .maxOfOrNull { it.created_at } ?: "9999-99-99T99:99:99Z"
+    }
+
     fun getRankedPlayers(): List<Pair<Player, Int>> =
         players.map { it to getPlayerScore(it.id) }
-            .sortedWith(compareByDescending<Pair<Player, Int>> { it.second }.thenByDescending { getSpeedBonusCount(it.first.id) })
+            .sortedWith(
+                compareByDescending<Pair<Player, Int>> { it.second }
+                    .thenByDescending { getSpeedBonusCount(it.first.id) }
+                    .thenBy { getLastCaptureTime(it.first.id) } // Earlier timestamp is better
+                    .thenBy { it.first.name } // Absolute last resort tie-breaker
+            )
 
     fun saveToHistory() {
         val myId = myPlayerId ?: return
