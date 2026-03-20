@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -241,13 +242,47 @@ fun HomeScreen(gameState: GameState) {
                         )
                     }
                 }
+                TextButton(onClick = { gameState.currentScreen = Screen.SETTINGS }) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = ColorOnSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        "Einstellungen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.staggered(7),
+            ) {
+                val uriHandler = LocalUriHandler.current
+                TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
+                    Text(
+                        "Impressum",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOutline,
+                    )
+                }
+                TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
+                    Text(
+                        "Datenschutz",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOutline,
+                    )
+                }
             }
 
             Text(
                 "KatchIt! v1.0",
                 style = MaterialTheme.typography.bodySmall,
                 color = ColorOutline,
-                modifier = Modifier.staggered(7),
             )
             Spacer(Modifier.height(28.dp))
         }

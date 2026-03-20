@@ -1,11 +1,7 @@
 package pg.geobingo.one.platform
 
-actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolean = try {
-    triggerWebDownload(bytes, filename)
-    true
-} catch (_: Exception) {
-    false
-}
+import org.khronos.webgl.Uint8Array
+import org.khronos.webgl.set
 
 @JsFun("""(bytes, filename) => {
     var blob = new Blob([bytes], { type: 'image/jpeg' });
@@ -17,4 +13,15 @@ actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolea
     a.click();
     setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
 }""")
-private external fun triggerWebDownload(bytes: ByteArray, filename: String)
+external fun triggerWebDownload(bytes: Uint8Array, filename: String)
+
+actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolean = try {
+    val jsArray = Uint8Array(bytes.size)
+    for (i in bytes.indices) {
+        jsArray[i] = bytes[i]
+    }
+    triggerWebDownload(jsArray, filename)
+    true
+} catch (_: Exception) {
+    false
+}

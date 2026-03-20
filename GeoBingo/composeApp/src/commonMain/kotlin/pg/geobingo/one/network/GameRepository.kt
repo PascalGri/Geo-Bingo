@@ -32,11 +32,20 @@ data class CaptureDto(
     val player_id: String = "",
     val category_id: String = "",
     val photo_url: String = "",
-    val created_at: String = ""
+    val created_at: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
-private data class CaptureInsertDto(val game_id: String, val player_id: String, val category_id: String, val photo_url: String = "")
+private data class CaptureInsertDto(
+    val game_id: String,
+    val player_id: String,
+    val category_id: String,
+    val photo_url: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+)
 
 @Serializable
 data class VoteDto(
@@ -225,11 +234,11 @@ object GameRepository {
         return supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
     }
 
-    suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray) {
+    suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray, latitude: Double? = null, longitude: Double? = null) {
         val path = "$gameId/$playerId/$categoryId.jpg"
         supabase.storage.from("photos").upload(path, photoBytes) { upsert = true }
         val url = supabase.storage.from("photos").createSignedUrl(path, 86400.seconds)
-        supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url))
+        supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url, latitude = latitude, longitude = longitude))
     }
 
     suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = try {

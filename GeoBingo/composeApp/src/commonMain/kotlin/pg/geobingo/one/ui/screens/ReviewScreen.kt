@@ -312,6 +312,7 @@ fun ReviewScreen(gameState: GameState) {
                 totalPlayers = numPlayers,
                 stepIndex = stepIndex,
                 playerAvatarBytes = gameState.playerAvatarBytes[targetPlayer.id],
+                hapticEnabled = gameState.hapticEnabled,
                 onVote = { rating ->
                     scope.launch {
                         gameState.hasSubmittedCurrentCategory = true
@@ -358,6 +359,7 @@ private fun DarkSinglePhotoVotingScreen(
     gameId: String, currentCategory: Category, categoryIndex: Int, totalCategories: Int,
     targetPlayer: Player, targetPlayerIndex: Int, totalPlayers: Int, stepIndex: Int,
     playerAvatarBytes: ByteArray? = null,
+    hapticEnabled: Boolean = true,
     onVote: (Int) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
@@ -496,7 +498,7 @@ private fun DarkSinglePhotoVotingScreen(
                                         if (newRating != selectedRating) {
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         }
                                     },
                                     onHorizontalDrag = { change, _ ->
@@ -506,7 +508,7 @@ private fun DarkSinglePhotoVotingScreen(
                                         if (newRating != selectedRating) {
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         }
                                     },
                                 )
@@ -528,7 +530,7 @@ private fun DarkSinglePhotoVotingScreen(
                                     }
                                     .graphicsLayer { scaleX = starScales[i - 1].value; scaleY = starScales[i - 1].value }
                                     .clickable(enabled = !submitted) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         selectedRating = i
                                         animateStarSelection(i)
                                     },
@@ -555,7 +557,7 @@ private fun DarkSinglePhotoVotingScreen(
                         text = "Bewerten",
                         onClick = {
                             if (selectedRating > 0 && !submitted) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 animateSubmission(selectedRating)
                             }
                         },

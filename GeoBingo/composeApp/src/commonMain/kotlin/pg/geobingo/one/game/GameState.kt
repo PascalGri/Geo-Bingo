@@ -12,7 +12,7 @@ import pg.geobingo.one.network.VoteDto
 import pg.geobingo.one.network.toHex
 
 enum class Screen {
-    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY
+    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS
 }
 
 data class HistoryPlayer(
@@ -33,6 +33,10 @@ data class GameHistoryEntry(
 
 class GameState {
     var currentScreen by mutableStateOf(Screen.HOME)
+
+    // Settings
+    var soundEnabled by mutableStateOf(true)
+    var hapticEnabled by mutableStateOf(true)
 
     // Shared realtime manager – created once per game, survives screen transitions
     var realtime: GameRealtimeManager? = null

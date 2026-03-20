@@ -43,6 +43,13 @@ import pg.geobingo.one.platform.saveImageToDevice
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.toImageBitmap
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.unit.IntOffset
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.readRawBytes
+import kotlin.math.*
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
 import pg.geobingo.one.ui.theme.ConfettiEffect
@@ -628,6 +635,18 @@ private fun GalleryPhotoItem(
                             Text(category.name, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
                         }
                     }
+                    // Static map preview
+                    if (capture.latitude != null && capture.longitude != null) {
+                        Spacer(Modifier.height(10.dp))
+                        StaticMapPreview(
+                            latitude = capture.latitude!!,
+                            longitude = capture.longitude!!,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -685,6 +704,26 @@ private fun GalleryPhotoItem(
             }
         }
 
+        // Location pin overlay at top-right
+        if (capture.latitude != null && capture.longitude != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(ColorPrimary.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = Color.White,
+                )
+            }
+        }
+
         // Player + category overlay at bottom
         Box(
             modifier = Modifier
@@ -710,6 +749,101 @@ private fun GalleryPhotoItem(
                         fontSize = 8.sp,
                         maxLines = 1,
                     )
+                }
+            }
+        }
+    }
+}
+
+private val mapHttpClient = HttpClient()
+
+/**
+ * Converts lat/lon + zoom to OSM tile coordinates.
+ * Returns (tileX, tileY, offsetXInTile, offsetYInTile) where offsets are 0..255 pixel positions.
+ */
+private fun latLonToTile(lat: Double, lon: Double, zoom: Int): Triple<Int, Int, Pair<Float, Float>> {
+    val n = 1 shl zoom
+    val xTile = ((lon + 180.0) / 360.0 * n).toInt()
+    val latRad = lat * PI / 180.0
+    val yTile = ((1.0 - ln(tan(latRad) + 1.0 / cos(latRad)) / PI) / 2.0 * n).toInt()
+    // Fractional pixel offset within the tile (tiles are 256x256)
+    val xOffset = (((lon + 180.0) / 360.0 * n - xTile) * 256).toFloat()
+    val yOffset = (((1.0 - ln(tan(latRad) + 1.0 / cos(latRad)) / PI) / 2.0 * n - yTile) * 256).toFloat()
+    return Triple(xTile, yTile, Pair(xOffset, yOffset))
+}
+
+@Composable
+private fun StaticMapPreview(
+    latitude: Double,
+    longitude: Double,
+    modifier: Modifier = Modifier,
+) {
+    val zoom = 15
+    var tileImages by remember(latitude, longitude) { mutableStateOf<List<Pair<ImageBitmap, Pair<Int, Int>>>?>(null) }
+    var pinOffset by remember(latitude, longitude) { mutableStateOf(Pair(0f, 0f)) }
+    var loading by remember(latitude, longitude) { mutableStateOf(true) }
+
+    LaunchedEffect(latitude, longitude) {
+        loading = true
+        tileImages = try {
+            val (tileX, tileY, offset) = latLonToTile(latitude, longitude, zoom)
+            pinOffset = offset
+            // Load a 3x3 grid of tiles around the center for a wider view
+            val tiles = mutableListOf<Pair<ImageBitmap, Pair<Int, Int>>>()
+            for (dy in -1..1) {
+                for (dx in -1..1) {
+                    val tx = tileX + dx
+                    val ty = tileY + dy
+                    val url = "https://tile.openstreetmap.org/$zoom/$tx/$ty.png"
+                    val bytes = mapHttpClient.get(url).readRawBytes()
+                    bytes.toImageBitmap()?.let { tiles.add(it to Pair(dx, dy)) }
+                }
+            }
+            tiles
+        } catch (_: Exception) {
+            null
+        }
+        loading = false
+    }
+
+    Box(modifier = modifier.background(ColorSurface)) {
+        when {
+            loading -> ShimmerPlaceholder(modifier = Modifier.fillMaxSize())
+            tileImages != null && tileImages!!.isNotEmpty() -> {
+                // Draw tile grid using Canvas, centering the pin location
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val tileSize = 256f
+                    val centerX = size.width / 2f
+                    val centerY = size.height / 2f
+                    // The pin is at pinOffset within the center tile (dx=0, dy=0)
+                    // We need to position tiles so the pin ends up at center
+                    val originX = centerX - pinOffset.first
+                    val originY = centerY - pinOffset.second
+
+                    for ((bitmap, offset) in tileImages!!) {
+                        val (dx, dy) = offset
+                        val dstLeft = originX + dx * tileSize
+                        val dstTop = originY + dy * tileSize
+                        drawImage(
+                            image = bitmap,
+                            dstOffset = androidx.compose.ui.unit.IntOffset(dstLeft.toInt(), dstTop.toInt()),
+                        )
+                    }
+                }
+                // Pin icon centered
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-10).dp) // Shift up so pin tip points at location
+                        .size(28.dp),
+                    tint = Color(0xFFE53935),
+                )
+            }
+            else -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Karte nicht verfügbar", color = ColorOnSurfaceVariant, fontSize = 11.sp)
                 }
             }
         }

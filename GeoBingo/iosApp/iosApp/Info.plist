@@ -10,5 +10,7 @@
 	<string>KatchIt! benötigt Kamerazugriff um Fotos für die Kategorien aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>KatchIt! benötigt Zugriff auf deine Fotobibliothek um Bilder auszuwählen.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>KatchIt! speichert den Aufnahmeort deiner Spielfotos, damit du und deine Mitspieler sehen können, wo die Fotos entstanden sind.</string>
 </dict>
 </plist>

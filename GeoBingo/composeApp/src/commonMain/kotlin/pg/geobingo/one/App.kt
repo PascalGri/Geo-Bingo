@@ -24,6 +24,7 @@ fun App() {
             Screen.RESULTS_TRANSITION -> ResultsTransitionScreen(gameState)
             Screen.RESULTS -> ResultsScreen(gameState)
             Screen.HISTORY -> HistoryScreen(gameState)
+            Screen.SETTINGS -> SettingsScreen(gameState)
         }
     }
 }

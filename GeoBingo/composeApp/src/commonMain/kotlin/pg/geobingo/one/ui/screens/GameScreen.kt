@@ -48,6 +48,8 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.platform.LocalPhotoStore
+import pg.geobingo.one.platform.RequestLocationPermission
+import pg.geobingo.one.platform.getCurrentLocation
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.ui.theme.*
@@ -56,6 +58,9 @@ import pg.geobingo.one.ui.theme.Spacing
 
 @Composable
 fun GameScreen(gameState: GameState) {
+    // Request location permission once when entering the game
+    RequestLocationPermission()
+
     val scope = rememberCoroutineScope()
     val gameId = gameState.gameId
     val realtime = gameId?.let { gameState.realtime }
@@ -83,13 +88,16 @@ fun GameScreen(gameState: GameState) {
 
             if (gameId != null) {
                 scope.launch {
+                    // Get GPS location (best-effort, don't block on failure)
+                    val location = try { getCurrentLocation() } catch (_: Exception) { null }
+
                     // Upload capture with retries
                     var attempt = 0
                     var captureSuccess = false
                     while (attempt < 3 && !captureSuccess) {
                         try {
                             if (attempt > 0) delay(2_000L * attempt)
-                            GameRepository.recordCapture(gameId, pid, cid, bytes)
+                            GameRepository.recordCapture(gameId, pid, cid, bytes, latitude = location?.latitude, longitude = location?.longitude)
                             captureSuccess = true
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -111,7 +119,7 @@ fun GameScreen(gameState: GameState) {
                         }
                     }
                     if (captureSuccess) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (gameState.hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         uploadSuccessCategory = cid
                         delay(1500)
                         uploadSuccessCategory = null

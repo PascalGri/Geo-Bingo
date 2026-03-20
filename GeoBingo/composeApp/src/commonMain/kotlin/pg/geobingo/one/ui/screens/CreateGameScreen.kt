@@ -422,88 +422,48 @@ fun CreateGameScreen(gameState: GameState) {
                 backgroundColor = Color(0xFF1A1A2E),
                 borderWidth = 1.dp,
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFFBBF24))
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFFBBF24))
+                        Text(
+                            "Schnelligkeitsbonus",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFFBBF24),
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         "Wer eine Kategorie als Erster fotografiert, bekommt +1 Tempopunkt.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFFBBF24).copy(alpha = 0.85f),
                         lineHeight = 17.sp,
+                        modifier = Modifier.padding(start = 24.dp),
                     )
                 }
             }
 
             // ── 3. Spielzeit ─────────────────────────────────────────────────
-            DarkSectionCard(title = "Spielzeit", modifier = Modifier.staggered(3)) {
-                var isDragging by remember { mutableStateOf(false) }
-                val bubbleScale = remember { Animatable(0f) }
-
-                LaunchedEffect(isDragging) {
-                    if (isDragging) {
-                        bubbleScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
-                    } else {
-                        delay(300)
-                        bubbleScale.animateTo(0f, tween(200))
-                    }
-                }
-
-                // Slider with value bubble
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val fraction = ((durationMinutes - 5f) / (60f - 5f)).coerceIn(0f, 1f)
-                    val thumbRadius = 10.dp
-                    val trackPadding = thumbRadius
-                    val availableWidth = maxWidth - trackPadding * 2
-
-                    // Value bubble above thumb
-                    if (bubbleScale.value > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .offset(x = trackPadding + availableWidth * fraction - 20.dp)
-                                .scale(bubbleScale.value)
-                                .graphicsLayer { transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) },
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = ColorPrimary,
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    "${durationMinutes.toInt()} Min",
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                )
-                            }
-                        }
-                    }
-
-                    Slider(
-                        value = durationMinutes,
-                        onValueChange = {
-                            durationMinutes = it
-                            isDragging = true
-                        },
-                        onValueChangeFinished = { isDragging = false },
-                        valueRange = 5f..60f,
-                        steps = 10,
-                        colors = SliderDefaults.colors(
-                            thumbColor = ColorPrimary,
-                            activeTrackColor = ColorPrimary,
-                            inactiveTrackColor = ColorSurfaceVariant,
-                        ),
-                    )
-                }
+            DarkSectionCard(title = "Spielzeit — ${durationMinutes.toInt()} Min", modifier = Modifier.staggered(3)) {
+                Slider(
+                    value = durationMinutes,
+                    onValueChange = { durationMinutes = it },
+                    valueRange = 5f..60f,
+                    steps = 10,
+                    colors = SliderDefaults.colors(
+                        thumbColor = ColorPrimary,
+                        activeTrackColor = ColorPrimary,
+                        inactiveTrackColor = ColorSurfaceVariant,
+                    ),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("5 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    Text("${durationMinutes.toInt()} Min", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = ColorPrimary)
                     Text("60 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                 }
             }
