@@ -50,6 +50,7 @@ import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarView
 import pg.geobingo.one.ui.theme.ShimmerPlaceholder
 import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.platform.SoundPlayer
 
 @Composable
 fun ReviewScreen(gameState: GameState) {
@@ -306,6 +307,7 @@ fun ReviewScreen(gameState: GameState) {
                 stepIndex = stepIndex,
                 playerAvatarBytes = gameState.playerAvatarBytes[targetPlayer.id],
                 hapticEnabled = gameState.hapticEnabled,
+                soundEnabled = gameState.soundEnabled,
                 onVote = { rating ->
                     scope.launch {
                         gameState.hasSubmittedCurrentCategory = true
@@ -353,6 +355,7 @@ private fun DarkSinglePhotoVotingScreen(
     targetPlayer: Player, targetPlayerIndex: Int, totalPlayers: Int, stepIndex: Int,
     playerAvatarBytes: ByteArray? = null,
     hapticEnabled: Boolean = true,
+    soundEnabled: Boolean = true,
     onVote: (Int) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
@@ -492,6 +495,7 @@ private fun DarkSinglePhotoVotingScreen(
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
                                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (soundEnabled) SoundPlayer.playTap()
                                         }
                                     },
                                     onHorizontalDrag = { change, _ ->
@@ -502,6 +506,7 @@ private fun DarkSinglePhotoVotingScreen(
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
                                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (soundEnabled) SoundPlayer.playTap()
                                         }
                                     },
                                 )
@@ -538,6 +543,7 @@ private fun DarkSinglePhotoVotingScreen(
                                     }
                                     .clickable(enabled = !submitted) {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (soundEnabled) SoundPlayer.playTap()
                                         selectedRating = i
                                         animateStarSelection(i)
                                     },
@@ -565,6 +571,7 @@ private fun DarkSinglePhotoVotingScreen(
                         onClick = {
                             if (selectedRating > 0 && !submitted) {
                                 if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (soundEnabled) SoundPlayer.playVote()
                                 animateSubmission(selectedRating)
                             }
                         },

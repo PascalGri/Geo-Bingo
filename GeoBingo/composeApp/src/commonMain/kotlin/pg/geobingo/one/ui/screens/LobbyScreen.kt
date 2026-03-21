@@ -37,6 +37,7 @@ import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
+import pg.geobingo.one.ui.theme.rememberFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +46,7 @@ fun LobbyScreen(gameState: GameState) {
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.gameId ?: return
     val realtime = remember(gameId) { gameState.ensureRealtime(gameId) }
+    val feedback = rememberFeedback(gameState)
 
     // Lobby auto-close timeout (host only): 5 min without a second player joining
     var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
@@ -110,6 +112,7 @@ fun LobbyScreen(gameState: GameState) {
                         gameState.isGameRunning = true
                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
+                        feedback.gameStart()
                         gameState.currentScreen = Screen.GAME
                     }
                     "closed" -> {
@@ -138,6 +141,7 @@ fun LobbyScreen(gameState: GameState) {
                         gameState.isGameRunning = true
                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
+                        feedback.gameStart()
                         gameState.currentScreen = Screen.GAME
                     }
                 }
@@ -221,6 +225,7 @@ fun LobbyScreen(gameState: GameState) {
                                         gameState.isGameRunning = true
                                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                                             .takeIf { it >= 0 } ?: 0
+                                        feedback.gameStart()
                                         gameState.currentScreen = Screen.GAME
                                     } catch (e: Exception) {
                                         isStarting = false

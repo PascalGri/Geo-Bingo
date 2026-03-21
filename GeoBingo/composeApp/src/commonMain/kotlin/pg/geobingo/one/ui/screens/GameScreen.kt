@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import pg.geobingo.one.ui.theme.rememberFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,6 +77,7 @@ fun GameScreen(gameState: GameState) {
     var jokerLabelInput by remember { mutableStateOf("") }
     var uploadSuccessCategory by remember { mutableStateOf<String?>(null) }
     val haptic = LocalHapticFeedback.current
+    val feedback = rememberFeedback(gameState)
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
@@ -124,7 +126,7 @@ fun GameScreen(gameState: GameState) {
                         }
                     }
                     if (captureSuccess) {
-                        if (gameState.hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        feedback.capture()
                         uploadSuccessCategory = cid
                         delay(1500)
                         uploadSuccessCategory = null
@@ -344,9 +346,11 @@ fun GameScreen(gameState: GameState) {
             delay(1000L)
             if (gameState.isGameRunning && !gameState.allCategoriesCaptured) {
                 gameState.timeRemainingSeconds--
+                if (gameState.timeRemainingSeconds in 1..10) feedback.countdownTick()
             }
         }
         if (!gameState.allCategoriesCaptured && gameState.timeRemainingSeconds <= 0 && gameState.isGameRunning) {
+            feedback.gameEnd()
             if (gameId != null) {
                 try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
             }
@@ -388,7 +392,9 @@ fun GameScreen(gameState: GameState) {
         finishCountdownSeconds = 30
         repeat(30) {
             delay(1000L)
-            finishCountdownSeconds = (finishCountdownSeconds ?: 1) - 1
+            val remaining = (finishCountdownSeconds ?: 1) - 1
+            finishCountdownSeconds = remaining
+            if (remaining in 1..10) feedback.countdownTick()
         }
         if (gameState.isGameRunning) {
             gameState.isGameRunning = false

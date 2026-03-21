@@ -18,15 +18,19 @@ import kotlinx.coroutines.delay
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.rememberFeedback
 
 @Composable
 fun VoteTransitionScreen(gameState: GameState) {
     var countdown by remember { mutableStateOf(3) }
+    val feedback = rememberFeedback(gameState)
 
     LaunchedEffect(Unit) {
+        feedback.gameEnd()
         repeat(3) {
             delay(1000L)
             countdown--
+            feedback.countdownTick()
         }
         gameState.currentScreen = Screen.REVIEW
     }

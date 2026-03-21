@@ -18,21 +18,27 @@ import kotlinx.coroutines.delay
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.rememberFeedback
 
 @Composable
 fun ResultsTransitionScreen(gameState: GameState) {
     var countdown by remember { mutableStateOf(3) }
     var revealText by remember { mutableStateOf("Wer hat gewonnen?") }
+    val feedback = rememberFeedback(gameState)
 
     LaunchedEffect(Unit) {
+        feedback.countdownTick()
         delay(1000L)
         countdown = 2
         revealText = "Gleich wisst ihr es..."
+        feedback.countdownTick()
         delay(1000L)
         countdown = 1
         revealText = "Und der Gewinner ist..."
+        feedback.countdownTick()
         delay(1000L)
         countdown = 0
+        feedback.success()
         gameState.currentScreen = Screen.RESULTS
     }
 
