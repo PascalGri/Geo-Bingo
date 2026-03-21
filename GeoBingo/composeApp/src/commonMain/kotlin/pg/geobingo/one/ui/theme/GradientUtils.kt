@@ -91,6 +91,7 @@ fun GradientBorderCard(
     backgroundColor: Color = ColorSurface,
     borderWidth: Dp = 1.5.dp,
     durationMillis: Int = 6000,
+    glassmorphism: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val transition = rememberInfiniteTransition(label = "cardBorder")
@@ -108,6 +109,7 @@ fun GradientBorderCard(
         start = Offset(offset, 0f),
         end = Offset(offset + 600f, 600f),
     )
+    val innerShape = RoundedCornerShape(cornerRadius - borderWidth)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
@@ -116,8 +118,23 @@ fun GradientBorderCard(
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(cornerRadius - borderWidth))
-                .background(backgroundColor)
+                .clip(innerShape)
+                .background(if (glassmorphism) backgroundColor.copy(alpha = 0.75f) else backgroundColor)
+                .then(
+                    if (glassmorphism) {
+                        Modifier.background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.08f),
+                                    Color.White.copy(alpha = 0.02f),
+                                    Color.Transparent,
+                                ),
+                                start = Offset(0f, 0f),
+                                end = Offset(600f, 600f),
+                            )
+                        )
+                    } else Modifier
+                )
                 .fillMaxWidth(),
             content = content,
         )

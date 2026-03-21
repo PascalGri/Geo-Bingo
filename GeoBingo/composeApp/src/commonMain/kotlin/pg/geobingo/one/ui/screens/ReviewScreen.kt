@@ -23,6 +23,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
@@ -121,7 +123,7 @@ fun ReviewScreen(gameState: GameState) {
                     val currentStepKey = VoteKeys.stepKey(categories[currentCatIndex].id, sortedPlayers[currentPlayerIdx].id)
                     try {
                         val count = GameRepository.getVoteSubmissionCount(gameId, currentStepKey)
-                        if (count >= numPlayers) {
+                        if (count >= numPlayers - 1) {
                             val nextStep = currentStepIndex + 1
                             val totalSteps = categories.size * numPlayers
                             if (nextStep >= totalSteps) {
@@ -189,10 +191,12 @@ fun ReviewScreen(gameState: GameState) {
     val targetPlayer = sortedPlayers[targetPlayerIndex]
     val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
 
+    val requiredVotes = numPlayers - 1 // target player doesn't vote on their own image
+
     suspend fun advanceStep() {
         try {
             val submissionCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
-            if (submissionCount >= numPlayers) {
+            if (submissionCount >= requiredVotes) {
                 val nextStep = stepIndex + 1
                 if (nextStep >= totalSteps) {
                     for (attempt in 0 until 3) {
@@ -223,7 +227,7 @@ fun ReviewScreen(gameState: GameState) {
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // Auto-skip self-voting: show brief toast, then submit
+    // Auto-skip self-voting: show brief toast, then wait for others
     val isSelf = targetPlayer.id == myPlayerId
     var selfVoteToast by remember(stepIndex) { mutableStateOf(false) }
     LaunchedEffect(stepIndex, isSelf) {
@@ -232,17 +236,6 @@ fun ReviewScreen(gameState: GameState) {
             delay(1200)
             selfVoteToast = false
             gameState.hasSubmittedCurrentCategory = true
-            var attempt = 0
-            while (attempt < 3) {
-                try {
-                    if (attempt > 0) delay(1_000L * attempt)
-                    GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey)
-                    break
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    attempt++
-                }
-            }
             advanceStep()
         }
     }
@@ -519,6 +512,7 @@ private fun DarkSinglePhotoVotingScreen(
                         for (i in 1..5) {
                             val isSelected = i <= selectedRating
                             val starColor = if (isSelected) Color(0xFFFBBF24) else ColorOnSurfaceVariant.copy(alpha = 0.3f)
+                            val glowAlpha = if (isSelected) (starScales[i - 1].value - 1f).coerceIn(0f, 0.4f) + 0.2f else 0f
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = "$i Sterne",
@@ -529,6 +523,19 @@ private fun DarkSinglePhotoVotingScreen(
                                         starPositions[i - 1] = coords.positionInParent().x
                                     }
                                     .graphicsLayer { scaleX = starScales[i - 1].value; scaleY = starScales[i - 1].value }
+                                    .drawBehind {
+                                        if (isSelected) {
+                                            drawCircle(
+                                                brush = Brush.radialGradient(
+                                                    colors = listOf(
+                                                        Color(0xFFFBBF24).copy(alpha = glowAlpha),
+                                                        Color.Transparent,
+                                                    ),
+                                                ),
+                                                radius = size.minDimension * 0.8f,
+                                            )
+                                        }
+                                    }
                                     .clickable(enabled = !submitted) {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         selectedRating = i
@@ -574,6 +581,7 @@ private fun DarkSinglePhotoVotingScreen(
 
 @Composable
 private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, isSelf: Boolean = false, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
+    val requiredVotes = totalPlayers - 1 // target player doesn't vote on their own image
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
     var advanceCalled by remember(stepKey) { mutableStateOf(false) }
     LaunchedEffect(stepKey) {
@@ -581,7 +589,7 @@ private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: Str
         while (true) {
             try {
                 submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
-                if (submittedCount >= totalPlayers && !advanceCalled) {
+                if (submittedCount >= requiredVotes && !advanceCalled) {
                     advanceCalled = true
                     onReadyToAdvance()
                 }
@@ -599,7 +607,7 @@ private fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: Str
             )
             Text(
                 if (isSelf) "Die anderen stimmen gerade über dein Foto ab"
-                else "$submittedCount von $totalPlayers haben abgestimmt",
+                else "$submittedCount von $requiredVotes haben abgestimmt",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorOnSurfaceVariant,
             )

@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -325,6 +326,94 @@ fun ResultsScreen(gameState: GameState) {
                 Spacer(Modifier.height(8.dp))
             }
 
+            // Best Photo Highlight
+            if (gameState.allCaptures.isNotEmpty() && gameState.allVotes.isNotEmpty()) {
+                val gameId = gameState.gameId
+                if (gameId != null) {
+                    // Find the capture with highest average rating
+                    val bestCapture = gameState.allCaptures.maxByOrNull { capture ->
+                        gameState.getCategoryAverageRating(capture.player_id, capture.category_id) ?: 0.0
+                    }
+                    val bestRating = bestCapture?.let {
+                        gameState.getCategoryAverageRating(it.player_id, it.category_id)
+                    }
+                    if (bestCapture != null && bestRating != null && bestRating >= 1.0) {
+                        val bestPlayer = gameState.players.find { it.id == bestCapture.player_id }
+                        val bestCategory = gameState.selectedCategories.find { it.id == bestCapture.category_id }
+                        Column(
+                            modifier = Modifier.padding(16.dp).staggered(3),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.EmojiEvents,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color(0xFFFBBF24),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                AnimatedGradientText(
+                                    text = "Best Photo",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    gradientColors = GradientGold,
+                                )
+                            }
+                            GradientBorderCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                cornerRadius = 14.dp,
+                                borderColors = GradientGold,
+                                backgroundColor = ColorSurface,
+                                borderWidth = 2.dp,
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    GalleryPhotoItem(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        gameId = gameId,
+                                        capture = bestCapture,
+                                        players = gameState.players,
+                                        categories = gameState.selectedCategories,
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Column {
+                                            if (bestPlayer != null) {
+                                                Text(
+                                                    bestPlayer.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = bestPlayer.color,
+                                                )
+                                            }
+                                            if (bestCategory != null) {
+                                                Text(
+                                                    bestCategory.name,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = ColorOnSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp), tint = Color(0xFFFBBF24))
+                                            Spacer(Modifier.width(2.dp))
+                                            Text(
+                                                formatRating(bestRating),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFFBBF24),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Photo Gallery
             if (gameState.allCaptures.isNotEmpty()) {
                 val gameId = gameState.gameId
@@ -422,8 +511,15 @@ private fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes
                     color = ColorOnBackground,
                     textAlign = TextAlign.Center,
                 )
+                // Animated score counter
+                val animatedScore = remember { Animatable(0f) }
+                LaunchedEffect(Unit) {
+                    // Stagger: rank 2 (3rd place) first, then rank 1, then rank 0 (1st place)
+                    kotlinx.coroutines.delay(rank * 400L + 500L)
+                    animatedScore.animateTo(score.toFloat(), tween(1500, easing = FastOutSlowInEasing))
+                }
                 Text(
-                    "$score Pkt.",
+                    "${animatedScore.value.toInt()} Pkt.",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = player.color,
@@ -533,10 +629,16 @@ private fun DarkRankCard(
                 }
             }
 
-            // Score
+            // Score with animated counter
             Column(horizontalAlignment = Alignment.End) {
+                val animatedScore = remember { Animatable(0f) }
+                LaunchedEffect(Unit) {
+                    // Stagger by rank: lower rank starts later
+                    kotlinx.coroutines.delay((rank - 1) * 300L + 800L)
+                    animatedScore.animateTo(score.toFloat(), tween(1500, easing = FastOutSlowInEasing))
+                }
                 Text(
-                    "$score",
+                    "${animatedScore.value.toInt()}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = player.color,

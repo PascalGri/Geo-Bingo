@@ -2,6 +2,11 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -223,7 +228,7 @@ fun GameScreen(gameState: GameState) {
                 try {
                     val count = GameRepository.getEndVoteCount(gid)
                     gameState.endVoteCount = count
-                    if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
+                    if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
@@ -275,7 +280,7 @@ fun GameScreen(gameState: GameState) {
 
                     val count = GameRepository.getEndVoteCount(gameId)
                     gameState.endVoteCount = count
-                    if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
+                    if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
                         gameState.isGameRunning = false
                         GameRepository.endGameAsVoting(gameId)
                         gameState.reviewCategoryIndex = 0
@@ -457,9 +462,36 @@ fun GameScreenContent(
     LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(400)) }
 
     val isLow = gameState.timeRemainingSeconds in 1..60
+    val isCritical = gameState.timeRemainingSeconds in 1..30
     val timerColor by animateColorAsState(
         targetValue = if (isLow) ColorError else ColorPrimary,
         animationSpec = tween(500),
+    )
+
+    // Timer pulse animation when <30s
+    val pulseTransition = rememberInfiniteTransition(label = "timerPulse")
+    val pulseDuration = when {
+        gameState.timeRemainingSeconds in 1..10 -> 500
+        gameState.timeRemainingSeconds in 11..20 -> 1000
+        else -> 1500
+    }
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 0.0f,
+        targetValue = if (isCritical) 0.4f else 0.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(pulseDuration, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulseAlpha",
+    )
+    val pulseScale by pulseTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = if (isCritical) 1.03f else 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(pulseDuration, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulseScale",
     )
 
     val myPlayer = gameState.players.find { it.id == gameState.myPlayerId }
@@ -479,25 +511,42 @@ fun GameScreenContent(
                             .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        if (isLow) {
-                            AnimatedGradientText(
-                                text = gameState.formatTime(gameState.timeRemainingSeconds),
-                                style = MaterialTheme.typography.displaySmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 3.sp,
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            },
+                        ) {
+                            // Pulsing glow behind timer when critical
+                            if (isCritical) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(ColorError.copy(alpha = pulseAlpha)),
+                                )
+                            }
+                            if (isLow) {
+                                AnimatedGradientText(
+                                    text = gameState.formatTime(gameState.timeRemainingSeconds),
+                                    style = MaterialTheme.typography.displaySmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 3.sp,
+                                        fontSize = 40.sp,
+                                    ),
+                                    gradientColors = GradientHot,
+                                    durationMillis = 600,
+                                )
+                            } else {
+                                Text(
+                                    text = gameState.formatTime(gameState.timeRemainingSeconds),
                                     fontSize = 40.sp,
-                                ),
-                                gradientColors = GradientHot,
-                                durationMillis = 600,
-                            )
-                        } else {
-                            Text(
-                                text = gameState.formatTime(gameState.timeRemainingSeconds),
-                                fontSize = 40.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = timerColor,
-                                letterSpacing = 3.sp,
-                            )
+                                    fontWeight = FontWeight.Bold,
+                                    color = timerColor,
+                                    letterSpacing = 3.sp,
+                                )
+                            }
                         }
 
                         if (finishCountdownSeconds != null) {
@@ -609,7 +658,7 @@ fun GameScreenContent(
                                 shape = RoundedCornerShape(20.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             ) {
-                                val needed = gameState.players.size / 2 + 1
+                                val needed = gameState.players.size
                                 Text(
                                     if (gameState.hasVotedToEnd) "Abgestimmt (${gameState.endVoteCount}/$needed)"
                                     else "Vorzeitig beenden (${gameState.endVoteCount}/$needed)",
@@ -741,21 +790,69 @@ private fun DarkBingoCategoryCard(
         border = BorderStroke(1.dp, borderColor),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                if (isUploading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = playerColor)
-                } else if (thumbnail != null) {
-                    Image(bitmap = thumbnail, contentDescription = null, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
-                } else {
-                    Icon(imageVector = getCategoryIcon(category.id), contentDescription = null, modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)), tint = if (isCaptured) playerColor else ColorOnSurfaceVariant)
+            if (thumbnail != null && !isUploading) {
+                // Photo fills the entire card
+                Image(
+                    bitmap = thumbnail,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                // Gradient scrim at bottom for text readability
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxSize(0.45f)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                            )
+                        ),
+                )
+                // Category name overlay at bottom
+                Text(
+                    category.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 12.sp,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+                // Checkmark badge top-right
+                if (isCaptured) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(playerColor),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = Color.White)
+                    }
                 }
-                Spacer(Modifier.height(4.dp))
-                Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
-                if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
+            } else {
+                // No photo yet or uploading — show icon/spinner layout
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (isUploading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = playerColor)
+                    } else {
+                        Icon(imageVector = getCategoryIcon(category.id), contentDescription = null, modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)), tint = if (isCaptured) playerColor else ColorOnSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
+                    if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
+                }
             }
             // Upload success overlay with animated checkmark
             if (showUploadSuccess) {

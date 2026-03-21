@@ -8,42 +8,28 @@ Dieser Plan beschreibt alle geplanten Verbesserungen, gruppiert nach Bereich und
 
 Kleine, isolierte Verbesserungen die einzeln umsetzbar sind und sofort spürbaren Impact haben.
 
-### 1.1 Glassmorphism-Effekt auf GradientBorderCards
-- **Datei:** `ui/theme/` (neue Modifier-Extension) + alle Screens die `GradientBorderCard` nutzen
-- **Was:** Leichter Blur-Hintergrund (frosted glass) hinter den Karten für mehr visuelle Tiefe
-- **Umsetzung:** `Modifier.blur()` mit semi-transparentem Surface-Background kombinieren. Fallback für Plattformen ohne Blur-Support (einfach halbtransparenter Background)
-- **Achtung:** `blur()` ist ab Compose 1.6+ verfügbar. Auf älteren Android-Versionen (<12) ggf. kein nativer Blur — Fallback einbauen
+### ~~1.1 Glassmorphism-Effekt auf GradientBorderCards~~ ✅
+- **Erledigt:** Semi-transparenter Background (0.75 alpha) mit diagonalem Licht-Gradient-Overlay auf `GradientBorderCard` — multiplatform-kompatibel ohne `blur()`
 
-### 1.2 Foto-Thumbnails auf Kategorie-Karten im GameScreen
-- **Datei:** `ui/screens/GameScreen.kt`
-- **Was:** Statt nur Checkmark nach Foto-Aufnahme das eigene Foto als Thumbnail auf der Kategorie-Karte anzeigen
-- **Umsetzung:** Aus `gameState.photos[myPlayerId][categoryId]` das ByteArray laden und als `Image` in der Karte rendern. Thumbnail skaliert auf Kartengröße mit `ContentScale.Crop` und leichtem Overlay für den Kategorie-Text
-- **Layout:** Foto füllt die Karte, Kategorie-Name als Overlay unten mit Gradient-Scrim. Kleines Checkmark-Icon oben rechts als Badge
+### ~~1.2 Foto-Thumbnails auf Kategorie-Karten im GameScreen~~ ✅
+- **Erledigt:** Foto füllt die gesamte Karte mit `ContentScale.Crop`, Gradient-Scrim unten für Kategorie-Name, Checkmark-Badge (CircleShape) oben rechts in Spielerfarbe
 
 ### 1.3 Parallax-Scrolling auf ResultsScreen
 - **Datei:** `ui/screens/ResultsScreen.kt`
 - **Was:** Podium bleibt oben fixiert (sticky header), Galerie und Rankings scrollen darunter
 - **Umsetzung:** `LazyColumn` mit `stickyHeader {}` für den Podium-Bereich. Alternativ `nestedScroll` mit `TopAppBar`-Pattern wo das Podium beim Scrollen langsamer mitscrollt (Parallax-Faktor ~0.5)
 
-### 1.4 Star-Rating Glow-Effekt
-- **Datei:** `ui/screens/ReviewScreen.kt`
-- **Was:** Sterne glühen beim Hover/Drag kurz auf mit Partikel-Effekt
-- **Umsetzung:** Beim Auswählen eines Sterns: kurzer Scale-Up (1.0 → 1.3 → 1.0), goldener Glow via `drawBehind` mit `drawCircle` und radialem Gradient (Amber → Transparent). Optional: 3-5 kleine Partikel die nach oben/außen fliegen (ähnlich dem bestehenden Confetti-System, aber kleiner und kürzer)
+### ~~1.4 Star-Rating Glow-Effekt~~ ✅
+- **Erledigt:** Goldener radialer Glow via `drawBehind` + `drawCircle` mit `Brush.radialGradient` hinter selektierten Sternen, Intensität gekoppelt an Scale-Animation
 
-### 1.5 Timer-Puls bei <30 Sekunden
-- **Datei:** `ui/screens/GameScreen.kt`
-- **Was:** Timer-Hintergrund pulsiert subtil wenn weniger als 30 Sekunden verbleiben
-- **Umsetzung:** `animateFloatAsState` für Alpha-Wert des Timer-Backgrounds (0.3 → 0.7 → 0.3) mit `infiniteRepeatable` und `LinearEasing`. Pulsfrequenz steigt: >20s = 1.5s Zyklus, >10s = 1.0s, <10s = 0.5s. Dazu leichter Scale-Puls (1.0 → 1.02 → 1.0)
+### ~~1.5 Timer-Puls bei <30 Sekunden~~ ✅
+- **Erledigt:** `infiniteRepeatable` Puls-Animation mit Alpha (0→0.4) und Scale (1.0→1.03) hinter dem Timer. Pulsfrequenz steigt: >20s=1.5s, >10s=1.0s, <10s=0.5s Zyklus
 
-### 1.6 Animierte Punktezählung auf ResultsScreen
-- **Datei:** `ui/screens/ResultsScreen.kt`
-- **Was:** Punkte zählen von 0 hoch (Counter-Animation) statt sofort den Endwert zu zeigen
-- **Umsetzung:** `Animatable<Float>` von 0f zum Endwert mit `tween(durationMillis = 1500, easing = FastOutSlowInEasing)`. Anzeige als `animatedValue.toInt()`. Staggered pro Spieler (Platz 3 zuerst, dann 2, dann 1). Sternbewertung und Speed-Bonus separat hochzählen lassen
+### ~~1.6 Animierte Punktezählung auf ResultsScreen~~ ✅
+- **Erledigt:** `Animatable<Float>` Counter (0→Endwert) mit `FastOutSlowInEasing` über 1.5s. Staggered: Podium nach Platzierung, Rank-Cards nach Rang verzögert
 
-### 1.7 "Best Photo" Highlight
-- **Datei:** `ui/screens/ResultsScreen.kt`
-- **Was:** Das Foto mit der höchsten Durchschnittsbewertung bekommt goldenen Rahmen + Krone
-- **Umsetzung:** Aus `allVotes` die durchschnittliche Bewertung pro Foto berechnen, höchstes identifizieren. In der Galerie: goldener `GradientBorder` (GradientGold) + Kronen-Emoji (👑) als Badge oben. "Best Photo"-Label unter dem Foto. Eigene Sektion über der normalen Galerie
+### ~~1.7 "Best Photo" Highlight~~ ✅
+- **Erledigt:** Eigene "Best Photo"-Sektion mit EmojiEvents-Icon über der Galerie. `GradientBorderCard` mit `GradientGold`, zeigt Spielername, Kategorie und Durchschnittsbewertung
 
 ---
 
@@ -398,12 +384,12 @@ Features die Viralität und soziale Interaktion fördern.
 
 | Priorität | Feature | Aufwand | Impact |
 |-----------|---------|---------|--------|
-| 1 | 1.2 Foto-Thumbnails auf Karten | Klein | Hoch |
-| 2 | 1.6 Animierte Punktezählung | Klein | Hoch |
-| 3 | 1.7 Best Photo Highlight | Klein | Mittel |
-| 4 | 1.5 Timer-Puls | Klein | Mittel |
-| 5 | 1.4 Star-Rating Glow | Klein | Mittel |
-| 6 | 1.1 Glassmorphism | Mittel | Mittel |
+| ~~1~~ | ~~1.2 Foto-Thumbnails auf Karten~~ | ~~Klein~~ | ~~Hoch~~ | ✅ |
+| ~~2~~ | ~~1.6 Animierte Punktezählung~~ | ~~Klein~~ | ~~Hoch~~ | ✅ |
+| ~~3~~ | ~~1.7 Best Photo Highlight~~ | ~~Klein~~ | ~~Mittel~~ | ✅ |
+| ~~4~~ | ~~1.5 Timer-Puls~~ | ~~Klein~~ | ~~Mittel~~ | ✅ |
+| ~~5~~ | ~~1.4 Star-Rating Glow~~ | ~~Klein~~ | ~~Mittel~~ | ✅ |
+| ~~6~~ | ~~1.1 Glassmorphism~~ | ~~Mittel~~ | ~~Mittel~~ | ✅ |
 | 7 | 1.3 Parallax Results | Mittel | Mittel |
 | 8 | 4.1 Kategorie-Packs | Mittel | Hoch |
 | 9 | 2.3 Live-Feed | Mittel | Hoch |
