@@ -575,6 +575,7 @@ fun GameScreen(gameState: GameState) {
     LaunchedEffect(gameId) {
         if (realtime == null || gameState.gameMode != "elimination") return@LaunchedEffect
         realtime.eliminationInserts.collect { elimination ->
+            gameState.isGameRunning = false
             gameState.eliminatedPlayerIds = gameState.eliminatedPlayerIds + elimination.player_id
             gameState.lastEliminatedPlayerId = elimination.player_id
             gameState.showEliminationScreen = true
@@ -811,8 +812,8 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Timer logic
-    LaunchedEffect(Unit) {
+    // Timer logic – keyed on eliminationRound so it restarts each round in elimination mode
+    LaunchedEffect(Unit, gameState.eliminationRound) {
         while (gameState.isGameRunning && gameState.timeRemainingSeconds > 0 && !gameState.allCategoriesCaptured) {
             delay(1000L)
             if (gameState.isGameRunning && !gameState.allCategoriesCaptured) {
@@ -830,9 +831,10 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Detect remote "all captured" signal from other players
+    // Detect remote "all captured" signal from other players (skip in elimination mode)
     LaunchedEffect(gameId) {
         if (gameId == null) return@LaunchedEffect
+        if (gameState.gameMode == "elimination") return@LaunchedEffect
         while (gameState.isGameRunning && !gameState.allCategoriesCaptured && !gameState.finishSignalDetected) {
             delay(2_000)
             try {
@@ -843,9 +845,10 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
-    // Finish countdown – triggered by local completion OR remote signal
+    // Finish countdown – triggered by local completion OR remote signal (skip in elimination mode)
     var finishCountdownSeconds by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(Unit) {
+        if (gameState.gameMode == "elimination") return@LaunchedEffect
         // Wait until either the local player or a remote player signals "all captured"
         snapshotFlow { gameState.allCategoriesCaptured || gameState.finishSignalDetected }
             .first { it }
