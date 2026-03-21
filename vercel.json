@@ -1,4 +1,7 @@
 {
+  "outputDirectory": "GeoBingo/composeApp/build/dist/wasmJs/productionExecutable",
+  "buildCommand": null,
+  "framework": null,
   "headers": [
     {
       "source": "/(.*)",
