@@ -428,9 +428,9 @@ fun GameScreen(gameState: GameState) {
                         gameState.hasVotedToEnd = false
                         gameState.endVoteCount = (gameState.endVoteCount - 1).coerceAtLeast(0)
                     } else {
-                        // Check if majority reached after own vote
+                        // Check if all players voted to end
                         val count = gameState.endVoteCount
-                        if (count * 2 > gameState.players.size && gameState.players.isNotEmpty()) {
+                        if (count >= gameState.players.size && gameState.players.isNotEmpty()) {
                             gameState.isGameRunning = false
                             try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
                             gameState.reviewCategoryIndex = 0
