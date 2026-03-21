@@ -266,6 +266,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 gameState.myPlayerId = playerDto.id
                                 gameState.gameDurationMinutes = game.duration_s / 60
                                 gameState.jokerMode = game.joker_mode
+                                gameState.gameMode = game.game_mode
                                 gameState.selectedCategories = categories.map { it.toCategory() }
                                 gameState.lobbyPlayers = players
                                 gameState.currentScreen = Screen.LOBBY

@@ -328,6 +328,18 @@ val PRESET_CATEGORIES: List<Category> = CATEGORY_TEMPLATES.map { t ->
 // Lookup map: template id → description (used client-side without DB storage)
 val CATEGORY_DESCRIPTIONS: Map<String, String> = CATEGORY_TEMPLATES.associate { it.id to it.description }
 
+/** Returns a random category that is NOT in [excludeIds]. Useful for swaps and sabotage replacements. */
+fun getRandomReplacementCategory(excludeIds: Set<String>): Category {
+    val pool = CATEGORY_TEMPLATES.filter { it.id !in excludeIds }
+    val template = if (pool.isNotEmpty()) pool.random() else CATEGORY_TEMPLATES.random()
+    return Category(
+        id = "swap_${template.id}_${kotlin.random.Random.nextInt(100000)}",
+        name = template.variants.random(),
+        emoji = template.emoji,
+        description = template.description,
+    )
+}
+
 val PLAYER_COLORS = listOf(
     Color(0xFFEC4899), // hot pink
     Color(0xFF3B82F6), // blue

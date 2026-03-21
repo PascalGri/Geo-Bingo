@@ -22,7 +22,9 @@ data class GameDto(
     val status: String = "lobby",
     val duration_s: Int = 300,
     val review_category_index: Int = 0,
-    val joker_mode: Boolean = false
+    val joker_mode: Boolean = false,
+    val game_mode: String = "classic", // "classic", "kategorie_tausch", "sabotage", "elimination"
+    val elimination_round: Int = 0,
 )
 
 @Serializable
@@ -67,7 +69,7 @@ data class VoteSubmissionDto(val id: String = "", val game_id: String = "", val 
 private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: String, val category_id: String)
 
 @Serializable
-private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false)
+private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false, val game_mode: String = "classic")
 
 @Serializable
 data class JokerLabelDto(val game_id: String = "", val player_id: String = "", val label: String = "")
@@ -138,6 +140,68 @@ fun generateCode(): String {
     return (1..6).map { chars[Random.nextInt(chars.length)] }.joinToString("")
 }
 
+@Serializable
+data class SabotageDto(
+    val id: String = "",
+    val game_id: String = "",
+    val saboteur_id: String = "",
+    val target_id: String = "",
+    val blocked_category_id: String = "",
+    val replacement_category_id: String = "",
+    val replacement_label: String = "",
+    val replacement_icon_id: String = "",
+    val created_at: String = "",
+)
+
+@Serializable
+private data class SabotageInsertDto(
+    val game_id: String,
+    val saboteur_id: String,
+    val target_id: String,
+    val blocked_category_id: String,
+    val replacement_category_id: String,
+    val replacement_label: String,
+    val replacement_icon_id: String,
+)
+
+@Serializable
+data class CategorySwapDto(
+    val id: String = "",
+    val game_id: String = "",
+    val player_id: String = "",
+    val old_category_id: String = "",
+    val new_category_id: String = "",
+    val new_label: String = "",
+    val new_icon_id: String = "",
+    val created_at: String = "",
+)
+
+@Serializable
+private data class CategorySwapInsertDto(
+    val game_id: String,
+    val player_id: String,
+    val old_category_id: String,
+    val new_category_id: String,
+    val new_label: String,
+    val new_icon_id: String,
+)
+
+@Serializable
+data class EliminationDto(
+    val id: String = "",
+    val game_id: String = "",
+    val player_id: String = "",
+    val round: Int = 0,
+    val created_at: String = "",
+)
+
+@Serializable
+private data class EliminationInsertDto(
+    val game_id: String,
+    val player_id: String,
+    val round: Int,
+)
+
 object VoteKeys {
     const val END_VOTE = "__end_vote__"
     const val ALL_CAPTURED = "__all_captured__"
@@ -148,9 +212,9 @@ private val httpClient = HttpClient()
 
 object GameRepository {
 
-    suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false): GameDto =
+    suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false, gameMode: String = "classic"): GameDto =
         supabase.from("games").insert(
-            GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode)
+            GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode, game_mode = gameMode)
         ) { select() }.decodeSingle()
 
     suspend fun setJokerLabel(gameId: String, playerId: String, label: String) {
@@ -362,6 +426,66 @@ object GameRepository {
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
             .decodeList<VoteSubmissionDto>().isNotEmpty()
+
+    // ── Category Swap ────────────────────────────────────────────────────────
+    suspend fun recordCategorySwap(
+        gameId: String, playerId: String,
+        oldCategoryId: String, newCategoryId: String,
+        newLabel: String, newIconId: String,
+    ) {
+        supabase.from("category_swaps").insert(
+            CategorySwapInsertDto(
+                game_id = gameId, player_id = playerId,
+                old_category_id = oldCategoryId, new_category_id = newCategoryId,
+                new_label = newLabel, new_icon_id = newIconId,
+            )
+        )
+    }
+
+    suspend fun getCategorySwaps(gameId: String): List<CategorySwapDto> =
+        supabase.from("category_swaps")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList()
+
+    // ── Sabotage ────────────────────────────────────────────────────────────
+    suspend fun recordSabotage(
+        gameId: String, saboteurId: String, targetId: String,
+        blockedCategoryId: String, replacementCategoryId: String,
+        replacementLabel: String, replacementIconId: String,
+    ) {
+        supabase.from("sabotages").insert(
+            SabotageInsertDto(
+                game_id = gameId, saboteur_id = saboteurId, target_id = targetId,
+                blocked_category_id = blockedCategoryId,
+                replacement_category_id = replacementCategoryId,
+                replacement_label = replacementLabel,
+                replacement_icon_id = replacementIconId,
+            )
+        )
+    }
+
+    suspend fun getSabotages(gameId: String): List<SabotageDto> =
+        supabase.from("sabotages")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList()
+
+    // ── Elimination ─────────────────────────────────────────────────────────
+    suspend fun recordElimination(gameId: String, playerId: String, round: Int) {
+        supabase.from("eliminations").insert(
+            EliminationInsertDto(game_id = gameId, player_id = playerId, round = round)
+        )
+    }
+
+    suspend fun getEliminations(gameId: String): List<EliminationDto> =
+        supabase.from("eliminations")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList()
+
+    suspend fun setEliminationRound(gameId: String, round: Int) {
+        supabase.from("games").update({ set("elimination_round", round) }) {
+            filter { eq("id", gameId) }
+        }
+    }
 
     /** Delete all game photos and avatars from Supabase Storage to free space. */
     suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {

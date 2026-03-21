@@ -40,18 +40,24 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.getCategoryIcon
 import pg.geobingo.one.data.getCategoryIconRotation
+import pg.geobingo.one.data.getRandomReplacementCategory
 import pg.geobingo.one.game.*
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
+import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.RequestLocationPermission
 import pg.geobingo.one.platform.getCurrentLocation
@@ -76,6 +82,19 @@ fun GameScreen(gameState: GameState) {
     var jokerLabelInput by remember { mutableStateOf("") }
     var uploadSuccessCategory by remember { mutableStateOf<String?>(null) }
     val haptic = LocalHapticFeedback.current
+
+    // ── Mode-specific state ─────────────────────────────────────────────────
+    // Kategorie-Tausch
+    var swapDialogCategory by remember { mutableStateOf<Category?>(null) }
+
+    // Sabotage
+    var sabotageTargetPickerVisible by remember { mutableStateOf(false) }
+    var sabotageSelectedTarget by remember { mutableStateOf<Player?>(null) }
+    var sabotageCategoryPickerVisible by remember { mutableStateOf(false) }
+    var sabotageNotification by remember { mutableStateOf<String?>(null) }
+
+    // Elimination
+    var eliminationRoundEndDialogVisible by remember { mutableStateOf(false) }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
@@ -206,6 +225,460 @@ fun GameScreen(gameState: GameState) {
                 }
             },
         )
+    }
+
+    // ── Kategorie-Tausch Dialog ────────────────────────────────────────────
+    if (swapDialogCategory != null && gameState.gameMode == "kategorie_tausch") {
+        val catToSwap = swapDialogCategory!!
+        AlertDialog(
+            onDismissRequest = { swapDialogCategory = null },
+            containerColor = ColorSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.SwapHoriz, null, modifier = Modifier.size(20.dp), tint = Color(0xFF3B82F6))
+                    Text("Kategorie tauschen?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "\"${catToSwap.name}\" gegen eine zufällige neue Kategorie tauschen?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ColorOnSurfaceVariant,
+                    )
+                    Text(
+                        "Du hast nur 1 Tausch pro Spiel!",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorError,
+                    )
+                }
+            },
+            confirmButton = {
+                GradientButton(
+                    text = "Tauschen",
+                    onClick = {
+                        val cat = swapDialogCategory ?: return@GradientButton
+                        swapDialogCategory = null
+                        gameState.mySwapUsed = true
+                        val existingIds = gameState.selectedCategories.map { it.emoji }.toSet()
+                        val newCat = getRandomReplacementCategory(existingIds)
+                        // Replace locally
+                        gameState.selectedCategories = gameState.selectedCategories.map {
+                            if (it.id == cat.id) newCat else it
+                        }
+                        // Record on server
+                        if (gameId != null) {
+                            val pid = gameState.myPlayerId ?: return@GradientButton
+                            scope.launch {
+                                try {
+                                    GameRepository.recordCategorySwap(
+                                        gameId, pid, cat.id, newCat.id, newCat.name, newCat.emoji
+                                    )
+                                } catch (e: Exception) { e.printStackTrace() }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { swapDialogCategory = null }) { Text("Abbrechen") }
+            },
+        )
+    }
+
+    // ── Sabotage: Target-Picker Dialog ──────────────────────────────────────
+    if (sabotageTargetPickerVisible && gameState.gameMode == "sabotage") {
+        val myId = gameState.myPlayerId
+        val targets = gameState.players.filter { it.id != myId }
+        AlertDialog(
+            onDismissRequest = { sabotageTargetPickerVisible = false },
+            containerColor = ColorSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.Block, null, modifier = Modifier.size(20.dp), tint = Color(0xFFEF4444))
+                    Text("Sabotage!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Welchen Spieler willst du sabotieren?", style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
+                    targets.forEach { target ->
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (sabotageSelectedTarget?.id == target.id) target.color.copy(alpha = 0.15f) else ColorSurfaceVariant,
+                            border = BorderStroke(1.dp, if (sabotageSelectedTarget?.id == target.id) target.color.copy(alpha = 0.5f) else ColorOutlineVariant),
+                            modifier = Modifier.fillMaxWidth().clickable { sabotageSelectedTarget = target },
+                        ) {
+                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                PlayerAvatarView(player = target, size = 28.dp, fontSize = 12.sp, photoBytes = gameState.playerAvatarBytes[target.id])
+                                Spacer(Modifier.width(10.dp))
+                                Text(target.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = ColorOnSurface)
+                                if (sabotageSelectedTarget?.id == target.id) {
+                                    Spacer(Modifier.weight(1f))
+                                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp), tint = target.color)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                GradientButton(
+                    text = "Weiter",
+                    onClick = {
+                        sabotageTargetPickerVisible = false
+                        sabotageCategoryPickerVisible = true
+                    },
+                    enabled = sabotageSelectedTarget != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626)),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { sabotageTargetPickerVisible = false; sabotageSelectedTarget = null }) { Text("Abbrechen") }
+            },
+        )
+    }
+
+    // ── Sabotage: Category-Picker Dialog ────────────────────────────────────
+    if (sabotageCategoryPickerVisible && sabotageSelectedTarget != null && gameState.gameMode == "sabotage") {
+        val target = sabotageSelectedTarget!!
+        // Show only categories the target has NOT yet captured
+        val targetCaptures = gameState.captures[target.id] ?: emptySet()
+        val blockableCategories = gameState.selectedCategories.filter { it.id !in targetCaptures && !it.id.startsWith("joker_") }
+        var selectedBlockCat by remember { mutableStateOf<Category?>(null) }
+        AlertDialog(
+            onDismissRequest = { sabotageCategoryPickerVisible = false },
+            containerColor = ColorSurface,
+            title = {
+                Text("Welche Kategorie sperren?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Wähle eine Kategorie von ${target.name} zum Sperren:", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                    if (blockableCategories.isEmpty()) {
+                        Text("Keine Kategorien zum Sperren verfügbar.", style = MaterialTheme.typography.bodyMedium, color = ColorError)
+                    }
+                    blockableCategories.forEach { cat ->
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (selectedBlockCat?.id == cat.id) Color(0xFFEF4444).copy(alpha = 0.12f) else ColorSurfaceVariant,
+                            border = BorderStroke(1.dp, if (selectedBlockCat?.id == cat.id) Color(0xFFEF4444).copy(alpha = 0.5f) else ColorOutlineVariant),
+                            modifier = Modifier.fillMaxWidth().clickable { selectedBlockCat = cat },
+                        ) {
+                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(getCategoryIcon(cat.id), null, modifier = Modifier.size(18.dp).rotate(getCategoryIconRotation(cat.id)), tint = ColorOnSurfaceVariant)
+                                Spacer(Modifier.width(8.dp))
+                                Text(cat.name, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurface, modifier = Modifier.weight(1f))
+                                if (selectedBlockCat?.id == cat.id) {
+                                    Icon(Icons.Default.Lock, null, modifier = Modifier.size(16.dp), tint = Color(0xFFEF4444))
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                GradientButton(
+                    text = "Sabotieren!",
+                    onClick = {
+                        val blockCat = selectedBlockCat ?: return@GradientButton
+                        sabotageCategoryPickerVisible = false
+                        sabotageSelectedTarget = null
+                        gameState.mySabotageUsed = true
+
+                        val existingIds = gameState.selectedCategories.map { it.emoji }.toSet()
+                        val replacementCat = getRandomReplacementCategory(existingIds)
+
+                        // Update local sabotage state
+                        val targetSabotages = (gameState.sabotages[target.id] ?: emptyMap()).toMutableMap()
+                        targetSabotages[blockCat.id] = replacementCat
+                        gameState.sabotages = gameState.sabotages + (target.id to targetSabotages)
+
+                        // If the target is me, update blocked categories
+                        if (target.id == gameState.myPlayerId) {
+                            gameState.myBlockedCategories = gameState.myBlockedCategories + blockCat.id
+                        }
+
+                        // Record on server
+                        if (gameId != null) {
+                            val saboteurId = gameState.myPlayerId ?: return@GradientButton
+                            scope.launch {
+                                try {
+                                    GameRepository.recordSabotage(
+                                        gameId, saboteurId, target.id,
+                                        blockCat.id, replacementCat.id,
+                                        replacementCat.name, replacementCat.emoji
+                                    )
+                                } catch (e: Exception) { e.printStackTrace() }
+                            }
+                        }
+                    },
+                    enabled = selectedBlockCat != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626)),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { sabotageCategoryPickerVisible = false }) { Text("Abbrechen") }
+            },
+        )
+    }
+
+    // ── Sabotage notification popup ─────────────────────────────────────────
+    if (sabotageNotification != null) {
+        AlertDialog(
+            onDismissRequest = { sabotageNotification = null },
+            containerColor = ColorSurface,
+            icon = { Icon(Icons.Default.Block, null, modifier = Modifier.size(32.dp), tint = Color(0xFFEF4444)) },
+            title = { Text("Sabotage!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444)) },
+            text = { Text(sabotageNotification!!, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant) },
+            confirmButton = {
+                TextButton(onClick = { sabotageNotification = null }) { Text("OK") }
+            },
+        )
+    }
+
+    // ── Elimination round-end screen ────────────────────────────────────────
+    if (gameState.showEliminationScreen && gameState.gameMode == "elimination") {
+        val eliminatedPlayer = gameState.lastEliminatedPlayerId?.let { pid -> gameState.players.find { it.id == pid } }
+        val isMyElimination = eliminatedPlayer?.id == gameState.myPlayerId
+        AlertDialog(
+            onDismissRequest = {},
+            containerColor = ColorSurface,
+            icon = { Icon(Icons.Default.PersonOff, null, modifier = Modifier.size(40.dp), tint = Color(0xFFF59E0B)) },
+            title = {
+                Text(
+                    if (isMyElimination) "Du wurdest eliminiert!" else "Elimination!",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isMyElimination) ColorError else Color(0xFFF59E0B),
+                    textAlign = TextAlign.Center,
+                )
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    if (eliminatedPlayer != null) {
+                        PlayerAvatarView(player = eliminatedPlayer, size = 48.dp, fontSize = 20.sp, photoBytes = gameState.playerAvatarBytes[eliminatedPlayer.id])
+                        Text(
+                            "${eliminatedPlayer.name} wurde eliminiert!",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorOnSurface,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    val activePlayers = gameState.getActivePlayers()
+                    Text(
+                        "Runde ${gameState.eliminationRound} abgeschlossen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                    Text(
+                        "${activePlayers.size} Spieler verbleibend",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ColorPrimary,
+                    )
+                }
+            },
+            confirmButton = {
+                if (gameState.isHost) {
+                    val activePlayers = gameState.getActivePlayers()
+                    GradientButton(
+                        text = if (activePlayers.size <= 2) "Finale starten" else "Nächste Runde",
+                        onClick = {
+                            gameState.showEliminationScreen = false
+                            // Start next round or end game
+                            scope.launch {
+                                if (gameId == null) return@launch
+                                val active = gameState.getActivePlayers()
+                                if (active.size <= 1) {
+                                    // Game over - only 1 player left
+                                    try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+                                    gameState.reviewCategoryIndex = 0
+                                    gameState.currentScreen = Screen.VOTE_TRANSITION
+                                } else {
+                                    // Reset for next round
+                                    val nextRound = gameState.eliminationRound + 1
+                                    gameState.eliminationRound = nextRound
+                                    try { GameRepository.setEliminationRound(gameId, nextRound) } catch (_: Exception) {}
+
+                                    // Reset captures for active players
+                                    gameState.captures = gameState.players.associate { it.id to emptySet() }
+                                    gameState.photos = gameState.players.associate { it.id to emptyMap() }
+                                    gameState.allCategoriesCaptured = false
+                                    gameState.finishSignalDetected = false
+                                    gameState.hasVotedToEnd = false
+                                    gameState.endVoteCount = 0
+
+                                    // Pick new categories for this round (2-3 categories)
+                                    val numCats = if (active.size <= 3) 1 else 2
+                                    val existingIds = gameState.selectedCategories.map { it.emoji }.toSet()
+                                    val newCats = (1..numCats).map { getRandomReplacementCategory(existingIds) }
+                                    gameState.selectedCategories = newCats
+
+                                    // Upload new categories to DB
+                                    try {
+                                        val catDtos = GameRepository.addCategories(gameId, newCats)
+                                        gameState.selectedCategories = catDtos.map { it.toCategory() }
+                                    } catch (e: Exception) { e.printStackTrace() }
+
+                                    // Reset timer for short round
+                                    gameState.timeRemainingSeconds = 120 // 2 minutes per elimination round
+                                    gameState.isGameRunning = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        gradientColors = if (activePlayers.size <= 2) listOf(Color(0xFFF59E0B), Color(0xFFEF4444)) else GradientPrimary,
+                    )
+                } else {
+                    Text("Warte auf den Host...", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                }
+            },
+        )
+    }
+
+    // ── Realtime: sabotage events ───────────────────────────────────────────
+    LaunchedEffect(gameId) {
+        if (realtime == null || gameState.gameMode != "sabotage") return@LaunchedEffect
+        realtime.sabotageInserts.collect { sabotage ->
+            // Update local sabotage state
+            val targetSabotages = (gameState.sabotages[sabotage.target_id] ?: emptyMap()).toMutableMap()
+            val replacementCat = Category(
+                id = sabotage.replacement_category_id,
+                name = sabotage.replacement_label,
+                emoji = sabotage.replacement_icon_id,
+            )
+            targetSabotages[sabotage.blocked_category_id] = replacementCat
+            gameState.sabotages = gameState.sabotages + (sabotage.target_id to targetSabotages)
+            gameState.sabotageSource = gameState.sabotageSource + (sabotage.target_id to sabotage.saboteur_id)
+
+            // If I'm the target, show notification and update my categories
+            if (sabotage.target_id == gameState.myPlayerId) {
+                gameState.myBlockedCategories = gameState.myBlockedCategories + sabotage.blocked_category_id
+                val blockedCatName = gameState.selectedCategories.find { it.id == sabotage.blocked_category_id }?.name ?: "?"
+                val saboteurName = gameState.players.find { it.id == sabotage.saboteur_id }?.name ?: "?"
+                // Replace the blocked category with the replacement
+                gameState.selectedCategories = gameState.selectedCategories.map {
+                    if (it.id == sabotage.blocked_category_id) replacementCat else it
+                }
+                sabotageNotification = "$saboteurName hat deine Kategorie \"$blockedCatName\" gesperrt! Neue Kategorie: \"${sabotage.replacement_label}\""
+            }
+        }
+    }
+
+    // ── Realtime: elimination events ────────────────────────────────────────
+    LaunchedEffect(gameId) {
+        if (realtime == null || gameState.gameMode != "elimination") return@LaunchedEffect
+        realtime.eliminationInserts.collect { elimination ->
+            gameState.eliminatedPlayerIds = gameState.eliminatedPlayerIds + elimination.player_id
+            gameState.lastEliminatedPlayerId = elimination.player_id
+            gameState.showEliminationScreen = true
+        }
+    }
+
+    // ── Realtime: game updates for elimination round changes ────────────────
+    LaunchedEffect(gameId) {
+        if (realtime == null || gameState.gameMode != "elimination") return@LaunchedEffect
+        realtime.gameUpdates.collect { game ->
+            if (game.elimination_round > gameState.eliminationRound && !gameState.isHost) {
+                // Non-host: sync round change
+                gameState.eliminationRound = game.elimination_round
+                gameState.showEliminationScreen = false
+                // Reload categories for new round
+                if (gameId != null) {
+                    try {
+                        val cats = GameRepository.getCategories(gameId)
+                        gameState.selectedCategories = cats.map { it.toCategory() }
+                    } catch (_: Exception) {}
+                }
+                // Reset local state for new round
+                gameState.captures = gameState.players.associate { it.id to emptySet() }
+                gameState.photos = gameState.players.associate { it.id to emptyMap() }
+                gameState.allCategoriesCaptured = false
+                gameState.finishSignalDetected = false
+                gameState.hasVotedToEnd = false
+                gameState.endVoteCount = 0
+                gameState.timeRemainingSeconds = 120
+                gameState.isGameRunning = true
+            }
+        }
+    }
+
+    // ── Elimination: timer end triggers round evaluation (host only) ────────
+    LaunchedEffect(gameState.timeRemainingSeconds, gameState.gameMode) {
+        if (gameState.gameMode != "elimination") return@LaunchedEffect
+        if (!gameState.isHost) return@LaunchedEffect
+        if (gameState.timeRemainingSeconds > 0) return@LaunchedEffect
+        if (!gameState.isGameRunning) return@LaunchedEffect
+        if (gameState.showEliminationScreen) return@LaunchedEffect
+
+        val activePlayers = gameState.getActivePlayers()
+        if (activePlayers.size <= 1) {
+            // Game over
+            if (gameId != null) {
+                try { GameRepository.endGameAsVoting(gameId) } catch (_: Exception) {}
+            }
+            gameState.reviewCategoryIndex = 0
+            gameState.currentScreen = Screen.VOTE_TRANSITION
+            return@LaunchedEffect
+        }
+
+        // Find the player with fewest captures in this round
+        val ranked = activePlayers.map { p ->
+            p to (gameState.captures[p.id]?.size ?: 0)
+        }.sortedBy { it.second }
+
+        val worstPlayer = ranked.first().first
+        gameState.isGameRunning = false
+
+        // Record elimination
+        if (gameId != null) {
+            try {
+                GameRepository.recordElimination(gameId, worstPlayer.id, gameState.eliminationRound)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+        gameState.eliminatedPlayerIds = gameState.eliminatedPlayerIds + worstPlayer.id
+        gameState.lastEliminatedPlayerId = worstPlayer.id
+        gameState.showEliminationScreen = true
+    }
+
+    // ── Sabotage: poll for sabotages (fallback) ─────────────────────────────
+    LaunchedEffect(gameId) {
+        if (gameId == null || gameState.gameMode != "sabotage") return@LaunchedEffect
+        while (gameState.isGameRunning) {
+            delay(5_000)
+            try {
+                val allSabotages = GameRepository.getSabotages(gameId)
+                allSabotages.forEach { sabotage ->
+                    val existing = gameState.sabotages[sabotage.target_id] ?: emptyMap()
+                    if (sabotage.blocked_category_id !in existing) {
+                        val replacementCat = Category(
+                            id = sabotage.replacement_category_id,
+                            name = sabotage.replacement_label,
+                            emoji = sabotage.replacement_icon_id,
+                        )
+                        val updated = existing.toMutableMap()
+                        updated[sabotage.blocked_category_id] = replacementCat
+                        gameState.sabotages = gameState.sabotages + (sabotage.target_id to updated)
+
+                        if (sabotage.target_id == gameState.myPlayerId && sabotage.blocked_category_id !in gameState.myBlockedCategories) {
+                            gameState.myBlockedCategories = gameState.myBlockedCategories + sabotage.blocked_category_id
+                            gameState.selectedCategories = gameState.selectedCategories.map {
+                                if (it.id == sabotage.blocked_category_id) replacementCat else it
+                            }
+                            val blockedName = gameState.selectedCategories.find { it.id == sabotage.blocked_category_id }?.name ?: "?"
+                            val saboteurName = gameState.players.find { it.id == sabotage.saboteur_id }?.name ?: "?"
+                            sabotageNotification = "$saboteurName hat deine Kategorie \"$blockedName\" gesperrt! Neue Kategorie: \"${sabotage.replacement_label}\""
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     // Realtime: game status and end-votes
@@ -347,6 +820,8 @@ fun GameScreen(gameState: GameState) {
             }
         }
         if (!gameState.allCategoriesCaptured && gameState.timeRemainingSeconds <= 0 && gameState.isGameRunning) {
+            // In elimination mode, timer end is handled by the elimination LaunchedEffect
+            if (gameState.gameMode == "elimination") return@LaunchedEffect
             if (gameId != null) {
                 try { GameRepository.endGameAsVoting(gameId) } catch (e: Exception) { e.printStackTrace() }
             }
@@ -405,6 +880,8 @@ fun GameScreen(gameState: GameState) {
         finishCountdownSeconds = finishCountdownSeconds,
         uploadSuccessCategory = uploadSuccessCategory,
         onJokerClick = { jokerDialogVisible = true },
+        onSwapCategory = { category -> swapDialogCategory = category },
+        onSabotageClick = { sabotageTargetPickerVisible = true },
         onVoteToEnd = {
             scope.launch {
                 if (gameId != null && !gameState.hasVotedToEnd) {
@@ -454,6 +931,8 @@ fun GameScreenContent(
     finishCountdownSeconds: Int? = null,
     uploadSuccessCategory: String? = null,
     onJokerClick: () -> Unit = {},
+    onSwapCategory: (Category) -> Unit = {},
+    onSabotageClick: () -> Unit = {},
     onVoteToEnd: () -> Unit = {},
     onCameraClick: (String, String) -> Unit = { _, _ -> },
 ) {
@@ -591,12 +1070,14 @@ fun GameScreenContent(
                             gameState.players.forEach { player ->
                                 val isMe = player.id == gameState.myPlayerId
                                 val captured = gameState.captures[player.id]?.size ?: 0
+                                val isEliminated = gameState.isEliminated(player.id)
                                 GamePlayerTab(
                                     player = player,
                                     isActive = isMe,
                                     captureCount = captured,
                                     totalCategories = gameState.selectedCategories.size,
                                     photoBytes = gameState.playerAvatarBytes[player.id],
+                                    isEliminated = isEliminated,
                                     onClick = {},
                                 )
                             }
@@ -650,6 +1131,46 @@ fun GameScreenContent(
                                     Text("Joker", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
+                            // Sabotage button
+                            if (gameState.gameMode == "sabotage" && !gameState.mySabotageUsed && !gameState.isEliminated(myPlayer.id)) {
+                                val totalTime = gameState.gameDurationMinutes * 60
+                                val elapsed = totalTime - gameState.timeRemainingSeconds
+                                val protectionOver = elapsed >= totalTime * 0.25
+                                OutlinedButton(
+                                    onClick = onSabotageClick,
+                                    enabled = protectionOver,
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
+                                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = if (protectionOver) 0.6f else 0.2f)),
+                                    shape = RoundedCornerShape(20.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                ) {
+                                    Icon(Icons.Default.Block, null, modifier = Modifier.size(14.dp), tint = Color(0xFFEF4444).copy(alpha = if (protectionOver) 1f else 0.4f))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        if (protectionOver) "Sabotage" else "Sabotage (Schutz)",
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                }
+                            }
+                            // Elimination round indicator
+                            if (gameState.gameMode == "elimination") {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                                ) {
+                                    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.PersonOff, null, modifier = Modifier.size(14.dp), tint = Color(0xFFF59E0B))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "Runde ${gameState.eliminationRound + 1}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color(0xFFF59E0B),
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+                            }
                             OutlinedButton(
                                 onClick = onVoteToEnd,
                                 enabled = !gameState.hasVotedToEnd,
@@ -677,31 +1198,57 @@ fun GameScreenContent(
                         gameState.selectedCategories.size <= 9 -> 3
                         else -> 4
                     }
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(cols),
-                        modifier = Modifier.weight(1f).padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(gameState.selectedCategories) { category ->
-                            val captured = gameState.isCaptured(myPlayer.id, category.id)
-                            val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
-                            val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
-                            val otherCapturers = gameState.players.filter { p ->
-                                p.id != myPlayer.id && (gameState.captures[p.id]?.contains(category.id) == true)
+                    // For elimination mode: show if player is eliminated
+                    if (gameState.gameMode == "elimination" && gameState.isEliminated(myPlayer.id)) {
+                        Box(
+                            modifier = Modifier.weight(1f).padding(24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Icon(Icons.Default.PersonOff, null, modifier = Modifier.size(48.dp), tint = ColorOnSurfaceVariant.copy(alpha = 0.5f))
+                                Text(
+                                    "Du wurdest eliminiert",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = ColorOnSurfaceVariant,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "Du kannst das Spiel noch beobachten.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+                                )
                             }
-                            val isUploading = category.id in gameState.uploadingCategories
-                            val showUploadSuccess = uploadSuccessCategory == category.id
-                            DarkBingoCategoryCard(
-                                category = category,
-                                isCaptured = captured,
-                                isUploading = isUploading,
-                                showUploadSuccess = showUploadSuccess,
-                                playerColor = myPlayer.color,
-                                thumbnail = thumbnail,
-                                otherCapturingPlayers = otherCapturers,
-                                onCameraClick = { onCameraClick(myPlayer.id, category.id) },
-                            )
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(cols),
+                            modifier = Modifier.weight(1f).padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(gameState.selectedCategories) { category ->
+                                val captured = gameState.isCaptured(myPlayer.id, category.id)
+                                val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                                val thumbnail: ImageBitmap? = remember(photoBytes) { photoBytes?.toImageBitmap() }
+                                val otherCapturers = gameState.players.filter { p ->
+                                    p.id != myPlayer.id && (gameState.captures[p.id]?.contains(category.id) == true)
+                                }
+                                val isUploading = category.id in gameState.uploadingCategories
+                                val showUploadSuccess = uploadSuccessCategory == category.id
+                                val canSwap = gameState.gameMode == "kategorie_tausch" && !gameState.mySwapUsed && !captured
+                                DarkBingoCategoryCard(
+                                    category = category,
+                                    isCaptured = captured,
+                                    isUploading = isUploading,
+                                    showUploadSuccess = showUploadSuccess,
+                                    playerColor = myPlayer.color,
+                                    thumbnail = thumbnail,
+                                    otherCapturingPlayers = otherCapturers,
+                                    onCameraClick = { onCameraClick(myPlayer.id, category.id) },
+                                    showSwapButton = canSwap,
+                                    onSwapClick = { onSwapCategory(category) },
+                                )
+                            }
                         }
                     }
                 }
@@ -711,32 +1258,39 @@ fun GameScreenContent(
 }
 
 @Composable
-private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, onClick: () -> Unit) {
-    val bg = if (isActive)
-        Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
-    else
-        Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+private fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, isEliminated: Boolean = false, onClick: () -> Unit) {
+    val bg = when {
+        isEliminated -> Brush.linearGradient(listOf(ColorSurfaceVariant.copy(alpha = 0.5f), ColorSurfaceVariant.copy(alpha = 0.3f)))
+        isActive -> Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
+        else -> Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+    }
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
-            .then(if (isActive) Modifier.border(1.dp, player.color.copy(alpha = 0.4f), RoundedCornerShape(16.dp)) else Modifier)
+            .then(if (isActive && !isEliminated) Modifier.border(1.dp, player.color.copy(alpha = 0.4f), RoundedCornerShape(16.dp)) else Modifier)
+            .graphicsLayer { alpha = if (isEliminated) 0.5f else 1f }
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(6.dp))
-            Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
-            Spacer(Modifier.width(4.dp))
-            Text(
-                "$captureCount/$totalCategories",
-                fontSize = 11.sp,
-                color = if (captureCount >= totalCategories) ColorPrimary
-                    else (if (isActive) player.color else ColorOnSurfaceVariant).copy(alpha = 0.8f),
-                fontWeight = if (captureCount >= totalCategories) FontWeight.Bold else FontWeight.Normal,
-            )
+            Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isEliminated) ColorOnSurfaceVariant.copy(alpha = 0.5f) else if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
+            if (isEliminated) {
+                Spacer(Modifier.width(2.dp))
+                Icon(Icons.Default.PersonOff, null, modifier = Modifier.size(10.dp), tint = ColorError.copy(alpha = 0.6f))
+            } else {
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "$captureCount/$totalCategories",
+                    fontSize = 11.sp,
+                    color = if (captureCount >= totalCategories) ColorPrimary
+                        else (if (isActive) player.color else ColorOnSurfaceVariant).copy(alpha = 0.8f),
+                    fontWeight = if (captureCount >= totalCategories) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
         }
     }
 }
@@ -752,6 +1306,8 @@ private fun DarkBingoCategoryCard(
     thumbnail: ImageBitmap?,
     otherCapturingPlayers: List<Player> = emptyList(),
     onCameraClick: () -> Unit,
+    showSwapButton: Boolean = false,
+    onSwapClick: () -> Unit = {},
 ) {
     var showInfo by remember { mutableStateOf(false) }
     if (showInfo) {
@@ -852,6 +1408,21 @@ private fun DarkBingoCategoryCard(
                     Spacer(Modifier.height(4.dp))
                     Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
                     if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
+                }
+            }
+            // Swap button (Kategorie-Tausch mode)
+            if (showSwapButton) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(3.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF3B82F6).copy(alpha = 0.9f))
+                        .clickable { onSwapClick() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Default.SwapHoriz, null, modifier = Modifier.size(14.dp), tint = Color.White)
                 }
             }
             // Upload success overlay with animated checkmark
