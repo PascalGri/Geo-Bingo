@@ -29,7 +29,6 @@ data class GameHistoryEntry(
     val totalCategories: Int,
     val players: List<HistoryPlayer>,
     val jokerMode: Boolean,
-    val gameMode: String = "classic",
 )
 
 class GameState {
@@ -104,29 +103,6 @@ class GameState {
     var myJokerUsed by mutableStateOf(false)
     var jokerLabels by mutableStateOf(mapOf<String, String>()) // playerId → custom label
 
-    // Game mode: "classic", "kategorie_tausch", "sabotage", "elimination"
-    var gameMode by mutableStateOf("classic")
-
-    // Kategorie-Tausch: each player gets 1 swap per game
-    var mySwapUsed by mutableStateOf(false)
-    // Tracks swapped categories per player: playerId → (oldCatId → newCategory)
-    var swappedCategories by mutableStateOf(mapOf<String, Map<String, Category>>())
-
-    // Sabotage: each player gets 1 sabotage token
-    var mySabotageUsed by mutableStateOf(false)
-    // Tracks sabotages: targetPlayerId → (blockedCatId → replacementCategory)
-    var sabotages by mutableStateOf(mapOf<String, Map<String, Category>>())
-    // Who sabotaged whom: targetPlayerId → saboteurPlayerId
-    var sabotageSource by mutableStateOf(mapOf<String, String>())
-    // Blocked category IDs for current player
-    var myBlockedCategories by mutableStateOf(setOf<String>())
-
-    // Elimination mode
-    var eliminationRound by mutableStateOf(0)
-    var eliminatedPlayerIds by mutableStateOf(setOf<String>())
-    var showEliminationScreen by mutableStateOf(false)
-    var lastEliminatedPlayerId by mutableStateOf<String?>(null)
-
     // One-shot message shown on the next screen (e.g. "Lobby was closed")
     var pendingToast by mutableStateOf<String?>(null)
 
@@ -148,14 +124,7 @@ class GameState {
     val reviewPlayer: Player? get() = players.getOrNull(reviewPlayerIndex)
 
     fun startGame() {
-        if (gameMode == "elimination") {
-            // Elimination: shorter rounds (2 minutes), use only 2 categories per round
-            timeRemainingSeconds = 120
-            eliminationRound = 0
-            eliminatedPlayerIds = setOf()
-        } else {
-            timeRemainingSeconds = gameDurationMinutes * 60
-        }
+        timeRemainingSeconds = gameDurationMinutes * 60
         isGameRunning = true
         currentPlayerIndex = 0
         captures = players.associate { it.id to emptySet() }
@@ -284,24 +253,14 @@ class GameState {
             .maxOfOrNull { it.created_at } ?: "9999-99-99T99:99:99Z"
     }
 
-    fun getRankedPlayers(): List<Pair<Player, Int>> {
-        if (gameMode == "elimination") {
-            // In elimination mode, rank by survival: non-eliminated first, then eliminated in reverse order
-            val active = players.filter { it.id !in eliminatedPlayerIds }
-            val eliminated = players.filter { it.id in eliminatedPlayerIds }.reversed() // Last eliminated = higher rank
-            val ranked = active + eliminated
-            return ranked.mapIndexed { index, player ->
-                player to (ranked.size - index) // Score = rank position (higher is better)
-            }
-        }
-        return players.map { it to getPlayerScore(it.id) }
+    fun getRankedPlayers(): List<Pair<Player, Int>> =
+        players.map { it to getPlayerScore(it.id) }
             .sortedWith(
                 compareByDescending<Pair<Player, Int>> { it.second }
                     .thenByDescending { getSpeedBonusCount(it.first.id) }
                     .thenBy { getLastCaptureTime(it.first.id) } // Earlier timestamp is better
                     .thenBy { it.first.name } // Absolute last resort tie-breaker
             )
-    }
 
     fun saveToHistory() {
         val myId = myPlayerId ?: return
@@ -313,7 +272,6 @@ class GameState {
             totalCategories = selectedCategories.size,
             players = getRankedPlayers().map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = jokerMode,
-            gameMode = gameMode,
         )
         gameHistory = listOf(entry) + gameHistory
     }
@@ -339,16 +297,6 @@ class GameState {
         finishSignalDetected = false
         myJokerUsed = false
         jokerLabels = mapOf()
-        mySwapUsed = false
-        swappedCategories = mapOf()
-        mySabotageUsed = false
-        sabotages = mapOf()
-        sabotageSource = mapOf()
-        myBlockedCategories = setOf()
-        eliminationRound = 0
-        eliminatedPlayerIds = setOf()
-        showEliminationScreen = false
-        lastEliminatedPlayerId = null
         consecutiveNetworkErrors = 0
         playerAvatarBytes = mapOf()
         triedAvatarDownloads = setOf()
@@ -365,7 +313,6 @@ class GameState {
         isHost = false
         myPlayerId = null
         jokerMode = false
-        gameMode = "classic"
         currentScreen = Screen.HOME
     }
 
@@ -379,25 +326,6 @@ class GameState {
         // selectedCategories and gameDurationMinutes are intentionally kept for rematch
         currentScreen = Screen.LOBBY
     }
-
-    /** Get the effective categories for a player, accounting for sabotage blocks and replacements. */
-    fun getEffectiveCategories(playerId: String): List<Category> {
-        val playerSabotages = sabotages[playerId] ?: emptyMap()
-        return selectedCategories.map { cat ->
-            if (cat.id in playerSabotages) {
-                playerSabotages[cat.id]!!
-            } else {
-                cat
-            }
-        }
-    }
-
-    /** Get active (non-eliminated) players. */
-    fun getActivePlayers(): List<Player> =
-        players.filter { it.id !in eliminatedPlayerIds }
-
-    /** Check if a player is eliminated. */
-    fun isEliminated(playerId: String): Boolean = playerId in eliminatedPlayerIds
 
     fun formatTime(seconds: Int): String {
         val m = seconds / 60

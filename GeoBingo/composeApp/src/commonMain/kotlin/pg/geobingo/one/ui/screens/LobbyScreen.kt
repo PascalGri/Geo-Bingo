@@ -104,9 +104,13 @@ fun LobbyScreen(gameState: GameState) {
                     "running" -> {
                         val playerDtos = GameRepository.getPlayers(gameId)
                         gameState.players = playerDtos.map { it.toPlayer() }
+                        gameState.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                        gameState.isGameRunning = true
                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
-                        gameState.startGame()
+                        gameState.currentScreen = Screen.GAME
                     }
                     "closed" -> {
                         gameState.pendingToast = "Der Host hat die Lobby geschlossen."
@@ -128,9 +132,13 @@ fun LobbyScreen(gameState: GameState) {
                     if (game?.status == "running" && gameState.currentScreen == Screen.LOBBY) {
                         val playerDtos = GameRepository.getPlayers(gameId)
                         gameState.players = playerDtos.map { it.toPlayer() }
+                        gameState.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                        gameState.isGameRunning = true
                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
-                        gameState.startGame()
+                        gameState.currentScreen = Screen.GAME
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -195,10 +203,9 @@ fun LobbyScreen(gameState: GameState) {
                                 textAlign = TextAlign.Center,
                             )
                         }
-                        val minPlayers = if (gameState.gameMode == "elimination") 3 else 2
                         GradientButton(
-                            text = if (gameState.lobbyPlayers.size < minPlayers)
-                                "Mind. $minPlayers Spieler nötig"
+                            text = if (gameState.lobbyPlayers.size < 2)
+                                "Mind. 2 Spieler nötig"
                             else
                                 "Spiel starten (${gameState.lobbyPlayers.size} Spieler)",
                             onClick = {
@@ -208,15 +215,19 @@ fun LobbyScreen(gameState: GameState) {
                                         GameRepository.startGame(gameId)
                                         val playerDtos = GameRepository.getPlayers(gameId)
                                         gameState.players = playerDtos.map { it.toPlayer() }
+                                        gameState.captures = playerDtos.associate { it.id to emptySet() }
+                                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
+                                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
+                                        gameState.isGameRunning = true
                                         gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
                                             .takeIf { it >= 0 } ?: 0
-                                        gameState.startGame()
+                                        gameState.currentScreen = Screen.GAME
                                     } catch (e: Exception) {
                                         isStarting = false
                                     }
                                 }
                             },
-                            enabled = gameState.lobbyPlayers.size >= minPlayers && !isStarting,
+                            enabled = gameState.lobbyPlayers.size >= 2 && !isStarting,
                             modifier = Modifier.fillMaxWidth(),
                             gradientColors = GradientPrimary,
                             leadingIcon = {

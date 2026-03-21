@@ -40,24 +40,6 @@ class GameRealtimeManager(private val gameId: String) {
             filter("game_id", FilterOperator.EQ, gameId)
         }.map { it.decodeRecord<VoteSubmissionDto>() }
 
-    val sabotageInserts: Flow<SabotageDto> =
-        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "sabotages"
-            filter("game_id", FilterOperator.EQ, gameId)
-        }.map { it.decodeRecord<SabotageDto>() }
-
-    val categorySwapInserts: Flow<CategorySwapDto> =
-        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "category_swaps"
-            filter("game_id", FilterOperator.EQ, gameId)
-        }.map { it.decodeRecord<CategorySwapDto>() }
-
-    val eliminationInserts: Flow<EliminationDto> =
-        channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "eliminations"
-            filter("game_id", FilterOperator.EQ, gameId)
-        }.map { it.decodeRecord<EliminationDto>() }
-
     suspend fun subscribe() {
         try {
             channel.subscribe(blockUntilSubscribed = true)

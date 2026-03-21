@@ -19,12 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.Style
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,7 +60,6 @@ fun CreateGameScreen(gameState: GameState) {
     var hostNameInput by remember { mutableStateOf("") }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
     var jokerMode by remember { mutableStateOf(false) }
-    var selectedGameMode by remember { mutableStateOf("classic") } // "classic", "kategorie_tausch", "sabotage", "elimination"
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) selectedAvatarBytes = bytes
@@ -90,7 +86,7 @@ fun CreateGameScreen(gameState: GameState) {
         snackbarHostState.showSnackbar(msg)
     }
 
-    val anim = rememberStaggeredAnimation(count = 6)
+    val anim = rememberStaggeredAnimation(count = 5)
     val bottomBarOffset = remember { Animatable(80f) }
     val bottomBarAlpha = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
@@ -148,7 +144,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     val presets = PRESET_CATEGORIES.filter { it.id in selectedPresetIds }
                                     val allCategories = customCategories + presets
                                     val code = generateCode()
-                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode, selectedGameMode)
+                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
                                     val avatarBytes = selectedAvatarBytes
@@ -169,7 +165,6 @@ fun CreateGameScreen(gameState: GameState) {
                                     gameState.myPlayerId = hostDto.id
                                     gameState.gameDurationMinutes = durationMinutes.toInt()
                                     gameState.jokerMode = jokerMode
-                                    gameState.gameMode = selectedGameMode
                                     gameState.selectedCategories = categoryDtos.map { it.toCategory() }
                                     gameState.lobbyPlayers = listOf(hostDto)
                                     gameState.currentScreen = Screen.LOBBY
@@ -490,7 +485,7 @@ fun CreateGameScreen(gameState: GameState) {
                             )
                         }
                         Text(
-                            "Jeder Spieler darf einmal ein Wildcard-Foto machen \u2013 mit eigenem Thema.",
+                            "Jeder Spieler darf einmal ein Wildcard-Foto machen – mit eigenem Thema.",
                             style = MaterialTheme.typography.bodySmall,
                             color = ColorOnSurfaceVariant,
                             lineHeight = 16.sp,
@@ -522,114 +517,6 @@ fun CreateGameScreen(gameState: GameState) {
                             Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
                             Text(
                                 "Spieler tippen auf den Joker-Button, geben ein Thema ein und machen ein Foto. Das Joker-Bild wird ganz normal abgestimmt.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnPrimaryContainer,
-                                lineHeight = 16.sp,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── 5. Spielmodus ───────────────────────────────────────────────
-            DarkSectionCard(title = "Spielmodus", modifier = Modifier.staggered(5)) {
-                val modes = listOf(
-                    Triple("kategorie_tausch", "Kategorie-Tausch", "Jeder Spieler darf einmal pro Spiel eine Kategorie gegen eine zufällige neue tauschen."),
-                    Triple("sabotage", "Sabotage", "Jeder Spieler darf einmal eine Kategorie eines Gegners sperren. Der Gegner bekommt eine Ersatzkategorie."),
-                    Triple("elimination", "Elimination", "Nach jeder Runde fliegt der langsamste Spieler raus. Mind. 3 Spieler."),
-                )
-                val modeIcons = mapOf(
-                    "kategorie_tausch" to Icons.Default.SwapHoriz,
-                    "sabotage" to Icons.Default.Block,
-                    "elimination" to Icons.Default.PersonOff,
-                )
-                val modeColors = mapOf(
-                    "kategorie_tausch" to Color(0xFF3B82F6),
-                    "sabotage" to Color(0xFFEF4444),
-                    "elimination" to Color(0xFFF59E0B),
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    modes.forEach { (modeId, modeName, modeDesc) ->
-                        val isSelected = selectedGameMode == modeId
-                        val isDisabled = selectedGameMode != "classic" && !isSelected
-                        val modeColor = modeColors[modeId] ?: ColorPrimary
-                        val alpha = if (isDisabled) 0.35f else 1f
-
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) modeColor.copy(alpha = 0.12f) else ColorSurfaceVariant,
-                            border = BorderStroke(
-                                1.dp,
-                                if (isSelected) modeColor.copy(alpha = 0.6f) else ColorOutlineVariant.copy(alpha = alpha),
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer { this.alpha = alpha }
-                                .clickable(enabled = !isDisabled) {
-                                    selectedGameMode = if (isSelected) "classic" else modeId
-                                },
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = modeIcons[modeId] ?: Icons.Default.Style,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = if (isSelected) modeColor else ColorOnSurfaceVariant,
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        modeName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isSelected) modeColor else ColorOnSurface,
-                                    )
-                                    Text(
-                                        modeDesc,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isSelected) modeColor.copy(alpha = 0.75f) else ColorOnSurfaceVariant,
-                                        lineHeight = 15.sp,
-                                    )
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                if (isSelected) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = modeColor,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Hint when a mode is selected
-                val selectedModeInfo = when (selectedGameMode) {
-                    "kategorie_tausch" -> "Tausch-Button erscheint auf jeder nicht-fotografierten Kategorie. Nur 1x pro Spieler."
-                    "sabotage" -> "Sabotage-Button erscheint nach 25% der Spielzeit. Gesperrte Kategorien werden durch neue ersetzt."
-                    "elimination" -> "Kurze Runden mit wenigen Kategorien. Nach jeder Runde wird der Letztplatzierte eliminiert."
-                    else -> null
-                }
-                if (selectedModeInfo != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = ColorPrimaryContainer,
-                        border = BorderStroke(1.dp, (modeColors[selectedGameMode] ?: ColorPrimary).copy(alpha = 0.3f)),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(16.dp), tint = modeColors[selectedGameMode] ?: ColorPrimary)
-                            Text(
-                                selectedModeInfo,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = ColorOnPrimaryContainer,
                                 lineHeight = 16.sp,
