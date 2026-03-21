@@ -241,6 +241,159 @@ Features die Viralität und soziale Interaktion fördern.
 
 ---
 
+## Phase 7: UX & Accessibility
+
+### 7.1 Quick-Rejoin
+- **Dateien:** `App.kt`, `game/GameState.kt`, neue Datei `data/ActiveGameStore.kt`
+- **Was:** Wenn die App geschlossen wird während ein Spiel läuft → beim Öffnen direkt "Zurück zum Spiel?"-Dialog statt HomeScreen
+- **Umsetzung:**
+  - Beim Spielstart `gameId` + `playerId` + `gameCode` in lokalen Storage (`DataStore`/`SharedPreferences`) persistieren
+  - Bei App-Start prüfen: gibt es eine gespeicherte Session? → Supabase-Query ob Spiel noch `status = "running"` oder `"voting"` hat
+  - Wenn ja: AlertDialog "Du hast ein laufendes Spiel. Zurück zum Spiel?" mit "Ja" → direkt zum GameScreen/ReviewScreen navigieren, "Nein" → Session löschen, HomeScreen zeigen
+  - Bei Spielende Session aus Storage löschen
+  - **Edge Case:** Spiel wurde beendet während App zu war → "Das Spiel ist bereits vorbei" → direkt zu Results navigieren
+
+### 7.2 Haptic Patterns
+- **Dateien:** `platform/HapticProvider.kt` (alle Plattformen), alle Screens mit Interaktionen
+- **Was:** Unterschiedliche Vibrationsmuster für verschiedene Events
+- **Muster:**
+  - 📸 Foto aufgenommen: kurzer einzelner Tick (10ms)
+  - ⭐ Stern vergeben: sanfter doppelter Tick (10ms-Pause-10ms)
+  - 🏆 Spiel gewonnen: langer Erfolgs-Pattern (Buzz-Pause-Buzz-Pause-Buzz, aufsteigend)
+  - 🎖️ Achievement freigeschaltet: spezieller Pattern (kurz-kurz-lang)
+  - ⏰ Timer <10s: rhythmischer Herzschlag-Pattern pro Sekunde
+  - ❌ Fehler: einzelner harter Buzz (50ms)
+- **Umsetzung:**
+  - `HapticProvider` um Pattern-basierte Methoden erweitern (aktuell vermutlich nur einfaches `vibrate()`)
+  - Android: `VibrationEffect.createWaveform()` mit Timing-Arrays
+  - iOS: `UIImpactFeedbackGenerator` mit verschiedenen Styles (.light, .medium, .heavy) + `UINotificationFeedbackGenerator`
+  - Weiterhin über Settings-Toggle abschaltbar
+
+---
+
+## Phase 8: Neue Spielmodi
+
+### 8.1 Bingo-Grid Modus (3x3 / 4x4 / 5x5)
+- **Dateien:** `game/GameState.kt`, `ui/screens/CreateGameScreen.kt`, `ui/screens/GameScreen.kt`, `ui/screens/ResultsScreen.kt`, `network/GameRepository.kt`
+- **Was:** Klassisches Bingo — Kategorien in einem Grid angeordnet, wer zuerst eine Reihe/Spalte/Diagonale fotografiert hat, ruft "Bingo!"
+- **Umsetzung:**
+  - Neues Feld auf Game: `mode: "classic" | "bingo"`, `bingo_size: 3 | 4 | 5`
+  - CreateGameScreen: Mode-Auswahl (Classic / Bingo) mit Grid-Size Picker
+  - Kategorien werden zufällig in ein NxN Grid verteilt (jeder Spieler bekommt dasselbe Grid)
+  - GameScreen: Grid-Darstellung mit Zeilen/Spalten-Linien statt freiem Kategorie-Grid
+  - Win-Condition: Erste vollständige Reihe, Spalte oder Diagonale → "BINGO!"-Animation + 30s Countdown für andere
+  - Scoring: Bingo-Bonus (+50 Punkte) für den ersten Bingo, danach weiter spielen für Zusatzpunkte
+  - Mehrere Bingos möglich (jeder weitere +25 Punkte)
+  - **Komplexität:** Mittel — hauptsächlich UI-Änderung und neue Win-Condition-Logik
+
+### 8.2 Elimination-Modus
+- **Dateien:** `game/GameState.kt`, `network/GameRepository.kt`, `ui/screens/GameScreen.kt`, neue Datei `ui/screens/EliminationRoundScreen.kt`
+- **Was:** Jede Runde fliegt der langsamste Spieler raus. Letzte 2 Spieler im Finale
+- **Umsetzung:**
+  - Neues Feld auf Game: `mode: "elimination"`, `current_round: Int`, `eliminated_players: List<String>`
+  - Rundenbasiert: Jede Runde 2-3 Kategorien, kürzerer Timer (2-3 Minuten)
+  - Nach jeder Runde: Zwischenscreen mit Ranking → letzter Platz wird eliminiert (dramatische Animation: Spieler-Avatar fällt runter / wird ausgegraut)
+  - Eliminierte Spieler werden zu Zuschauern (können Fotos der verbleibenden Spieler sehen)
+  - Finale: 2 Spieler, 1 Kategorie, 1 Minute — dramatisches 1v1
+  - **Mindestens 4 Spieler** erforderlich
+  - **Komplexität:** Hoch — neue Runden-Logik, Zuschauer-Modus, Zwischen-Screens
+
+### 8.3 Blind-Modus
+- **Dateien:** `game/GameState.kt`, `ui/screens/GameScreen.kt`, `network/GameRepository.kt`
+- **Was:** Kategorien werden erst nach und nach enthüllt (alle 2 Minuten eine neue)
+- **Umsetzung:**
+  - Neues Feld auf Game: `mode: "blind"`, `reveal_interval_s: Int` (Standard: 120s)
+  - Alle Kategorien werden bei Spielstart erstellt aber mit `revealed_at` Timestamp versehen
+  - GameScreen zeigt nur bereits enthüllte Kategorien. Verdeckte als "?" mit Countdown bis Enthüllung
+  - Enthüllungs-Animation: Karte dreht sich um (3D-Flip) mit Sound-Effekt
+  - Strategie-Element: Schnell die aktuellen Kategorien abarbeiten oder auf neue warten?
+  - **Komplexität:** Mittel — Timer-basierte Reveal-Logik + Animation
+
+### 8.4 Sabotage-Modus
+- **Dateien:** `game/GameState.kt`, `ui/screens/GameScreen.kt`, `network/GameRepository.kt`, neue Supabase-Tabelle `sabotages`
+- **Was:** Jeder Spieler darf 1x eine Kategorie eines Gegners "sperren" — der muss dann eine Ersatzkategorie finden
+- **Umsetzung:**
+  - Jeder Spieler hat 1 Sabotage-Token pro Spiel
+  - Button auf Gegner-Tab: "Sabotage!" → Auswahl welche Kategorie des Gegners gesperrt wird
+  - Gesperrte Kategorie wird beim Ziel-Spieler rot markiert mit 🔒, kann nicht mehr fotografiert werden
+  - Stattdessen erscheint eine zufällige Ersatzkategorie (aus einem Pool)
+  - Notification an den sabotierten Spieler: "Deine Kategorie X wurde gesperrt! Neue Kategorie: Y"
+  - Sabotage erst nach 25% der Spielzeit möglich (Schutzphase)
+  - **Komplexität:** Mittel — neue Interaktion + DB-Tabelle + Ersatzkategorie-Logik
+
+### 8.5 Zeitdruck-Runden
+- **Dateien:** `game/GameState.kt`, `ui/screens/GameScreen.kt`, `network/GameRepository.kt`
+- **Was:** Statt ein langer Timer → 5 kurze Runden à 2 Minuten, jede Runde 1-2 neue Kategorien
+- **Umsetzung:**
+  - Neues Feld: `mode: "blitz"`, `total_rounds: Int`, `current_round: Int`
+  - Pro Runde: 1-2 Kategorien werden enthüllt, 2 Minuten Timer
+  - Zwischen den Runden: 15s Pause mit Zwischenstand
+  - Nicht geschaffte Kategorien verfallen (0 Punkte)
+  - Am Ende: Gesamtbewertung aller Runden
+  - Erzeugt mehr Druck und kürzere, intensivere Spielsessions
+  - **Komplexität:** Mittel — Runden-Management + Zwischen-Screens
+
+---
+
+## Phase 9: Gameplay-Tweaks
+
+### 9.1 Kategorie-Tausch
+- **Dateien:** `ui/screens/GameScreen.kt`, `game/GameState.kt`, `network/GameRepository.kt`
+- **Was:** Einmal pro Spiel eine Kategorie gegen eine zufällige neue tauschen
+- **Umsetzung:**
+  - "Tauschen"-Button (🔄) auf jeder noch nicht fotografierten Kategorie-Karte
+  - Tap → Bestätigungs-Dialog: "Kategorie X tauschen? Du hast nur 1 Tausch!"
+  - Backend: Zufällige Kategorie aus Pool wählen (nicht bereits im Spiel)
+  - Animation: Alte Karte fliegt raus, neue dreht sich rein
+  - Counter im UI: "1 Tausch übrig" → nach Nutzung ausgegraut
+  - Getauschte Kategorie gilt nur für diesen Spieler (andere behalten ihre)
+
+### 9.2 Goldene Kategorie
+- **Dateien:** `game/GameState.kt`, `ui/screens/GameScreen.kt`, `network/GameRepository.kt`
+- **Was:** Eine zufällige Kategorie gibt doppelte Punkte — wird erst nach 50% der Zeit enthüllt
+- **Umsetzung:**
+  - Bei Spielerstellung: eine Kategorie zufällig als `golden = true` markieren (in DB gespeichert, aber nicht an Clients gesendet)
+  - Nach 50% der Spielzeit: Realtime-Event enthüllt die goldene Kategorie
+  - Enthüllungs-Animation: Goldener Glitter-Effekt, Karte bekommt goldenen Rahmen (GradientGold)
+  - Scoring: Sternbewertungen für diese Kategorie zählen doppelt
+  - Strategisches Element: Lohnt es sich, die goldene Kategorie nochmal zu fotografieren?
+  - UI: Goldenes "2x"-Badge auf der Karte
+
+---
+
+## Phase 10: Export & Integration
+
+### 10.1 Clip-Export (Slideshow-Video)
+- **Dateien:** Neue Datei `platform/VideoExporter.kt`, Anpassung `ui/screens/ResultsScreen.kt`
+- **Was:** Automatisch aus allen Fotos eines Spiels ein kurzes Slideshow-Video generieren
+- **Umsetzung:**
+  - Aus allen Fotos des Spiels (sortiert nach Aufnahmezeit) eine Slideshow bauen
+  - Pro Foto: 2s Anzeige mit Ken-Burns-Effekt (leichtes Zoom/Pan)
+  - Übergänge: Cross-Fade zwischen Fotos
+  - Overlay: Kategorie-Name + Spieler-Name + Sternbewertung pro Foto
+  - Outro: Endstand mit Podium (statisches Bild, 3s)
+  - Hintergrundmusik: Lizenzfreier Track (lokal gebundled, 2-3 Optionen)
+  - **Plattform-spezifisch:**
+    - Android: `MediaCodec` + `MediaMuxer` für MP4-Export
+    - iOS: `AVFoundation` (`AVAssetWriter`)
+    - Web: Canvas API + `MediaRecorder`
+  - Export als MP4, Share via native Share-Sheet
+  - **Komplexität:** Sehr hoch — plattformspezifische Video-Encoding-APIs
+
+### 10.2 Deep Links
+- **Dateien:** Plattform-spezifische Konfiguration (AndroidManifest.xml, Info.plist, Web-Routing), `App.kt`
+- **Was:** `katchit://join/ABC123` — Link öffnet App direkt im Join-Screen mit vorausgefülltem Code
+- **Umsetzung:**
+  - **Android:** Intent-Filter in `AndroidManifest.xml` für Schema `katchit://` und HTTPS `katchit.app/join/*`
+  - **iOS:** URL-Schema in `Info.plist` + Associated Domains für Universal Links
+  - **Web:** Route `/join/:code` im Web-Router
+  - App.kt: Bei Start Intent/URL parsen → wenn `/join/{code}` → direkt zu JoinGameScreen navigieren mit vorausgefülltem Code
+  - Share-Funktionalität anpassen: Statt nur Text-Code auch Deep Link generieren
+  - QR-Code generieren: `katchit://join/ABC123` als QR-Code auf dem Lobby-Screen anzeigen
+  - **Komplexität:** Mittel — hauptsächlich Plattform-Konfiguration
+
+---
+
 ## Empfohlene Reihenfolge
 
 | Priorität | Feature | Aufwand | Impact |
@@ -267,3 +420,14 @@ Features die Viralität und soziale Interaktion fördern.
 | 20 | 4.4 Team-Modus | Sehr hoch | Hoch |
 | 21 | 5.3 XP/Level-System | Hoch | Hoch |
 | 22 | 6.1 Saisonale Events | Hoch | Mittel |
+| 23 | 7.1 Quick-Rejoin | Mittel | Sehr hoch |
+| 24 | 7.2 Haptic Patterns | Klein | Mittel |
+| 25 | 8.1 Bingo-Grid Modus | Mittel | Sehr hoch |
+| 26 | 8.2 Elimination-Modus | Hoch | Hoch |
+| 27 | 8.3 Blind-Modus | Mittel | Hoch |
+| 28 | 8.4 Sabotage-Modus | Mittel | Hoch |
+| 29 | 8.5 Zeitdruck-Runden | Mittel | Hoch |
+| 30 | 9.1 Kategorie-Tausch | Klein | Mittel |
+| 31 | 9.2 Goldene Kategorie | Klein | Hoch |
+| 32 | 10.1 Clip-Export | Sehr hoch | Hoch |
+| 33 | 10.2 Deep Links | Mittel | Hoch |
