@@ -171,25 +171,46 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
+                    if (entry.date.isNotBlank()) {
+                        val dateText = try {
+                            val datePart = entry.date.substringBefore("T")
+                            val timePart = entry.date.substringAfter("T").substringBefore(".")
+                                .substringBefore("Z").substringBefore("+")
+                            val parts = datePart.split("-")
+                            val timeParts = timePart.split(":")
+                            if (parts.size >= 3 && timeParts.size >= 2) {
+                                "${parts[2]}.${parts[1]}.${parts[0]}  ${timeParts[0]}:${timeParts[1]}"
+                            } else ""
+                        } catch (_: Exception) { "" }
+                        if (dateText.isNotEmpty()) {
+                            Text(
+                                dateText,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ColorOnSurface,
+                            )
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        AnimatedGradientText(
-                            text = "Code: ${entry.gameCode}",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            gradientColors = GradientPrimary,
-                            durationMillis = 3000,
+                        Text(
+                            entry.gameCode,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOnSurfaceVariant,
+                            fontSize = 10.sp,
                         )
                         if (entry.jokerMode) {
-                            Icon(Icons.Default.Style, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
+                            Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
                         }
+                        Text(
+                            "${entry.totalCategories} Kategorien",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOnSurfaceVariant,
+                            fontSize = 10.sp,
+                        )
                     }
-                    Text(
-                        "${entry.totalCategories} Kategorien",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                    )
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(

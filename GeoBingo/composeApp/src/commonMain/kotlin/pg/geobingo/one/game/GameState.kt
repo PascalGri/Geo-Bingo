@@ -29,6 +29,7 @@ data class GameHistoryEntry(
     val totalCategories: Int,
     val players: List<HistoryPlayer>,
     val jokerMode: Boolean,
+    val date: String = "",
 )
 
 class GameState {
@@ -265,6 +266,7 @@ class GameState {
     fun saveToHistory() {
         val myId = myPlayerId ?: return
         val myPlayer = players.find { it.id == myId } ?: return
+        val now = kotlinx.datetime.Clock.System.now().toString()
         val entry = GameHistoryEntry(
             gameCode = gameCode ?: "?",
             playerName = myPlayer.name,
@@ -272,6 +274,7 @@ class GameState {
             totalCategories = selectedCategories.size,
             players = getRankedPlayers().map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = jokerMode,
+            date = now,
         )
         gameHistory = listOf(entry) + gameHistory
     }
