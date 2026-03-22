@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
@@ -63,7 +63,7 @@ fun HistoryScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),

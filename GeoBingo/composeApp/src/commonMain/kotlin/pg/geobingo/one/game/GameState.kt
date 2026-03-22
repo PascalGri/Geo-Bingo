@@ -197,8 +197,6 @@ class GameState {
             )
     }
 
-    fun getRankedPlayers(): List<Pair<Player, Int>> = rankedPlayers
-
     // ── History ──────────────────────────────────────────────────────────
     fun saveToHistory() {
         val myId = session.myPlayerId ?: return
@@ -209,7 +207,7 @@ class GameState {
             playerName = myPlayer.name,
             score = getPlayerScore(myId),
             totalCategories = gameplay.selectedCategories.size,
-            players = getRankedPlayers().map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
+            players = rankedPlayers.map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = joker.jokerMode,
             date = now,
         )

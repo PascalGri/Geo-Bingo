@@ -1,6 +1,9 @@
 package pg.geobingo.one.data
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -9,7 +12,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "pants"             -> Icons.Default.Checkroom
     "jacket"            -> Icons.Default.Checkroom
     "hat"               -> Icons.Default.ChildCare
-    "sneaker"           -> Icons.Default.DirectionsWalk
+    "sneaker"           -> Icons.AutoMirrored.Filled.DirectionsWalk
     // ── Fahrzeuge ─────────────────────────────────────────────────────────────
     "car"               -> Icons.Default.DirectionsCar
     "vehicle"           -> Icons.Default.ElectricScooter
@@ -37,7 +40,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     // ── Straßenkunst ─────────────────────────────────────────────────────────
     "street_art"        -> Icons.Default.Casino
     "mural"             -> Icons.Default.Extension
-    "sculpture"         -> Icons.Default.AssistantDirection
+    "sculpture"         -> Icons.Default.NearMe
     "pattern"           -> Icons.Default.Draw
     // ── Schilder ─────────────────────────────────────────────────────────────
     "sign"              -> Icons.Default.Signpost
@@ -48,7 +51,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "reflection"        -> Icons.Default.Flip
     "light"             -> Icons.Default.SportsBasketball
     // ── Sport ─────────────────────────────────────────────────────────────────
-    "sport"             -> Icons.Default.DirectionsRun
+    "sport"             -> Icons.AutoMirrored.Filled.DirectionsRun
     "sport_field"       -> Icons.Default.ElectricBolt
     // ── Technik ───────────────────────────────────────────────────────────────
     "tech"              -> Icons.Default.Memory
@@ -77,7 +80,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "triangle"          -> Icons.Default.Roofing
     // ── Kultur ────────────────────────────────────────────────────────────────
     "music"             -> Icons.Default.Mic
-    "culture"           -> Icons.Default.Article
+    "culture"           -> Icons.AutoMirrored.Filled.Article
     // ── Kurioses ─────────────────────────────────────────────────────────────
     "weird"             -> Icons.Default.QuestionMark
     "miniature"         -> Icons.Default.ZoomIn

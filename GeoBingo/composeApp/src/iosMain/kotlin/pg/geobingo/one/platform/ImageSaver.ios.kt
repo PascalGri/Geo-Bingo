@@ -1,5 +1,6 @@
 package pg.geobingo.one.platform
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
@@ -8,7 +9,7 @@ import platform.Foundation.create
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageWriteToSavedPhotosAlbum
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolean = try {
     val data = bytes.usePinned { pinned ->
         NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())

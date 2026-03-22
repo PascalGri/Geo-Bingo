@@ -45,7 +45,7 @@ internal fun formatRating(value: Double): String {
 fun ResultsScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     val ranked = remember(gameState.gameplay.players, gameState.review.allVotes, gameState.review.allCaptures) {
-        gameState.getRankedPlayers()
+        gameState.rankedPlayers
     }
     val winner = ranked.firstOrNull()?.first
     val shareManager = rememberShareManager()

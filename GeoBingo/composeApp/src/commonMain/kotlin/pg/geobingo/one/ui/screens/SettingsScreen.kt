@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -42,7 +44,7 @@ fun SettingsScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -61,11 +63,11 @@ fun SettingsScreen(gameState: GameState) {
             // Sound & Haptic section
             SettingsSection(title = "Allgemein") {
                 SettingsToggleRow(
-                    icon = Icons.Default.VolumeUp,
+                    icon = Icons.AutoMirrored.Filled.VolumeUp,
                     title = "Soundeffekte",
                     subtitle = "Töne bei Aktionen abspielen",
                     checked = gameState.ui.soundEnabled,
-                    onCheckedChange = { gameState.ui.setSoundEnabled(it) },
+                    onCheckedChange = { gameState.ui.updateSoundEnabled(it) },
                 )
                 HorizontalDivider(color = ColorOutlineVariant)
                 SettingsToggleRow(
@@ -73,7 +75,7 @@ fun SettingsScreen(gameState: GameState) {
                     title = "Haptisches Feedback",
                     subtitle = "Vibrationen bei Interaktionen",
                     checked = gameState.ui.hapticEnabled,
-                    onCheckedChange = { gameState.ui.setHapticEnabled(it) },
+                    onCheckedChange = { gameState.ui.updateHapticEnabled(it) },
                 )
             }
 

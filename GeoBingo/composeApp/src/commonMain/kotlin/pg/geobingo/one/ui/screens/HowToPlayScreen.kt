@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -53,7 +55,7 @@ fun HowToPlayScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -91,7 +93,7 @@ fun HowToPlayScreen(gameState: GameState) {
             )
             StepCard(
                 number = "2",
-                icon = Icons.Default.DirectionsWalk,
+                icon = Icons.AutoMirrored.Filled.DirectionsWalk,
                 title = "Raus in die Stadt",
                 body = "Sobald alle dabei sind, startet der Host das Spiel. Jetzt habt ihr eine festgelegte Zeit, um so viele Kategorien wie möglich zu fotografieren.",
                 modifier = Modifier.staggered(2),

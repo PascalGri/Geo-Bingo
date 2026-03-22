@@ -13,12 +13,12 @@ class UiState {
     var hapticEnabled by mutableStateOf(AppSettings.getBoolean(SettingsKeys.HAPTIC_ENABLED, true))
         private set
 
-    fun setSoundEnabled(value: Boolean) {
+    fun updateSoundEnabled(value: Boolean) {
         soundEnabled = value
         AppSettings.setBoolean(SettingsKeys.SOUND_ENABLED, value)
     }
 
-    fun setHapticEnabled(value: Boolean) {
+    fun updateHapticEnabled(value: Boolean) {
         hapticEnabled = value
         AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, value)
     }

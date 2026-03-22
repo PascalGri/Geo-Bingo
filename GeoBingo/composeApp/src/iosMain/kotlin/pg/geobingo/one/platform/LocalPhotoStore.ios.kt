@@ -1,5 +1,6 @@
 package pg.geobingo.one.platform
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.readBytes
@@ -7,7 +8,7 @@ import kotlinx.cinterop.usePinned
 import platform.Foundation.*
 import platform.posix.memcpy
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 actual object LocalPhotoStore {
     private val baseDir: String by lazy {
         val docs = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).first() as String
@@ -55,6 +56,7 @@ actual object LocalPhotoStore {
         return NSString.stringWithContentsOfFile(path, encoding = NSUTF8StringEncoding, error = null) as? String
     }
 
+    @Suppress("UNCHECKED_CAST")
     actual fun listGameIds(): List<String> {
         val gamesDir = "$baseDir/games"
         val fm = NSFileManager.defaultManager

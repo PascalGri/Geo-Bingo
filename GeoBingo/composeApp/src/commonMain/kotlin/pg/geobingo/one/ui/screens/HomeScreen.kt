@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -250,7 +252,7 @@ fun HomeScreen(gameState: GameState) {
                 border = BorderStroke(1.dp, ColorOutline),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
             ) {
-                Icon(Icons.Default.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
+                Icon(Icons.AutoMirrored.Filled.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Runde beitreten",
@@ -269,7 +271,7 @@ fun HomeScreen(gameState: GameState) {
             ) {
                 TextButton(onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY }) {
                     Icon(
-                        Icons.Default.HelpOutline,
+                        Icons.AutoMirrored.Filled.HelpOutline,
                         contentDescription = null,
                         modifier = Modifier.size(15.dp),
                         tint = ColorOnSurfaceVariant,

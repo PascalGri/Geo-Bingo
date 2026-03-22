@@ -11,6 +11,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -97,7 +98,7 @@ fun CreateGameScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
