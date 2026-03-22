@@ -44,17 +44,17 @@ import pg.geobingo.one.ui.theme.rememberFeedback
 fun LobbyScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
-    val gameId = gameState.gameId ?: return
+    val gameId = gameState.session.gameId ?: return
     val realtime = remember(gameId) { gameState.ensureRealtime(gameId) }
     val feedback = rememberFeedback(gameState)
 
     // Lobby auto-close timeout (host only): 5 min without a second player joining
     var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
     LaunchedEffect(gameId) {
-        if (!gameState.isHost) return@LaunchedEffect
+        if (!gameState.session.isHost) return@LaunchedEffect
         while (lobbyTimeoutSeconds > 0) {
             delay(1000)
-            if (gameState.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
+            if (gameState.gameplay.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
             lobbyTimeoutSeconds--
         }
         try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { e.printStackTrace() }
@@ -63,27 +63,7 @@ fun LobbyScreen(gameState: GameState) {
 
     // Initial player load
     LaunchedEffect(gameId) {
-        try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
-    }
-
-    // Download avatar photos for all players not yet cached or tried
-    LaunchedEffect(gameState.lobbyPlayers) {
-        gameState.lobbyPlayers
-            .filter { it.id !in gameState.playerAvatarBytes && it.id !in gameState.triedAvatarDownloads }
-            .forEach { player ->
-                scope.launch {
-                    gameState.triedAvatarDownloads = gameState.triedAvatarDownloads + player.id
-                    // Retry up to 3 times with backoff
-                    for (attempt in 0 until 3) {
-                        if (attempt > 0) delay(2_000L * attempt)
-                        val bytes = GameRepository.downloadAvatarPhoto(player.id)
-                        if (bytes != null) {
-                            gameState.playerAvatarBytes = gameState.playerAvatarBytes + (player.id to bytes)
-                            break
-                        }
-                    }
-                }
-            }
+        try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
     }
 
     // 1. Subscribe first
@@ -94,29 +74,28 @@ fun LobbyScreen(gameState: GameState) {
     // 2. Realtime: player joined
     LaunchedEffect(gameId) {
         realtime.playerInserts.collect {
-            try { gameState.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
+            try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
     // 3. Realtime: game status changes (guests transition automatically)
     LaunchedEffect(gameId) {
-        if (!gameState.isHost) {
+        if (!gameState.session.isHost) {
             realtime.gameUpdates.collect { game ->
                 when (game.status) {
                     "running" -> {
                         val playerDtos = GameRepository.getPlayers(gameId)
-                        gameState.players = playerDtos.map { it.toPlayer() }
-                        gameState.captures = playerDtos.associate { it.id to emptySet() }
-                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                        gameState.isGameRunning = true
-                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                        gameState.gameplay.players = playerDtos.map { it.toPlayer() }
+                        gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
+                        gameState.gameplay.isGameRunning = true
+                        gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
                         feedback.gameStart()
-                        gameState.currentScreen = Screen.GAME
+                        gameState.session.currentScreen = Screen.GAME
                     }
                     "closed" -> {
-                        gameState.pendingToast = "Der Host hat die Lobby geschlossen."
+                        gameState.ui.pendingToast = "Der Host hat die Lobby geschlossen."
                         gameState.resetGame()
                     }
                 }
@@ -124,28 +103,32 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // 4. Fallback Polling
+    // 4. Fallback Polling (with backoff on errors)
     LaunchedEffect(gameId) {
+        var interval = 3_000L
         while (true) {
-            delay(3_000)
+            delay(interval)
             try {
-                gameState.lobbyPlayers = GameRepository.getPlayers(gameId)
-                if (!gameState.isHost) {
+                gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId)
+                if (!gameState.session.isHost) {
                     val game = GameRepository.getGameById(gameId)
-                    if (game?.status == "running" && gameState.currentScreen == Screen.LOBBY) {
+                    if (game?.status == "running" && gameState.session.currentScreen == Screen.LOBBY) {
                         val playerDtos = GameRepository.getPlayers(gameId)
-                        gameState.players = playerDtos.map { it.toPlayer() }
-                        gameState.captures = playerDtos.associate { it.id to emptySet() }
-                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                        gameState.isGameRunning = true
-                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                        gameState.gameplay.players = playerDtos.map { it.toPlayer() }
+                        gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
+                        gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
+                        gameState.gameplay.isGameRunning = true
+                        gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                             .takeIf { it >= 0 } ?: 0
                         feedback.gameStart()
-                        gameState.currentScreen = Screen.GAME
+                        gameState.session.currentScreen = Screen.GAME
                     }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+                interval = 3_000L
+            } catch (e: Exception) {
+                e.printStackTrace()
+                interval = (interval * 1.5).toLong().coerceAtMost(15_000L)
+            }
         }
     }
 
@@ -183,11 +166,11 @@ fun LobbyScreen(gameState: GameState) {
             )
         },
         bottomBar = {
-            if (gameState.isHost) {
+            if (gameState.session.isHost) {
                 Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
                     Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp)) {
                         // Lobby timeout warning (visible when < 60s remaining and still waiting for players)
-                        if (lobbyTimeoutSeconds in 1..59 && gameState.lobbyPlayers.size < 2) {
+                        if (lobbyTimeoutSeconds in 1..59 && gameState.gameplay.lobbyPlayers.size < 2) {
                             val timeoutMin = lobbyTimeoutSeconds / 60
                             val timeoutSec = lobbyTimeoutSeconds % 60
                             val timeStr = if (timeoutMin > 0) "${timeoutMin}:${timeoutSec.toString().padStart(2, '0')}"
@@ -208,31 +191,30 @@ fun LobbyScreen(gameState: GameState) {
                             )
                         }
                         GradientButton(
-                            text = if (gameState.lobbyPlayers.size < 2)
+                            text = if (gameState.gameplay.lobbyPlayers.size < 2)
                                 "Mind. 2 Spieler nötig"
                             else
-                                "Spiel starten (${gameState.lobbyPlayers.size} Spieler)",
+                                "Spiel starten (${gameState.gameplay.lobbyPlayers.size} Spieler)",
                             onClick = {
                                 scope.launch {
                                     isStarting = true
                                     try {
                                         GameRepository.startGame(gameId)
                                         val playerDtos = GameRepository.getPlayers(gameId)
-                                        gameState.players = playerDtos.map { it.toPlayer() }
-                                        gameState.captures = playerDtos.associate { it.id to emptySet() }
-                                        gameState.photos = playerDtos.associate { it.id to emptyMap() }
-                                        gameState.timeRemainingSeconds = gameState.gameDurationMinutes * 60
-                                        gameState.isGameRunning = true
-                                        gameState.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.myPlayerId }
+                                        gameState.gameplay.players = playerDtos.map { it.toPlayer() }
+                                        gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
+                                        gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
+                                        gameState.gameplay.isGameRunning = true
+                                        gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                             .takeIf { it >= 0 } ?: 0
                                         feedback.gameStart()
-                                        gameState.currentScreen = Screen.GAME
+                                        gameState.session.currentScreen = Screen.GAME
                                     } catch (e: Exception) {
                                         isStarting = false
                                     }
                                 }
                             },
-                            enabled = gameState.lobbyPlayers.size >= 2 && !isStarting,
+                            enabled = gameState.gameplay.lobbyPlayers.size >= 2 && !isStarting,
                             modifier = Modifier.fillMaxWidth(),
                             gradientColors = GradientPrimary,
                             leadingIcon = {
@@ -311,7 +293,7 @@ fun LobbyScreen(gameState: GameState) {
                         )
                         Spacer(Modifier.height(12.dp))
                         AnimatedGradientText(
-                            text = gameState.gameCode ?: "------",
+                            text = gameState.session.gameCode ?: "------",
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 8.sp,
@@ -330,16 +312,16 @@ fun LobbyScreen(gameState: GameState) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     AnimatedGradientText(
-                        text = "Spieler (${gameState.lobbyPlayers.size})",
+                        text = "Spieler (${gameState.gameplay.lobbyPlayers.size})",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientCool,
                     )
                 }
             }
 
-            val hostPlayerId = gameState.lobbyPlayers.firstOrNull()?.id
-            items(gameState.lobbyPlayers) { player ->
-                LobbyPlayerRow(player = player, isMe = player.id == gameState.myPlayerId, isHost = player.id == hostPlayerId, photoBytes = gameState.playerAvatarBytes[player.id])
+            val hostPlayerId = gameState.gameplay.lobbyPlayers.firstOrNull()?.id
+            items(gameState.gameplay.lobbyPlayers) { player ->
+                LobbyPlayerRow(player = player, isMe = player.id == gameState.session.myPlayerId, isHost = player.id == hostPlayerId, photoBytes = gameState.photo.playerAvatarBytes[player.id])
             }
         }
     }

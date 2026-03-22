@@ -36,7 +36,7 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HowToPlayScreen(gameState: GameState) {
-    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
     val anim = rememberStaggeredAnimation(count = 9)
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
@@ -52,7 +52,7 @@ fun HowToPlayScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
@@ -171,7 +171,7 @@ fun HowToPlayScreen(gameState: GameState) {
 
             GradientButton(
                 text = "Runde erstellen",
-                onClick = { gameState.currentScreen = Screen.CREATE_GAME },
+                onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
                 modifier = Modifier.fillMaxWidth().staggered(8),
                 gradientColors = GradientPrimary,
                 leadingIcon = {

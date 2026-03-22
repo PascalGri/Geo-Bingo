@@ -36,6 +36,7 @@ import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -78,7 +79,7 @@ fun JoinGameScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
     Scaffold(
         topBar = {
@@ -91,7 +92,7 @@ fun JoinGameScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Zurück",
@@ -256,19 +257,19 @@ fun JoinGameScreen(gameState: GameState) {
                                     try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (_: Exception) {}
                                 }
                                 if (avatarBytes != null) {
-                                    gameState.playerAvatarBytes = gameState.playerAvatarBytes + (playerDto.id to avatarBytes)
+                                    gameState.photo.playerAvatarBytes = gameState.photo.playerAvatarBytes + (playerDto.id to avatarBytes)
                                 }
                                 val players = GameRepository.getPlayers(game.id)
                                 val categories = GameRepository.getCategories(game.id)
-                                gameState.gameId = game.id
-                                gameState.gameCode = game.code
-                                gameState.isHost = false
-                                gameState.myPlayerId = playerDto.id
-                                gameState.gameDurationMinutes = game.duration_s / 60
-                                gameState.jokerMode = game.joker_mode
-                                gameState.selectedCategories = categories.map { it.toCategory() }
-                                gameState.lobbyPlayers = players
-                                gameState.currentScreen = Screen.LOBBY
+                                gameState.session.gameId = game.id
+                                gameState.session.gameCode = game.code
+                                gameState.session.isHost = false
+                                gameState.session.myPlayerId = playerDto.id
+                                gameState.gameplay.gameDurationMinutes = game.duration_s / 60
+                                gameState.joker.jokerMode = game.joker_mode
+                                gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
+                                gameState.gameplay.lobbyPlayers = players
+                                gameState.session.currentScreen = Screen.LOBBY
                             }
                         } catch (e: Exception) {
                             errorMessage = "Fehler: ${e.message}"

@@ -25,7 +25,7 @@ import pg.geobingo.one.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(gameState: GameState) {
-    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
     val uriHandler = LocalUriHandler.current
 
     Scaffold(
@@ -39,7 +39,7 @@ fun SettingsScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
@@ -62,16 +62,16 @@ fun SettingsScreen(gameState: GameState) {
                     icon = Icons.Default.VolumeUp,
                     title = "Soundeffekte",
                     subtitle = "Töne bei Aktionen abspielen",
-                    checked = gameState.soundEnabled,
-                    onCheckedChange = { gameState.soundEnabled = it },
+                    checked = gameState.ui.soundEnabled,
+                    onCheckedChange = { gameState.ui.soundEnabled = it },
                 )
                 HorizontalDivider(color = ColorOutlineVariant)
                 SettingsToggleRow(
                     icon = Icons.Default.Vibration,
                     title = "Haptisches Feedback",
                     subtitle = "Vibrationen bei Interaktionen",
-                    checked = gameState.hapticEnabled,
-                    onCheckedChange = { gameState.hapticEnabled = it },
+                    checked = gameState.ui.hapticEnabled,
+                    onCheckedChange = { gameState.ui.hapticEnabled = it },
                 )
             }
 

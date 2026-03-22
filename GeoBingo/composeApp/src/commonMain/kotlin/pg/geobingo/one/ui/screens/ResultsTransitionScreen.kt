@@ -39,7 +39,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
         delay(1000L)
         countdown = 0
         feedback.success()
-        gameState.currentScreen = Screen.RESULTS
+        gameState.session.currentScreen = Screen.RESULTS
     }
 
     Box(

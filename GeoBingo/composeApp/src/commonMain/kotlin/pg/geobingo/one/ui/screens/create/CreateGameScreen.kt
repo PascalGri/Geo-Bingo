@@ -1,4 +1,4 @@
-package pg.geobingo.one.ui.screens
+package pg.geobingo.one.ui.screens.create
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -6,39 +6,24 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.layout.ContentScale
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.*
@@ -49,10 +34,8 @@ import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
-import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
-import pg.geobingo.one.ui.theme.Spacing
-import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +74,7 @@ fun CreateGameScreen(gameState: GameState) {
     val bottomBarAlpha = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         launch {
-            delay(200L)
+            kotlinx.coroutines.delay(200L)
             launch { bottomBarOffset.animateTo(0f, tween(400)) }
             bottomBarAlpha.animateTo(1f, tween(400))
         }
@@ -99,7 +82,7 @@ fun CreateGameScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -113,7 +96,7 @@ fun CreateGameScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
@@ -157,17 +140,17 @@ fun CreateGameScreen(gameState: GameState) {
                                     }
                                     val categoryDtos = GameRepository.addCategories(game.id, allCategories)
                                     if (avatarBytes != null) {
-                                        gameState.playerAvatarBytes = gameState.playerAvatarBytes + (hostDto.id to avatarBytes)
+                                        gameState.photo.playerAvatarBytes = gameState.photo.playerAvatarBytes + (hostDto.id to avatarBytes)
                                     }
-                                    gameState.gameId = game.id
-                                    gameState.gameCode = game.code
-                                    gameState.isHost = true
-                                    gameState.myPlayerId = hostDto.id
-                                    gameState.gameDurationMinutes = durationMinutes.toInt()
-                                    gameState.jokerMode = jokerMode
-                                    gameState.selectedCategories = categoryDtos.map { it.toCategory() }
-                                    gameState.lobbyPlayers = listOf(hostDto)
-                                    gameState.currentScreen = Screen.LOBBY
+                                    gameState.session.gameId = game.id
+                                    gameState.session.gameCode = game.code
+                                    gameState.session.isHost = true
+                                    gameState.session.myPlayerId = hostDto.id
+                                    gameState.gameplay.gameDurationMinutes = durationMinutes.toInt()
+                                    gameState.joker.jokerMode = jokerMode
+                                    gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
+                                    gameState.gameplay.lobbyPlayers = listOf(hostDto)
+                                    gameState.session.currentScreen = Screen.LOBBY
                                 } catch (e: Exception) {
                                     errorMessage = "Fehler: ${e.message}"
                                 } finally {
@@ -195,7 +178,7 @@ fun CreateGameScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // ── 1. Name & Avatar ─────────────────────────────────────────────
+            // -- 1. Name & Avatar --
             DarkSectionCard(title = "Name & Avatar", modifier = Modifier.staggered(0)) {
                 OutlinedTextField(
                     value = hostNameInput,
@@ -229,7 +212,7 @@ fun CreateGameScreen(gameState: GameState) {
                 )
             }
 
-            // ── 2. Kategorien (eigene + Vorlagen zusammen) ───────────────────
+            // -- 2. Kategorien (eigene + Vorlagen zusammen) --
             DarkSectionCard(title = "Kategorien  ·  $totalCategories ausgewählt", modifier = Modifier.staggered(1)) {
 
                 // Custom input row
@@ -414,7 +397,7 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── Speed Bonus Hinweis ───────────────────────────────────────────
+            // -- Speed Bonus Hinweis --
             GradientBorderCard(
                 modifier = Modifier.fillMaxWidth().staggered(2),
                 cornerRadius = 12.dp,
@@ -446,7 +429,7 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── 3. Spielzeit ─────────────────────────────────────────────────
+            // -- 3. Spielzeit --
             DarkSectionCard(title = "Spielzeit — ${durationMinutes.toInt()} Min", modifier = Modifier.staggered(3)) {
                 Slider(
                     value = durationMinutes,
@@ -468,7 +451,7 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── 4. Joker-Modus ───────────────────────────────────────────────
+            // -- 4. Joker-Modus --
             DarkSectionCard(title = "Optionen", modifier = Modifier.staggered(4)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -532,92 +515,7 @@ fun CreateGameScreen(gameState: GameState) {
 }
 
 @Composable
-fun SelfiePicker(
-    avatarBytes: ByteArray?,
-    onTakePhoto: () -> Unit,
-    onClear: () -> Unit,
-) {
-    val imageBitmap = remember(avatarBytes) { avatarBytes?.toImageBitmap() }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        if (imageBitmap != null) {
-            GradientBorderCard(
-                modifier = Modifier.size(68.dp),
-                cornerRadius = 34.dp,
-                borderColors = GradientPrimary,
-                backgroundColor = Color.Transparent,
-                borderWidth = 2.dp,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .clickable { onTakePhoto() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.35f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(22.dp), tint = Color.White)
-                    }
-                }
-            }
-        } else {
-            AnimatedGradientBox(
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(CircleShape)
-                    .clickable { onTakePhoto() },
-                gradientColors = listOf(ColorSurfaceVariant, ColorOutline, ColorSurfaceVariant),
-                durationMillis = 3000,
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(28.dp), tint = ColorOnSurfaceVariant)
-                }
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                if (imageBitmap != null) "Selfie aufgenommen" else "Selfie aufnehmen",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = ColorOnSurface,
-            )
-            Text(
-                if (imageBitmap != null) "Tippen zum Neuaufnehmen" else "Optional · wird als Profilbild angezeigt",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-            )
-            if (imageBitmap != null) {
-                TextButton(
-                    onClick = onClear,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.height(24.dp),
-                ) {
-                    Text(
-                        "Entfernen",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorError,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DarkSectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun DarkSectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     GradientBorderCard(
         modifier = modifier.fillMaxWidth(),
         cornerRadius = 16.dp,
@@ -634,151 +532,6 @@ private fun DarkSectionCard(title: String, modifier: Modifier = Modifier, conten
             )
             Spacer(Modifier.height(12.dp))
             content()
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun DarkCategorySelectCard(
-    category: Category,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var showInfo by remember { mutableStateOf(false) }
-
-    // Scale bounce on selection change
-    val scaleAnim = remember { Animatable(1f) }
-    LaunchedEffect(isSelected) {
-        scaleAnim.animateTo(1.12f, tween(100))
-        scaleAnim.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
-    }
-
-    if (showInfo) {
-        AlertDialog(
-            onDismissRequest = { showInfo = false },
-            containerColor = ColorSurface,
-            icon = {
-                Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = null,
-                    tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
-                    modifier = Modifier.size(32.dp).rotate(getCategoryIconRotation(category.id)),
-                )
-            },
-            title = {
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorOnSurface,
-                    textAlign = TextAlign.Center,
-                )
-            },
-            text = if (category.description.isNotBlank()) {
-                {
-                    Text(
-                        text = category.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = ColorOnSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            } else null,
-            confirmButton = {
-                TextButton(onClick = { showInfo = false; onClick() }) {
-                    Icon(
-                        if (isSelected) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
-                        null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (isSelected) "Abwählen" else "Auswählen")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showInfo = false }) {
-                    Text("Schließen")
-                }
-            },
-        )
-    }
-
-    if (isSelected) {
-        GradientBorderCard(
-            modifier = modifier
-                .scale(scaleAnim.value)
-                .aspectRatio(0.85f)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showInfo = true },
-                ),
-            cornerRadius = 10.dp,
-            borderColors = GradientPrimary,
-            backgroundColor = ColorPrimaryContainer,
-            borderWidth = 1.5.dp,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = category.name,
-                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
-                    tint = ColorPrimary,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorOnPrimaryContainer,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 12.sp,
-                )
-            }
-        }
-    } else {
-        Card(
-            modifier = modifier
-                .scale(scaleAnim.value)
-                .aspectRatio(0.85f)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showInfo = true },
-                ),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = category.name,
-                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
-                    tint = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorOnSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 12.sp,
-                )
-            }
         }
     }
 }

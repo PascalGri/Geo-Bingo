@@ -1,0 +1,334 @@
+package pg.geobingo.one.ui.screens.game
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import pg.geobingo.one.data.Player
+import pg.geobingo.one.game.*
+import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.ui.theme.*
+
+@Composable
+fun GameScreenContent(
+    gameState: GameState,
+    finishCountdownSeconds: Int? = null,
+    uploadSuccessCategory: String? = null,
+    onJokerClick: () -> Unit = {},
+    onVoteToEnd: () -> Unit = {},
+    onCameraClick: (String, String) -> Unit = { _, _ -> },
+) {
+    // Fade-in animation
+    val contentAlpha = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(400)) }
+
+    val isLow = gameState.gameplay.timeRemainingSeconds in 1..60
+    val isCritical = gameState.gameplay.timeRemainingSeconds in 1..30
+    val timerColor by animateColorAsState(
+        targetValue = if (isLow) ColorError else ColorPrimary,
+        animationSpec = tween(500),
+    )
+
+    // Timer pulse animation when <30s
+    val pulseTransition = rememberInfiniteTransition(label = "timerPulse")
+    val pulseDuration = when {
+        gameState.gameplay.timeRemainingSeconds in 1..10 -> 500
+        gameState.gameplay.timeRemainingSeconds in 11..20 -> 1000
+        else -> 1500
+    }
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 0.0f,
+        targetValue = if (isCritical) 0.4f else 0.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(pulseDuration, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulseAlpha",
+    )
+    val pulseScale by pulseTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = if (isCritical) 1.03f else 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(pulseDuration, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulseScale",
+    )
+
+    val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
+
+    Scaffold(containerColor = ColorBackground) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { alpha = contentAlpha.value }) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top bar: timer
+                Surface(
+                    color = ColorSurface,
+                    shadowElevation = 2.dp,
+                    border = BorderStroke(1.dp, ColorOutlineVariant),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            },
+                        ) {
+                            // Pulsing glow behind timer when critical
+                            if (isCritical) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(ColorError.copy(alpha = pulseAlpha)),
+                                )
+                            }
+                            if (isLow) {
+                                AnimatedGradientText(
+                                    text = gameState.formatTime(gameState.gameplay.timeRemainingSeconds),
+                                    style = MaterialTheme.typography.displaySmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 3.sp,
+                                        fontSize = 40.sp,
+                                    ),
+                                    gradientColors = GradientHot,
+                                    durationMillis = 600,
+                                )
+                            } else {
+                                Text(
+                                    text = gameState.formatTime(gameState.gameplay.timeRemainingSeconds),
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = timerColor,
+                                    letterSpacing = 3.sp,
+                                )
+                            }
+                        }
+
+                        if (finishCountdownSeconds != null) {
+                            Spacer(Modifier.height(10.dp))
+                            AnimatedGradientBox(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp)),
+                                gradientColors = GradientHot,
+                                durationMillis = 800,
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Text(
+                                        if (gameState.review.allCategoriesCaptured) "Du hast alle gefunden!"
+                                        else "Jemand hat alle gefunden!",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        "Noch ${finishCountdownSeconds}s",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 2.sp,
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            gameState.gameplay.players.forEach { player ->
+                                val isMe = player.id == gameState.session.myPlayerId
+                                val captured = gameState.gameplay.captures[player.id]?.size ?: 0
+                                GamePlayerTab(
+                                    player = player,
+                                    isActive = isMe,
+                                    captureCount = captured,
+                                    totalCategories = gameState.gameplay.selectedCategories.size,
+                                    photoBytes = gameState.photo.playerAvatarBytes[player.id],
+                                    onClick = {},
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Player info + controls
+                if (myPlayer != null) {
+                    val myCount = gameState.gameplay.captures[myPlayer.id]?.size ?: 0
+                    val totalCats = gameState.gameplay.selectedCategories.size
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.screenHorizontal),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Animated progress ring around avatar
+                            val ringProgress = remember { Animatable(0f) }
+                            val targetProgress = if (totalCats > 0) myCount.toFloat() / totalCats else 0f
+                            LaunchedEffect(myCount) {
+                                ringProgress.animateTo(targetProgress, tween(500))
+                            }
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(
+                                    progress = { ringProgress.value },
+                                    modifier = Modifier.size(40.dp),
+                                    color = myPlayer.color,
+                                    trackColor = ColorSurfaceVariant,
+                                    strokeWidth = 3.dp,
+                                )
+                                PlayerAvatarView(player = myPlayer, size = 30.dp, fontSize = 12.sp, photoBytes = gameState.photo.playerAvatarBytes[myPlayer.id])
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(myPlayer.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                                Text("$myCount/$totalCats gefunden", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (gameState.joker.jokerMode && !gameState.joker.myJokerUsed) {
+                                OutlinedButton(
+                                    onClick = onJokerClick,
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                                    border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.6f)),
+                                    shape = RoundedCornerShape(20.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                ) {
+                                    Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = ColorPrimary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Joker", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = onVoteToEnd,
+                                enabled = !gameState.review.hasVotedToEnd,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorError),
+                                border = BorderStroke(1.dp, ColorError.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(20.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            ) {
+                                val needed = gameState.gameplay.players.size
+                                Text(
+                                    if (gameState.review.hasVotedToEnd) "Abgestimmt (${gameState.review.endVoteCount}/$needed)"
+                                    else "Vorzeitig beenden (${gameState.review.endVoteCount}/$needed)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = ColorOutlineVariant)
+                }
+
+                // Bingo grid
+                if (myPlayer != null) {
+                    val cols = when {
+                        gameState.gameplay.selectedCategories.size <= 4 -> 2
+                        gameState.gameplay.selectedCategories.size <= 9 -> 3
+                        else -> 4
+                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(cols),
+                        modifier = Modifier.weight(1f).padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(gameState.gameplay.selectedCategories) { category ->
+                            val captured = gameState.isCaptured(myPlayer.id, category.id)
+                            val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                            var thumbnail by remember(photoBytes) { mutableStateOf<ImageBitmap?>(null) }
+                            LaunchedEffect(photoBytes) {
+                                thumbnail = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
+                            }
+                            val otherCapturers = gameState.gameplay.players.filter { p ->
+                                p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
+                            }
+                            val isUploading = category.id in gameState.photo.uploadingCategories
+                            val showUploadSuccess = uploadSuccessCategory == category.id
+                            DarkBingoCategoryCard(
+                                category = category,
+                                isCaptured = captured,
+                                isUploading = isUploading,
+                                showUploadSuccess = showUploadSuccess,
+                                playerColor = myPlayer.color,
+                                thumbnail = thumbnail,
+                                otherCapturingPlayers = otherCapturers,
+                                onCameraClick = { onCameraClick(myPlayer.id, category.id) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, onClick: () -> Unit) {
+    val bg = if (isActive)
+        Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
+    else
+        Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .then(if (isActive) Modifier.border(1.dp, player.color.copy(alpha = 0.4f), RoundedCornerShape(16.dp)) else Modifier)
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
+            Spacer(Modifier.width(6.dp))
+            Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "$captureCount/$totalCategories",
+                fontSize = 11.sp,
+                color = if (captureCount >= totalCategories) ColorPrimary
+                    else (if (isActive) player.color else ColorOnSurfaceVariant).copy(alpha = 0.8f),
+                fontWeight = if (captureCount >= totalCategories) FontWeight.Bold else FontWeight.Normal,
+            )
+        }
+    }
+}

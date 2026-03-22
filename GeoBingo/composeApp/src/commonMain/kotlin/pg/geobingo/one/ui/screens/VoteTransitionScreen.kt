@@ -32,7 +32,7 @@ fun VoteTransitionScreen(gameState: GameState) {
             countdown--
             feedback.countdownTick()
         }
-        gameState.currentScreen = Screen.REVIEW
+        gameState.session.currentScreen = Screen.REVIEW
     }
 
     Box(

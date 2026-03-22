@@ -3,7 +3,7 @@ package pg.geobingo.one.ui.preview
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import pg.geobingo.one.game.Screen
-import pg.geobingo.one.ui.screens.GameScreenContent
+import pg.geobingo.one.ui.screens.game.GameScreenContent
 import pg.geobingo.one.ui.screens.HomeScreen
 import pg.geobingo.one.ui.screens.LobbyScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
@@ -23,7 +23,7 @@ fun PreviewGameScreen() {
 fun PreviewGameScreenTimerLow() {
     KatchItTheme {
         GameScreenContent(gameState = mockGameState().apply {
-            timeRemainingSeconds = 42
+            gameplay.timeRemainingSeconds = 42
         })
     }
 }
@@ -33,7 +33,7 @@ fun PreviewGameScreenTimerLow() {
 fun PreviewGameScreenPlayer2() {
     KatchItTheme {
         GameScreenContent(gameState = mockGameState().apply {
-            currentPlayerIndex = 1
+            gameplay.currentPlayerIndex = 1
         })
     }
 }
@@ -44,7 +44,7 @@ fun PreviewGameScreenPlayer2() {
 @Composable
 fun PreviewHomeScreen() {
     KatchItTheme {
-        HomeScreen(gameState = mockGameState().apply { currentScreen = Screen.HOME })
+        HomeScreen(gameState = mockGameState().apply { session.currentScreen = Screen.HOME })
     }
 }
 

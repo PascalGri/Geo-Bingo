@@ -41,7 +41,7 @@ import pg.geobingo.one.ui.theme.Spacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(gameState: GameState) {
-    SystemBackHandler { gameState.currentScreen = Screen.HOME }
+    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
     // Fade-in animation for content
     val contentAlpha = remember { Animatable(0f) }
@@ -62,7 +62,7 @@ fun HistoryScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
                     }
                 },
@@ -71,7 +71,7 @@ fun HistoryScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
-        if (gameState.gameHistory.isEmpty()) {
+        if (gameState.ui.gameHistory.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { translationY = contentOffset.value; alpha = contentAlpha.value },
                 contentAlignment = Alignment.Center,
@@ -101,11 +101,11 @@ fun HistoryScreen(gameState: GameState) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
-                itemsIndexed(gameState.gameHistory, key = { _, entry -> entry.gameCode }) { index, entry ->
+                itemsIndexed(gameState.ui.gameHistory, key = { _, entry -> entry.gameCode }) { index, entry ->
                     val dismissState = rememberSwipeToDismissBoxState(
                         confirmValueChange = {
                             if (it == SwipeToDismissBoxValue.EndToStart) {
-                                gameState.gameHistory = gameState.gameHistory.filterIndexed { i, _ -> i != index }
+                                gameState.ui.gameHistory = gameState.ui.gameHistory.filterIndexed { i, _ -> i != index }
                                 true
                             } else false
                         },

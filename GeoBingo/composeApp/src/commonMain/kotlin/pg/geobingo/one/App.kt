@@ -4,7 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.ui.components.SyncAvatars
 import pg.geobingo.one.ui.screens.*
+import pg.geobingo.one.ui.screens.create.CreateGameScreen
+import pg.geobingo.one.ui.screens.game.GameScreen
+import pg.geobingo.one.ui.screens.results.ResultsScreen
+import pg.geobingo.one.ui.screens.review.ReviewScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
 
 @Composable
@@ -12,7 +17,8 @@ fun App() {
     val gameState = remember { GameState() }
 
     KatchItTheme {
-        when (gameState.currentScreen) {
+        SyncAvatars(gameState)
+        when (gameState.session.currentScreen) {
             Screen.HOME -> HomeScreen(gameState)
             Screen.HOW_TO_PLAY -> HowToPlayScreen(gameState)
             Screen.CREATE_GAME -> CreateGameScreen(gameState)

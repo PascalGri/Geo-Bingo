@@ -35,9 +35,9 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @Composable
 fun HomeScreen(gameState: GameState) {
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(gameState.pendingToast) {
-        val msg = gameState.pendingToast ?: return@LaunchedEffect
-        gameState.pendingToast = null
+    LaunchedEffect(gameState.ui.pendingToast) {
+        val msg = gameState.ui.pendingToast ?: return@LaunchedEffect
+        gameState.ui.pendingToast = null
         snackbarHostState.showSnackbar(msg)
     }
 
@@ -176,7 +176,7 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(24.dp))
 
             // Game History Section - always visible
-            if (gameState.gameHistory.isNotEmpty()) {
+            if (gameState.ui.gameHistory.isNotEmpty()) {
                 Column(
                     modifier = Modifier.staggered(4).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -203,8 +203,8 @@ fun HomeScreen(gameState: GameState) {
                                 color = ColorOnSurface,
                             )
                         }
-                        if (gameState.gameHistory.size > 3) {
-                            TextButton(onClick = { gameState.currentScreen = Screen.HISTORY }) {
+                        if (gameState.ui.gameHistory.size > 3) {
+                            TextButton(onClick = { gameState.session.currentScreen = Screen.HISTORY }) {
                                 Text(
                                     "Alle anzeigen",
                                     style = MaterialTheme.typography.labelSmall,
@@ -214,7 +214,7 @@ fun HomeScreen(gameState: GameState) {
                         }
                     }
 
-                    gameState.gameHistory.take(3).forEach { entry ->
+                    gameState.ui.gameHistory.take(3).forEach { entry ->
                         HomeHistoryCard(
                             entry = entry,
                             onClick = { selectedHistoryEntry = entry },
@@ -227,7 +227,7 @@ fun HomeScreen(gameState: GameState) {
 
             GradientButton(
                 text = "Runde erstellen",
-                onClick = { gameState.currentScreen = Screen.CREATE_GAME },
+                onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
                 modifier = Modifier.fillMaxWidth().graphicsLayer {
                     translationY = btnOffsets[0].value
                     alpha = btnAlphas[0].value
@@ -241,7 +241,7 @@ fun HomeScreen(gameState: GameState) {
             Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
-                onClick = { gameState.currentScreen = Screen.JOIN_GAME },
+                onClick = { gameState.session.currentScreen = Screen.JOIN_GAME },
                 modifier = Modifier.fillMaxWidth().height(56.dp).graphicsLayer {
                     translationY = btnOffsets[1].value
                     alpha = btnAlphas[1].value
@@ -267,7 +267,7 @@ fun HomeScreen(gameState: GameState) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.staggered(6),
             ) {
-                TextButton(onClick = { gameState.currentScreen = Screen.HOW_TO_PLAY }) {
+                TextButton(onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY }) {
                     Icon(
                         Icons.Default.HelpOutline,
                         contentDescription = null,
@@ -281,7 +281,7 @@ fun HomeScreen(gameState: GameState) {
                         color = ColorOnSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { gameState.currentScreen = Screen.SETTINGS }) {
+                TextButton(onClick = { gameState.session.currentScreen = Screen.SETTINGS }) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = null,

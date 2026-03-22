@@ -12,41 +12,41 @@ class FeedbackManager(
     private val haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
 ) {
     private fun hapticTick() {
-        if (gameState.hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (gameState.ui.hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
     fun tap() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playTap()
+        if (gameState.ui.soundEnabled) SoundPlayer.playTap()
     }
 
     fun capture() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playCapture()
+        if (gameState.ui.soundEnabled) SoundPlayer.playCapture()
     }
 
     fun vote() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playVote()
+        if (gameState.ui.soundEnabled) SoundPlayer.playVote()
     }
 
     fun countdownTick() {
-        if (gameState.soundEnabled) SoundPlayer.playCountdownTick()
+        if (gameState.ui.soundEnabled) SoundPlayer.playCountdownTick()
     }
 
     fun gameStart() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playGameStart()
+        if (gameState.ui.soundEnabled) SoundPlayer.playGameStart()
     }
 
     fun gameEnd() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playGameEnd()
+        if (gameState.ui.soundEnabled) SoundPlayer.playGameEnd()
     }
 
     fun success() {
         hapticTick()
-        if (gameState.soundEnabled) SoundPlayer.playSuccess()
+        if (gameState.ui.soundEnabled) SoundPlayer.playSuccess()
     }
 }
 

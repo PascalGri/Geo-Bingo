@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,7 +34,10 @@ fun PlayerAvatarView(
     modifier: Modifier = Modifier,
     photoBytes: ByteArray? = null,
 ) {
-    val imageBitmap = remember(photoBytes) { photoBytes?.toImageBitmap() }
+    var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    LaunchedEffect(photoBytes) {
+        imageBitmap = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
+    }
     Box(
         modifier = modifier
             .size(size)
@@ -43,7 +47,7 @@ fun PlayerAvatarView(
     ) {
         if (imageBitmap != null) {
             Image(
-                bitmap = imageBitmap,
+                bitmap = imageBitmap!!,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -70,7 +74,10 @@ fun PlayerAvatarViewRaw(
     modifier: Modifier = Modifier,
     photoBytes: ByteArray? = null,
 ) {
-    val imageBitmap = remember(photoBytes) { photoBytes?.toImageBitmap() }
+    var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    LaunchedEffect(photoBytes) {
+        imageBitmap = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
+    }
     Box(
         modifier = modifier
             .size(size)
@@ -80,7 +87,7 @@ fun PlayerAvatarViewRaw(
     ) {
         if (imageBitmap != null) {
             Image(
-                bitmap = imageBitmap,
+                bitmap = imageBitmap!!,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

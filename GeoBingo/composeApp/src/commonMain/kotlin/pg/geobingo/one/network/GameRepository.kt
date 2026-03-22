@@ -241,11 +241,23 @@ object GameRepository {
         supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url, latitude = latitude, longitude = longitude))
     }
 
-    suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = try {
-        val path = "$gameId/$playerId/$categoryId.jpg"
-        val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
-        httpClient.get(url).readRawBytes()
-    } catch (_: Exception) { null }
+    suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? {
+        // 1. Check local cache first
+        try {
+            val cached = LocalPhotoStore.loadPhoto(gameId, playerId, categoryId)
+            if (cached != null) return cached
+        } catch (_: Exception) {}
+
+        // 2. Network download
+        return try {
+            val path = "$gameId/$playerId/$categoryId.jpg"
+            val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+            val bytes = httpClient.get(url).readRawBytes()
+            // 3. Cache locally for future access
+            try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (_: Exception) {}
+            bytes
+        } catch (_: Exception) { null }
+    }
 
     suspend fun getCaptures(gameId: String): List<CaptureDto> =
         supabase.from("captures").select { filter { eq("game_id", gameId) } }.decodeList()
