@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
 
@@ -63,7 +65,7 @@ fun SettingsScreen(gameState: GameState) {
                     title = "Soundeffekte",
                     subtitle = "Töne bei Aktionen abspielen",
                     checked = gameState.ui.soundEnabled,
-                    onCheckedChange = { gameState.ui.soundEnabled = it },
+                    onCheckedChange = { gameState.ui.setSoundEnabled(it) },
                 )
                 HorizontalDivider(color = ColorOutlineVariant)
                 SettingsToggleRow(
@@ -71,8 +73,20 @@ fun SettingsScreen(gameState: GameState) {
                     title = "Haptisches Feedback",
                     subtitle = "Vibrationen bei Interaktionen",
                     checked = gameState.ui.hapticEnabled,
-                    onCheckedChange = { gameState.ui.hapticEnabled = it },
+                    onCheckedChange = { gameState.ui.setHapticEnabled(it) },
                 )
+            }
+
+            // Advertising section — nur auf iOS/Android sichtbar
+            if (AdManager.isAdSupported) {
+                SettingsSection(title = "Werbung") {
+                    SettingsClickRow(
+                        icon = Icons.Default.Campaign,
+                        title = "Werbeeinstellungen",
+                        subtitle = "Einwilligung anzeigen oder ändern",
+                        onClick = { ConsentManager.showPrivacyOptionsForm {} },
+                    )
+                }
             }
 
             // Support section

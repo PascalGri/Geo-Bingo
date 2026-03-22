@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -28,8 +27,6 @@ kotlin {
             isStatic = false
         }
     }
-    
-    jvm()
     
     js {
         moduleName = "composeApp"
@@ -65,6 +62,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.play.services.location)
+            implementation(libs.google.mobile.ads)
+            implementation(libs.google.ump)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -84,11 +83,6 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
-            implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -150,14 +144,4 @@ tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach
     }
 }
 
-compose.desktop {
-    application {
-        mainClass = "pg.geobingo.one.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "pg.geobingo.one"
-            packageVersion = "1.0.0"
-        }
-    }
-}
+// Desktop (JVM) target entfernt — kein Desktop-Release geplant

@@ -8,8 +8,9 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// We use a global ApplicationContext holder set from MainActivity
+// Global holders set from MainActivity
 lateinit var appContext: Context
+var currentActivity: android.app.Activity? = null
 
 actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolean =
     withContext(Dispatchers.IO) {

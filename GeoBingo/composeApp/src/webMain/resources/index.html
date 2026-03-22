@@ -1,12 +1,145 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KatchIt!</title>
     <link type="text/css" rel="stylesheet" href="styles.css">
+
+    <!-- AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4871207394525716"
+            crossorigin="anonymous"></script>
+
+    <!-- Google Funding Choices (DSGVO-Consent fuer Web-Werbung) -->
+    <script>
+        window.googletag = window.googletag || {cmd: []};
+    </script>
+    <script async src="https://fundingchoicesmessages.google.com/i/pub-4871207394525716?ers=1"
+            nonce=""></script>
+    <script>
+        (function() {
+            function signalGooglefcPresent() {
+                if (!window.frames['googlefcPresent']) {
+                    if (document.body) {
+                        var iframe = document.createElement('iframe');
+                        iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;';
+                        iframe.style.display = 'none';
+                        iframe.name = 'googlefcPresent';
+                        document.body.appendChild(iframe);
+                    } else {
+                        setTimeout(signalGooglefcPresent, 0);
+                    }
+                }
+            }
+            signalGooglefcPresent();
+        })();
+    </script>
 </head>
 <body>
+
+    <!-- TOP BANNER -->
+    <div id="ad-top" class="ad-slot ad-slot-top" aria-hidden="true">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-4871207394525716"
+             data-ad-slot="7285123562"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <div id="app"></div>
+
+    <!-- BOTTOM BANNER -->
+    <div id="ad-bottom" class="ad-slot ad-slot-bottom" aria-hidden="true">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-4871207394525716"
+             data-ad-slot="5972041897"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- DSGVO Consent Banner (eigener Fallback — wird durch Funding Choices ersetzt sobald konfiguriert) -->
+    <div id="consent-banner" role="dialog" aria-label="Cookie-Einstellungen">
+        <div id="consent-banner-inner">
+            <p id="consent-text">
+                KatchIt! nutzt auf dieser Seite Werbung von Google AdSense,
+                um den kostenlosen Betrieb zu finanzieren. Darf Google Cookies
+                setzen und personalisierte Werbung anzeigen?
+            </p>
+            <div id="consent-buttons">
+                <button id="consent-decline" onclick="handleConsent(false)">Ablehnen</button>
+                <button id="consent-accept" onclick="handleConsent(true)">Akzeptieren</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compose App -->
     <script type="module" src="composeApp.js"></script>
+
+    <!-- Consent-Logik -->
+    <script>
+        // Eigener Fallback-Banner (nur aktiv wenn Google Funding Choices nicht geladen hat)
+        var AD_CONSENT_KEY = 'katchit_ad_consent';
+
+        function handleConsent(accepted) {
+            localStorage.setItem(AD_CONSENT_KEY, accepted ? '1' : '0');
+            document.getElementById('consent-banner').style.display = 'none';
+            if (accepted) showAds();
+        }
+
+        function showAds() {
+            document.getElementById('ad-top').classList.add('ad-visible');
+            document.getElementById('ad-bottom').classList.add('ad-visible');
+            document.getElementById('ad-top').removeAttribute('aria-hidden');
+            document.getElementById('ad-bottom').removeAttribute('aria-hidden');
+            recalcAppHeight();
+        }
+
+        function recalcAppHeight() {
+            var topH = document.getElementById('ad-top').classList.contains('ad-visible')
+                ? document.getElementById('ad-top').offsetHeight : 0;
+            var botH = document.getElementById('ad-bottom').classList.contains('ad-visible')
+                ? document.getElementById('ad-bottom').offsetHeight : 0;
+            document.getElementById('app').style.height =
+                'calc(100dvh - ' + topH + 'px - ' + botH + 'px)';
+        }
+
+        (function init() {
+            // Funding Choices ist aktiv — eigenen Banner immer verstecken,
+            // Ads direkt zeigen (Consent laeuft ueber Google FC)
+            if (window.googlefc || window.googletag) {
+                document.getElementById('consent-banner').style.display = 'none';
+                showAds();
+                recalcAppHeight();
+                return;
+            }
+
+            // Fallback: nach 2s prüfen ob Funding Choices geladen hat
+            setTimeout(function() {
+                if (window.googlefc) {
+                    document.getElementById('consent-banner').style.display = 'none';
+                    showAds();
+                    recalcAppHeight();
+                    return;
+                }
+                // Funding Choices nicht verfügbar — eigenen Banner zeigen
+                var stored = localStorage.getItem(AD_CONSENT_KEY);
+                if (stored === '1') {
+                    document.getElementById('consent-banner').style.display = 'none';
+                    showAds();
+                } else if (stored === '0') {
+                    document.getElementById('consent-banner').style.display = 'none';
+                }
+                // stored === null → Banner bleibt sichtbar (erster Besuch, kein FC)
+                recalcAppHeight();
+            }, 2000);
+        })();
+
+        window.addEventListener('resize', recalcAppHeight);
+    </script>
 </body>
 </html>

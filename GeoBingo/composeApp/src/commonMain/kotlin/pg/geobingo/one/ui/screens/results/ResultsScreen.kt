@@ -27,7 +27,10 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.theme.*
@@ -196,10 +199,51 @@ fun ResultsScreen(gameState: GameState) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                         },
                     )
+                    if (AdManager.isAdSupported) {
+                        Spacer(Modifier.height(8.dp))
+                        var rewardedAdLoading by remember { mutableStateOf(false) }
+                        OutlinedButton(
+                            onClick = {
+                                if (!rewardedAdLoading) {
+                                    rewardedAdLoading = true
+                                    AdManager.showRewardedAd(
+                                        onReward = { /* Hier spaeter Belohnung vergeben */ },
+                                        onDismiss = { rewardedAdLoading = false }
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            border = BorderStroke(1.dp, ColorOutlineVariant),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
+                            enabled = !rewardedAdLoading,
+                        ) {
+                            if (rewardedAdLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorOnSurface)
+                            } else {
+                                Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Bonus ansehen", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     GradientButton(
                         text = "Neues Spiel",
-                        onClick = { gameState.resetGame() },
+                        onClick = {
+                            // Interstitial Ad max 1x pro 3 Spiele
+                            if (AdManager.isAdSupported) {
+                                val count = AppSettings.getInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, 0) + 1
+                                AppSettings.setInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, count)
+                                if (count % 3 == 0) {
+                                    AdManager.showInterstitialAd { gameState.resetGame() }
+                                } else {
+                                    gameState.resetGame()
+                                }
+                            } else {
+                                gameState.resetGame()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         gradientColors = GradientPrimary,
                         leadingIcon = {
