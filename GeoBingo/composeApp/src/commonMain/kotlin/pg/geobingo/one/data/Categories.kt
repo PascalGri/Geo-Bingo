@@ -330,11 +330,11 @@ val CATEGORY_DESCRIPTIONS: Map<String, String> = CATEGORY_TEMPLATES.associate { 
 
 val PLAYER_COLORS = listOf(
     Color(0xFFEC4899), // hot pink
-    Color(0xFF3B82F6), // blue
-    Color(0xFF10B981), // emerald
-    Color(0xFFA78BFA), // violet
-    Color(0xFFF59E0B), // amber
+    Color(0xFFD946EF), // fuchsia
+    Color(0xFFA855F7), // purple
+    Color(0xFF7C3AED), // violet
+    Color(0xFFF43F5E), // rose
     Color(0xFF22D3EE), // cyan
-    Color(0xFFF97316), // orange
-    Color(0xFF84CC16), // lime
+    Color(0xFFFB923C), // orange
+    Color(0xFFFF6B6B), // coral
 )

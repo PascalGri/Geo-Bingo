@@ -123,24 +123,24 @@ fun HowToPlayScreen(gameState: GameState) {
             // Speed bonus info card
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF1A1A2E),
+                color = Color(0xFF0C0B15),
                 modifier = Modifier.fillMaxWidth().staggered(6),
-                border = BorderStroke(1.dp, Color(0xFFFBBF24).copy(alpha = 0.4f)),
+                border = BorderStroke(1.dp, Color(0xFFD946EF).copy(alpha = 0.4f)),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(20.dp), tint = Color(0xFFFBBF24))
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(20.dp), tint = Color(0xFFD946EF))
                         Text(
                             "Schnelligkeitsbonus",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFBBF24),
+                            color = Color(0xFFD946EF),
                         )
                     }
                     Text(
                         "Wer als Erster eine Kategorie fotografiert, bekommt +1 Bonuspunkt obendrauf. Schnell sein lohnt sich!",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFBBF24).copy(alpha = 0.85f),
+                        color = Color(0xFFD946EF).copy(alpha = 0.85f),
                         lineHeight = 18.sp,
                     )
                 }

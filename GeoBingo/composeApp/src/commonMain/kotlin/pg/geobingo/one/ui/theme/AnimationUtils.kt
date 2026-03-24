@@ -119,13 +119,13 @@ fun ConfettiEffect(
 
     val particles = remember {
         val colors = listOf(
-            Color(0xFFFBBF24), // Amber
-            Color(0xFF84CC16), // Lime
-            Color(0xFF38BDF8), // Sky
-            Color(0xFFF97316), // Orange
-            Color(0xFF4ADE80), // Green
+            Color(0xFFF43F5E), // Rose
+            Color(0xFFD946EF), // Fuchsia
             Color(0xFFA855F7), // Purple
-            Color(0xFFFF6B6B), // Red
+            Color(0xFF7C3AED), // Violet
+            Color(0xFFE879F9), // Fuchsia light
+            Color(0xFF22D3EE), // Cyan
+            Color(0xFFFF6B6B), // Coral
         )
         (0 until 60).map {
             ConfettiParticle(

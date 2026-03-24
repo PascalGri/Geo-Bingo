@@ -402,8 +402,8 @@ fun CreateGameScreen(gameState: GameState) {
             GradientBorderCard(
                 modifier = Modifier.fillMaxWidth().staggered(2),
                 cornerRadius = 12.dp,
-                borderColors = GradientGold,
-                backgroundColor = Color(0xFF1A1A2E),
+                borderColors = GradientPrimary,
+                backgroundColor = Color(0xFF0C0B15),
                 borderWidth = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -411,19 +411,19 @@ fun CreateGameScreen(gameState: GameState) {
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFFBBF24))
+                        Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFD946EF))
                         Text(
                             "Schnelligkeitsbonus",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFFBBF24),
+                            color = Color(0xFFD946EF),
                         )
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Wer eine Kategorie als Erster fotografiert, bekommt +1 Tempopunkt.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFBBF24).copy(alpha = 0.85f),
+                        color = Color(0xFFD946EF).copy(alpha = 0.85f),
                         lineHeight = 17.sp,
                         modifier = Modifier.padding(start = 24.dp),
                     )

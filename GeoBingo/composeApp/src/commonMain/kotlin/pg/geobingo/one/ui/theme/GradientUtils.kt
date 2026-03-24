@@ -206,7 +206,7 @@ fun GradientButton(
             end = Offset(offset + 400f, 200f),
         )
     } else {
-        Brush.linearGradient(listOf(Color(0xFF2A2A50), Color(0xFF2A2A50)))
+        Brush.linearGradient(listOf(Color(0xFF1E1535), Color(0xFF1E1535)))
     }
     // Press animation: scale down to 0.95f
     val pressScale = remember { AnimatableValue(1f) }

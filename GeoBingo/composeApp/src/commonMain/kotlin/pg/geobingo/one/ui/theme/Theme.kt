@@ -5,58 +5,58 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// === Summer Dark Color Palette (Yellow → Lime → Sky Blue) ===
-val ColorPrimary             = Color(0xFF84CC16) // Lime 500
-val ColorOnPrimary           = Color(0xFF0D1A00)
-val ColorPrimaryContainer    = Color(0xFF1A2E05) // Deep lime
-val ColorOnPrimaryContainer  = Color(0xFFD9F99D) // Light lime
+// === Neon Night Color Palette (Rose → Fuchsia → Purple) ===
+val ColorPrimary             = Color(0xFFD946EF) // Fuchsia 500
+val ColorOnPrimary           = Color(0xFF1F0026)
+val ColorPrimaryContainer    = Color(0xFF330040) // Deep fuchsia
+val ColorOnPrimaryContainer  = Color(0xFFF5D0FE) // Light fuchsia
 
-val ColorSecondary           = Color(0xFF38BDF8) // Sky 400
-val ColorOnSecondary         = Color(0xFF002A40)
-val ColorSecondaryContainer  = Color(0xFF083248) // Deep sky
-val ColorOnSecondaryContainer= Color(0xFFBAE6FD)
+val ColorSecondary           = Color(0xFFA855F7) // Purple 500
+val ColorOnSecondary         = Color(0xFF1A0033)
+val ColorSecondaryContainer  = Color(0xFF280047) // Deep purple
+val ColorOnSecondaryContainer= Color(0xFFE9D5FF)
 
-val ColorTertiary            = Color(0xFFFBBF24) // Amber 400
-val ColorOnTertiary          = Color(0xFF2A1A00)
-val ColorTertiaryContainer   = Color(0xFF3A2800) // Deep amber
-val ColorOnTertiaryContainer = Color(0xFFFEF08A)
+val ColorTertiary            = Color(0xFFF43F5E) // Rose 500
+val ColorOnTertiary          = Color(0xFF2D0010)
+val ColorTertiaryContainer   = Color(0xFF420018) // Deep rose
+val ColorOnTertiaryContainer = Color(0xFFFFD9E2)
 
-val ColorBackground          = Color(0xFF060E08) // Ultra dark green-black
-val ColorSurface             = Color(0xFF0E1A10) // Dark forest surface
-val ColorSurfaceVariant      = Color(0xFF182A1A) // Medium dark green
+val ColorBackground          = Color(0xFF050508) // Neutral pure dark
+val ColorSurface             = Color(0xFF0C0B15) // Very dark purple-black
+val ColorSurfaceVariant      = Color(0xFF15132A) // Dark purple
 
-val ColorOnBackground        = Color(0xFFF0FFF4) // Near white with green tint
-val ColorOnSurface           = Color(0xFFE2F5E6)
-val ColorOnSurfaceVariant    = Color(0xFF6B9E75) // Muted sage
+val ColorOnBackground        = Color(0xFFF5F0FF) // Near white, purple tint
+val ColorOnSurface           = Color(0xFFEDE9F7)
+val ColorOnSurfaceVariant    = Color(0xFF9D7FD4) // Muted purple
 
-val ColorOutline             = Color(0xFF2E4D34)
-val ColorOutlineVariant      = Color(0xFF1A3020)
+val ColorOutline             = Color(0xFF3A2A5C)
+val ColorOutlineVariant      = Color(0xFF1E1535)
 
-val ColorError               = Color(0xFFFF6B6B)
-val ColorErrorContainer      = Color(0xFF4A0E0E)
+val ColorError               = Color(0xFFFF4D6D)
+val ColorErrorContainer      = Color(0xFF4A0017)
 val ColorOnError             = Color(0xFFFFFFFF)
-val ColorOnErrorContainer    = Color(0xFFFFCDD2)
+val ColorOnErrorContainer    = Color(0xFFFFD9E2)
 
-// === Gradient Color Sets (Summer: Yellow → Lime → Sky Blue) ===
+// === Gradient Color Sets (Neon Night: Rose → Fuchsia → Purple) ===
 val GradientPrimary = listOf(
-    Color(0xFFFBBF24), // Amber 400
-    Color(0xFF84CC16), // Lime 500
-    Color(0xFF38BDF8), // Sky 400
+    Color(0xFFF43F5E), // Rose 500
+    Color(0xFFD946EF), // Fuchsia 500
+    Color(0xFFA855F7), // Purple 500
 )
 val GradientHot = listOf(
-    Color(0xFFFBBF24), // Amber 400
-    Color(0xFFA3E635), // Lime 400
-    Color(0xFF4ADE80), // Green 400
+    Color(0xFFFF6B6B), // Coral
+    Color(0xFFF43F5E), // Rose 500
+    Color(0xFFD946EF), // Fuchsia 500
 )
 val GradientWarm = listOf(
-    Color(0xFFF97316), // Orange 500
-    Color(0xFFFBBF24), // Amber 400
-    Color(0xFF84CC16), // Lime 500
+    Color(0xFFFB7185), // Rose 400
+    Color(0xFFE879F9), // Fuchsia 400
+    Color(0xFFC026D3), // Fuchsia 700
 )
 val GradientCool = listOf(
-    Color(0xFF38BDF8), // Sky 400
-    Color(0xFF4ADE80), // Green 400
-    Color(0xFF84CC16), // Lime 500
+    Color(0xFFA855F7), // Purple 500
+    Color(0xFF7C3AED), // Violet 600
+    Color(0xFF6366F1), // Indigo 500
 )
 val GradientGold = listOf(
     Color(0xFFF59E0B), // Amber 500
