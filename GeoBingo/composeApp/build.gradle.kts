@@ -164,14 +164,28 @@ tasks.named<Copy>("wasmJsProcessResources") {
 tasks.register("buildWeb") {
     dependsOn("wasmJsBrowserProductionWebpack")
     doLast {
+        val webpackDir = project.file("build/kotlin-webkit/wasmJs/productionExecutable").let {
+            // Use the correct webpack output directory
+            project.file("build/kotlin-webpack/wasmJs/productionExecutable")
+        }
         val distDir = project.file("build/dist/wasmJs/productionExecutable")
-        // Clean dist to avoid accumulating stale WASM files from previous builds
+
+        // Determine which WASM files the current composeApp.js actually references
+        val composeAppJs = File(webpackDir, "composeApp.js")
+        val referencedWasm: Set<String> = if (composeAppJs.exists()) {
+            Regex("""[\w]{16,}\.wasm""").findAll(composeAppJs.readText()).map { it.value }.toSet()
+        } else emptySet()
+
+        // Clean dist to avoid stale files from previous builds
         project.delete(distDir)
         distDir.mkdirs()
-        // Copy webpack bundle (composeApp.js + .wasm files)
+
+        // Copy only currently referenced WASM files + JS bundle
         project.copy {
-            from("build/kotlin-webpack/wasmJs/productionExecutable")
+            from(webpackDir)
             into(distDir)
+            include("composeApp.js", "composeApp.js.LICENSE.txt", "composeApp.js.map")
+            if (referencedWasm.isNotEmpty()) include(referencedWasm) else include("*.wasm")
             duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
         }
         // Copy static web resources (index.html, styles.css, etc.)
