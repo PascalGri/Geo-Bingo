@@ -164,6 +164,8 @@ tasks.named<Copy>("wasmJsProcessResources") {
 tasks.register("buildWeb") {
     dependsOn("wasmJsBrowserProductionWebpack")
     doLast {
+        // Clean dist to avoid accumulating stale WASM files from previous builds
+        delete("build/dist/wasmJs/productionExecutable")
         // Copy webpack bundle (composeApp.js + .wasm files)
         project.copy {
             from("build/kotlin-webpack/wasmJs/productionExecutable")
