@@ -25,12 +25,12 @@ val ColorBackground          = Color(0xFF050508) // Neutral pure dark
 val ColorSurface             = Color(0xFF0C0B15) // Very dark purple-black
 val ColorSurfaceVariant      = Color(0xFF15132A) // Dark purple
 
-val ColorOnBackground        = Color(0xFFF5F0FF) // Near white, purple tint
-val ColorOnSurface           = Color(0xFFEDE9F7)
-val ColorOnSurfaceVariant    = Color(0xFF9D7FD4) // Muted purple
+val ColorOnBackground        = Color(0xFFF8F5FF) // Near white, subtle purple tint
+val ColorOnSurface           = Color(0xFFF0ECFF) // Bright near-white
+val ColorOnSurfaceVariant    = Color(0xFFCBB8F0) // Light purple — readable on dark surfaces
 
-val ColorOutline             = Color(0xFF3A2A5C)
-val ColorOutlineVariant      = Color(0xFF1E1535)
+val ColorOutline             = Color(0xFF5A3D8A)
+val ColorOutlineVariant      = Color(0xFF2E1F50)
 
 val ColorError               = Color(0xFFFF4D6D)
 val ColorErrorContainer      = Color(0xFF4A0017)
