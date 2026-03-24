@@ -164,6 +164,13 @@ tasks.named<Copy>("wasmJsProcessResources") {
 tasks.register("buildWeb") {
     dependsOn("wasmJsBrowserProductionWebpack")
     doLast {
+        // Copy webpack bundle (composeApp.js + .wasm files)
+        project.copy {
+            from("build/kotlin-webpack/wasmJs/productionExecutable")
+            into("build/dist/wasmJs/productionExecutable")
+            duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+        }
+        // Copy static web resources (index.html, styles.css, etc.)
         project.copy {
             from("src/webMain/resources")
             into("build/dist/wasmJs/productionExecutable")
