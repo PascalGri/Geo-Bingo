@@ -7,7 +7,7 @@
     <meta name="description" content="KatchIt! ist ein kostenloses Multiplayer-Fotospiel fuer Gruppen. Erstellt eine Runde, erhaltet Fotoaufgaben und bewertet gemeinsam die besten Bilder. Jetzt im Browser spielen.">
     <link rel="canonical" href="https://katchit.app/">
     <meta name="google-site-verification" content="Ta1kJNiDImZZiotQJNw0-EJXi-WqIvOfHXKutoa8oZ8">
-    <meta name="theme-color" content="#060E08">
+    <meta name="theme-color" content="#050508">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -59,27 +59,34 @@
     <!-- TOP BANNER -->
     <div id="ad-top" class="ad-slot ad-slot-top" aria-hidden="true"></div>
 
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="loading-logo">KatchIt!</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-hint">Wird geladen…</div>
+    </div>
+
     <!-- GAME CANVAS -->
     <div id="app"></div>
 
     <!-- SEO Fallback fuer Suchmaschinen (nur sichtbar ohne JavaScript) -->
     <noscript>
-        <div style="font-family:sans-serif;background:#060E08;color:#E2F5E6;padding:40px 20px;max-width:640px;margin:0 auto;">
+        <div style="font-family:sans-serif;background:#050508;color:#EDE9F7;padding:40px 20px;max-width:640px;margin:0 auto;">
             <h1 style="font-size:32px;margin-bottom:16px;">KatchIt! - Das Multiplayer-Fotospiel</h1>
-            <p style="font-size:16px;color:#B0D4B8;margin-bottom:24px;">
+            <p style="font-size:16px;color:#9D7FD4;margin-bottom:24px;">
                 KatchIt! ist ein kostenloses Multiplayer-Fotospiel fuer Gruppen. Erstellt eine Runde, erhaltet Fotoaufgaben und bewertet gemeinsam die besten Bilder - direkt im Browser, kein Account noetig.
             </p>
-            <h2 style="font-size:20px;color:#84CC16;margin-bottom:12px;">So funktioniert KatchIt!</h2>
-            <ul style="color:#B0D4B8;font-size:15px;padding-left:20px;margin-bottom:24px;">
+            <h2 style="font-size:20px;color:#D946EF;margin-bottom:12px;">So funktioniert KatchIt!</h2>
+            <ul style="color:#9D7FD4;font-size:15px;padding-left:20px;margin-bottom:24px;">
                 <li>Raum erstellen und Freunde einladen</li>
                 <li>Fotoaufgaben aus verschiedenen Kategorien erhalten</li>
                 <li>Fotos aufnehmen und einreichen</li>
                 <li>Gemeinsam abstimmen und Punkte vergeben</li>
                 <li>Spielhistorie und Rundensieger sehen</li>
             </ul>
-            <p style="font-size:15px;color:#B0D4B8;">
+            <p style="font-size:15px;color:#9D7FD4;">
                 Fuer iOS und Android auch als App verfuegbar.<br>
-                Kontakt: <a href="mailto:support@katchit.app" style="color:#84CC16;">support@katchit.app</a>
+                Kontakt: <a href="mailto:support@katchit.app" style="color:#D946EF;">support@katchit.app</a>
             </p>
         </div>
     </noscript>
@@ -111,6 +118,28 @@
 
     <!-- Compose App -->
     <script type="module" src="composeApp.js"></script>
+
+    <!-- Loading screen: hide once app canvas has rendered content -->
+    <script>
+        (function() {
+            var app = document.getElementById('app');
+            var loading = document.getElementById('loading-screen');
+            var hideLoading = function() {
+                loading.classList.add('hidden');
+                setTimeout(function() { loading.style.display = 'none'; }, 450);
+            };
+            // Watch for any child elements being added to #app by the WASM runtime
+            var observer = new MutationObserver(function(mutations) {
+                if (app.children.length > 0) {
+                    observer.disconnect();
+                    hideLoading();
+                }
+            });
+            observer.observe(app, { childList: true });
+            // Fallback: hide after 12s regardless
+            setTimeout(hideLoading, 12000);
+        })();
+    </script>
 
     <!-- DSGVO-konforme Consent-Logik: kein AdSense vor Einwilligung -->
     <script>
