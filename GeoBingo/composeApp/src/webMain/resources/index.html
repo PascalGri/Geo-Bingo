@@ -122,22 +122,25 @@
     <!-- Loading screen: hide once app canvas has rendered content -->
     <script>
         (function() {
-            var app = document.getElementById('app');
             var loading = document.getElementById('loading-screen');
+            var app = document.getElementById('app');
+            var hidden = false;
             var hideLoading = function() {
+                if (hidden) return;
+                hidden = true;
                 loading.classList.add('hidden');
-                setTimeout(function() { loading.style.display = 'none'; }, 450);
+                setTimeout(function() { loading.style.display = 'none'; }, 550);
             };
-            // Watch for any child elements being added to #app by the WASM runtime
-            var observer = new MutationObserver(function(mutations) {
-                if (app.children.length > 0) {
+            // Primary: observe #app for canvas/children added by ComposeViewport
+            var observer = new MutationObserver(function() {
+                if (app.childElementCount > 0) {
                     observer.disconnect();
                     hideLoading();
                 }
             });
-            observer.observe(app, { childList: true });
-            // Fallback: hide after 12s regardless
-            setTimeout(hideLoading, 12000);
+            observer.observe(app, { childList: true, subtree: false });
+            // Fallback A: hide after 5s even if WASM hasn't mounted yet
+            setTimeout(hideLoading, 5000);
         })();
     </script>
 
