@@ -159,23 +159,25 @@ tasks.named<Copy>("wasmJsProcessResources") {
     from("src/webMain/resources")
 }
 
-// buildWeb: webpack-Bundle + statische Ressourcen immer in den Output kopieren.
+// buildWeb: webpack-Bundle + statische Ressourcen in den Deploy-Output kopieren.
 // Statt ./gradlew wasmJsBrowserProductionWebpack diesen Task verwenden.
 tasks.register("buildWeb") {
     dependsOn("wasmJsBrowserProductionWebpack")
     doLast {
+        val distDir = project.file("build/dist/wasmJs/productionExecutable")
         // Clean dist to avoid accumulating stale WASM files from previous builds
-        delete("build/dist/wasmJs/productionExecutable")
+        project.delete(distDir)
+        distDir.mkdirs()
         // Copy webpack bundle (composeApp.js + .wasm files)
         project.copy {
             from("build/kotlin-webpack/wasmJs/productionExecutable")
-            into("build/dist/wasmJs/productionExecutable")
+            into(distDir)
             duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
         }
         // Copy static web resources (index.html, styles.css, etc.)
         project.copy {
             from("src/webMain/resources")
-            into("build/dist/wasmJs/productionExecutable")
+            into(distDir)
             duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
         }
     }
