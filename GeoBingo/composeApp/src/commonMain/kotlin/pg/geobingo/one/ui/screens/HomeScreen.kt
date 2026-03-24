@@ -44,322 +44,429 @@ fun HomeScreen(gameState: GameState) {
         snackbarHostState.showSnackbar(msg)
     }
 
-    // Staggered entrance animations
-    val anim = rememberStaggeredAnimation(count = 9)
-    // Bottom buttons slide-up (more pronounced)
+    val anim = rememberStaggeredAnimation(count = 8)
     val btnOffsets = (0..1).map { remember { Animatable(80f) } }
     val btnAlphas = (0..1).map { remember { Animatable(0f) } }
     LaunchedEffect(Unit) {
         for (i in btnOffsets.indices) {
             launch {
-                delay(300L + i * 80L)
-                launch { btnOffsets[i].animateTo(0f, tween(450)) }
-                btnAlphas[i].animateTo(1f, tween(450))
+                delay(180L + i * 100L)
+                launch { btnOffsets[i].animateTo(0f, tween(500)) }
+                btnAlphas[i].animateTo(1f, tween(500))
             }
         }
     }
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    // Dialog state for showing round winner
     var selectedHistoryEntry by remember { mutableStateOf<GameHistoryEntry?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = ColorBackground,
     ) { _ ->
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(ColorBackground),
-    ) {
-        // Top glow - subtle
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(ColorPrimary.copy(alpha = 0.08f), Color.Transparent),
-                        radius = 800f,
-                    )
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(80.dp))
-
-            // Title
-            AnimatedGradientText(
-                text = "KatchIt!",
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 52.sp,
-                    letterSpacing = (-1).sp,
-                ),
-                gradientColors = GradientPrimary,
-                durationMillis = 2500,
-                modifier = Modifier.staggered(0),
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            AnimatedGradientText(
-                text = "Foto-Schnitzeljagd mit Freunden",
-                style = MaterialTheme.typography.bodyLarge,
-                gradientColors = GradientCool,
-                durationMillis = 3000,
-                modifier = Modifier.staggered(1),
-            )
-
-            Spacer(Modifier.height(40.dp))
-
-            // How it works - vertical steps
+        Box(modifier = Modifier.fillMaxSize().background(ColorBackground)) {
             Column(
                 modifier = Modifier
-                    .staggered(2)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(ColorSurface)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                HomeStep(
-                    icon = Icons.Default.GridView,
-                    number = "1",
-                    text = "Kategorien w\u00E4hlen und Freunde einladen",
-                )
-                HomeStep(
-                    icon = Icons.Default.CameraAlt,
-                    number = "2",
-                    text = "Raus in die Stadt und Motive fotografieren",
-                )
-                HomeStep(
-                    icon = Icons.Default.HowToVote,
-                    number = "3",
-                    text = "Abstimmen, wer die besten Fotos hat",
-                )
-            }
 
-            Spacer(Modifier.height(20.dp))
-
-            // Datenschutz-Hinweis
-            Row(
-                modifier = Modifier
-                    .staggered(3)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ColorSurface)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Icon(
-                    Icons.Default.GppMaybe,
-                    contentDescription = null,
-                    tint = ColorOnSurfaceVariant,
-                    modifier = Modifier.size(16.dp).padding(top = 1.dp),
-                )
-                Text(
-                    text = "Fotografiere keine Personen ohne deren Zustimmung. " +
-                           "Das Recht am eigenen Bild (\u00A7 22 KUG) sch\u00FCtzt jede Person. " +
-                           "Die Verantwortung liegt beim jeweiligen Nutzer.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant,
-                    lineHeight = 15.sp,
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Game History Section - always visible
-            if (gameState.ui.gameHistory.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.staggered(4).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                // ── HERO ──────────────────────────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .staggered(0),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                    AnimatedGradientBox(
+                        modifier = Modifier.fillMaxWidth().height(300.dp),
+                        gradientColors = GradientPrimary,
+                        durationMillis = 5000,
+                    ) {}
+                    // Dark overlay for readability
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.10f),
+                                        Color.Black.copy(alpha = 0.50f),
+                                    )
+                                )
+                            )
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(horizontal = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(Color.White.copy(alpha = 0.22f)),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.Default.History,
+                                Icons.Default.CameraAlt,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = ColorOnSurfaceVariant,
-                            )
-                            Text(
-                                "Letzte Spiele",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ColorOnSurface,
+                                modifier = Modifier.size(40.dp),
+                                tint = Color.White,
                             )
                         }
-                        if (gameState.ui.gameHistory.size > 3) {
-                            TextButton(onClick = { gameState.session.currentScreen = Screen.HISTORY }) {
-                                Text(
-                                    "Alle anzeigen",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = ColorPrimary,
-                                )
-                            }
-                        }
-                    }
-
-                    gameState.ui.gameHistory.take(3).forEach { entry ->
-                        HomeHistoryCard(
-                            entry = entry,
-                            onClick = { selectedHistoryEntry = entry },
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "KatchIt!",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 54.sp,
+                                letterSpacing = (-1.5).sp,
+                            ),
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Fotografiere. Vergleiche. Gewinne.",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                letterSpacing = 0.3.sp,
+                            ),
+                            color = Color.White.copy(alpha = 0.88f),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
-            }
+                // ── FEATURE PILLS ─────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .staggered(1)
+                        .padding(top = 16.dp, bottom = 4.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.screenHorizontal),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                ) {
+                    FeaturePill(icon = Icons.Default.People, label = "Mit Freunden")
+                    FeaturePill(icon = Icons.Default.LocationOn, label = "Stadtabenteuer")
+                    FeaturePill(icon = Icons.Default.HowToVote, label = "Live-Voting")
+                }
 
-            GradientButton(
-                text = "Runde erstellen",
-                onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
-                modifier = Modifier.fillMaxWidth().graphicsLayer {
-                    translationY = btnOffsets[0].value
-                    alpha = btnAlphas[0].value
-                },
-                gradientColors = GradientPrimary,
-                leadingIcon = {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.White)
-                },
-            )
+                Spacer(Modifier.height(20.dp))
 
-            Spacer(Modifier.height(10.dp))
+                // ── CTA BUTTONS ───────────────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    GradientButton(
+                        text = "Runde erstellen",
+                        onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
+                        modifier = Modifier.fillMaxWidth().graphicsLayer {
+                            translationY = btnOffsets[0].value
+                            alpha = btnAlphas[0].value
+                        },
+                        gradientColors = GradientPrimary,
+                        height = 62.dp,
+                        fontSize = 17.sp,
+                        leadingIcon = {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                        },
+                    )
 
-            OutlinedButton(
-                onClick = { gameState.session.currentScreen = Screen.JOIN_GAME },
-                modifier = Modifier.fillMaxWidth().height(56.dp).graphicsLayer {
-                    translationY = btnOffsets[1].value
-                    alpha = btnAlphas[1].value
-                },
-                shape = RoundedCornerShape(28.dp),
-                border = BorderStroke(1.dp, ColorOutline),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Login, null, modifier = Modifier.size(18.dp), tint = ColorOnSurface)
-                Spacer(Modifier.width(8.dp))
+                    OutlinedButton(
+                        onClick = { gameState.session.currentScreen = Screen.JOIN_GAME },
+                        modifier = Modifier.fillMaxWidth().height(62.dp).graphicsLayer {
+                            translationY = btnOffsets[1].value
+                            alpha = btnAlphas[1].value
+                        },
+                        shape = RoundedCornerShape(31.dp),
+                        border = BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.55f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Login,
+                            null,
+                            modifier = Modifier.size(20.dp),
+                            tint = ColorPrimary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Runde beitreten",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 17.sp,
+                            color = ColorOnSurface,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(32.dp))
+
+                // ── HOW IT WORKS ──────────────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .staggered(2)
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        "So einfach geht's",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnSurface,
+                        modifier = Modifier.padding(bottom = 2.dp),
+                    )
+                    BoldStep(
+                        number = "1",
+                        icon = Icons.Default.GridView,
+                        title = "Kategorien wählen",
+                        desc = "Erstelle eine Runde und lade Freunde ein",
+                        gradientColors = GradientWarm,
+                    )
+                    BoldStep(
+                        number = "2",
+                        icon = Icons.Default.CameraAlt,
+                        title = "Raus in die Stadt",
+                        desc = "Fotografiere Motive so kreativ wie möglich",
+                        gradientColors = GradientPrimary,
+                    )
+                    BoldStep(
+                        number = "3",
+                        icon = Icons.Default.HowToVote,
+                        title = "Abstimmen & gewinnen",
+                        desc = "Wähle die besten Fotos und küre den Sieger",
+                        gradientColors = GradientCool,
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // ── PRIVACY HINT ──────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .staggered(3)
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        Icons.Default.GppMaybe,
+                        contentDescription = null,
+                        tint = ColorOnSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(13.dp).padding(top = 1.dp),
+                    )
+                    Text(
+                        text = "Fotografiere keine Personen ohne deren Zustimmung (\u00A7 22 KUG).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOnSurfaceVariant.copy(alpha = 0.55f),
+                        lineHeight = 14.sp,
+                    )
+                }
+
+                Spacer(Modifier.height(28.dp))
+
+                // ── HISTORY ───────────────────────────────────────────────────
+                if (gameState.ui.gameHistory.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .staggered(4)
+                            .padding(horizontal = Spacing.screenHorizontal)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = ColorOnSurfaceVariant,
+                                )
+                                Text(
+                                    "Letzte Spiele",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ColorOnSurface,
+                                )
+                            }
+                            if (gameState.ui.gameHistory.size > 3) {
+                                TextButton(onClick = { gameState.session.currentScreen = Screen.HISTORY }) {
+                                    Text(
+                                        "Alle anzeigen",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ColorPrimary,
+                                    )
+                                }
+                            }
+                        }
+                        gameState.ui.gameHistory.take(3).forEach { entry ->
+                            HomeHistoryCard(entry = entry, onClick = { selectedHistoryEntry = entry })
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+
+                // ── FOOTER LINKS ──────────────────────────────────────────────
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.staggered(5),
+                ) {
+                    TextButton(onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.HelpOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = ColorOnSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Wie funktioniert's?",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { gameState.session.currentScreen = Screen.SETTINGS }) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = ColorOnSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Einstellungen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.staggered(6),
+                ) {
+                    val uriHandler = LocalUriHandler.current
+                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
+                        Text(
+                            "Impressum",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOutline,
+                        )
+                    }
+                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
+                        Text(
+                            "Datenschutz",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOutline,
+                        )
+                    }
+                }
+
                 Text(
-                    "Runde beitreten",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp,
-                    color = ColorOnSurface,
+                    "KatchIt! v1.0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorOutline,
                 )
+                Spacer(Modifier.height(28.dp))
             }
+        }
 
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.staggered(6),
-            ) {
-                TextButton(onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.HelpOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = ColorOnSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        "Wie funktioniert's?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                    )
-                }
-                TextButton(onClick = { gameState.session.currentScreen = Screen.SETTINGS }) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = ColorOnSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        "Einstellungen",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                    )
-                }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.staggered(7),
-            ) {
-                val uriHandler = LocalUriHandler.current
-                TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
-                    Text(
-                        "Impressum",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorOutline,
-                    )
-                }
-                TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
-                    Text(
-                        "Datenschutz",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorOutline,
-                    )
-                }
-            }
-
-            Text(
-                "KatchIt! v1.0",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOutline,
-            )
-            Spacer(Modifier.height(28.dp))
+        selectedHistoryEntry?.let { entry ->
+            RoundWinnerDialog(entry = entry, onDismiss = { selectedHistoryEntry = null })
         }
     }
-
-    // Winner dialog
-    selectedHistoryEntry?.let { entry ->
-        RoundWinnerDialog(entry = entry, onDismiss = { selectedHistoryEntry = null })
-    }
-    } // end Scaffold
 }
 
 @Composable
-private fun HomeStep(icon: ImageVector, number: String, text: String) {
+private fun FeaturePill(icon: ImageVector, label: String) {
     Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(ColorSurface)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+            tint = ColorPrimary,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = ColorOnSurface,
+        )
+    }
+}
+
+@Composable
+private fun BoldStep(
+    number: String,
+    icon: ImageVector,
+    title: String,
+    desc: String,
+    gradientColors: List<Color>,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(ColorSurface)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         AnimatedGradientBox(
             modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp)),
-            gradientColors = GradientPrimary,
-            durationMillis = 3000,
+                .size(52.dp)
+                .clip(RoundedCornerShape(15.dp)),
+            gradientColors = gradientColors,
+            durationMillis = 4000,
         ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp), tint = Color.White)
             }
         }
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
-                text = text,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
+                "Schritt $number",
+                style = MaterialTheme.typography.labelSmall,
+                color = ColorOnSurfaceVariant,
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
                 color = ColorOnSurface,
+            )
+            Text(
+                desc,
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorOnSurfaceVariant,
+                lineHeight = 16.sp,
             )
         }
     }
@@ -476,7 +583,6 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Winner highlight
                 if (winner != null) {
                     Row(
                         modifier = Modifier
@@ -511,7 +617,6 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
 
                 HorizontalDivider(color = ColorOutlineVariant)
 
-                // All rankings
                 entry.players.forEachIndexed { i, hp ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -545,7 +650,6 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
                     }
                 }
 
-                // Game info
                 Text(
                     "${entry.totalCategories} Kategorien  |  ${entry.players.size} Spieler" +
                             if (entry.jokerMode) "  |  Joker" else "",
