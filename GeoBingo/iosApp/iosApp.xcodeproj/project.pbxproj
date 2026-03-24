@@ -189,7 +189,6 @@
 		};
 		4C92580889F34675C9B269B1 /* Compile Kotlin Framework */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -201,6 +200,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(CODESIGNING_FOLDER_PATH)/Frameworks/ComposeApp.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

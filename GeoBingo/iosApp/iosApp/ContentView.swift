@@ -27,7 +27,7 @@ struct ContentView: View {
     }
 
     private func handleKotlinAdRequests() {
-        let bridge = AdManagerBridge.companion
+        let bridge = AdManagerBridge.shared
 
         if bridge.shouldShowRewarded {
             bridge.shouldShowRewarded = false

@@ -145,3 +145,25 @@ body {
 #consent-accept:hover {
     background: #a3e635;
 }
+
+/* ── Legal Footer ─────────────────────────── */
+#legal-footer {
+    position: fixed;
+    bottom: 4px;
+    right: 8px;
+    z-index: 10;
+    display: flex;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+}
+
+#legal-footer a {
+    color: #4a6a4e;
+    text-decoration: none;
+}
+
+#legal-footer a:hover {
+    color: #84CC16;
+    text-decoration: underline;
+}

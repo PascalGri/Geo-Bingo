@@ -12,14 +12,8 @@ plugins {
 kotlin {
     applyDefaultHierarchyTemplate()
 
-    targets.configureEach {
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    freeCompilerArgs.add("-Xexpect-actual-classes")
-                }
-            }
-        }
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     androidTarget {
@@ -155,3 +149,12 @@ tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach
 }
 
 // Desktop (JVM) target entfernt — kein Desktop-Release geplant
+
+tasks.named<Copy>("jsProcessResources") {
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+    from("src/webMain/resources")
+}
+tasks.named<Copy>("wasmJsProcessResources") {
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+    from("src/webMain/resources")
+}

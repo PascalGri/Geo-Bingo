@@ -5,13 +5,17 @@ import ComposeApp
 private let rewardedAdUnitId = "ca-app-pub-4871207394525716/6419331704"
 private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
 
-/// Implements the AdMob logic for iOS and bridges back to Kotlin via AdManagerBridgeCompanion.
+/// Implements the AdMob logic for iOS and bridges back to Kotlin via AdManagerBridge.
 @objc class AdManagerBridgeImpl: NSObject {
 
     static let shared = AdManagerBridgeImpl()
 
-    private var rewardedAd: GADRewardedAd?
-    private var interstitialAd: GADInterstitialAd?
+    private var rewardedAd: RewardedAd?
+    private var interstitialAd: InterstitialAd?
+
+    // Strong references to delegates — fullScreenContentDelegate is weak, so we must retain them
+    private var rewardedDelegate: RewardedDelegate?
+    private var interstitialDelegate: InterstitialDelegate?
 
     // Called from ContentView's onAppear after consent
     @objc func preloadAds() {
@@ -20,25 +24,25 @@ private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
     }
 
     private func loadRewardedAd() {
-        GADRewardedAd.load(
-            withAdUnitID: rewardedAdUnitId,
-            request: GADRequest()
+        RewardedAd.load(
+            with: rewardedAdUnitId,
+            request: Request()
         ) { [weak self] ad, error in
             if error == nil { self?.rewardedAd = ad }
         }
     }
 
     private func loadInterstitialAd() {
-        GADInterstitialAd.load(
-            withAdUnitID: interstitialAdUnitId,
-            request: GADRequest()
+        InterstitialAd.load(
+            with: interstitialAdUnitId,
+            request: Request()
         ) { [weak self] ad, error in
             if error == nil { self?.interstitialAd = ad }
         }
     }
 
     @objc func showRewardedAd() {
-        guard let bridge = AdManagerBridge.companion as? AdManagerBridgeCompanion else { return }
+        let bridge = AdManagerBridge.shared
         guard let ad = rewardedAd, let vc = topViewController() else {
             bridge.rewardDismissCallback?()
             bridge.rewardDismissCallback = nil
@@ -46,23 +50,26 @@ private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
             return
         }
 
-        ad.present(fromRootViewController: vc, userDidEarnRewardHandler: {
+        ad.present(from: vc, userDidEarnRewardHandler: {
             bridge.rewardCallback?()
             bridge.rewardCallback = nil
         })
 
-        ad.fullScreenContentDelegate = RewardedDelegate {
-            self.rewardedAd = nil
+        let delegate = RewardedDelegate { [weak self] in
+            self?.rewardedAd = nil
+            self?.rewardedDelegate = nil
             bridge.rewardDismissCallback?()
             bridge.rewardDismissCallback = nil
             bridge.shouldShowRewarded = false
-            self.loadRewardedAd()
+            self?.loadRewardedAd()
         }
+        rewardedDelegate = delegate
+        ad.fullScreenContentDelegate = delegate
         rewardedAd = nil
     }
 
     @objc func showInterstitialAd() {
-        guard let bridge = AdManagerBridge.companion as? AdManagerBridgeCompanion else { return }
+        let bridge = AdManagerBridge.shared
         guard let ad = interstitialAd, let vc = topViewController() else {
             bridge.interstitialDismissCallback?()
             bridge.interstitialDismissCallback = nil
@@ -70,14 +77,17 @@ private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
             return
         }
 
-        ad.present(fromRootViewController: vc)
-        ad.fullScreenContentDelegate = InterstitialDelegate {
-            self.interstitialAd = nil
+        ad.present(from: vc)
+        let delegate = InterstitialDelegate { [weak self] in
+            self?.interstitialAd = nil
+            self?.interstitialDelegate = nil
             bridge.interstitialDismissCallback?()
             bridge.interstitialDismissCallback = nil
             bridge.shouldShowInterstitial = false
-            self.loadInterstitialAd()
+            self?.loadInterstitialAd()
         }
+        interstitialDelegate = delegate
+        ad.fullScreenContentDelegate = delegate
         interstitialAd = nil
     }
 
@@ -92,16 +102,16 @@ private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
 
 // MARK: - Delegates
 
-private class RewardedDelegate: NSObject, GADFullScreenContentDelegate {
+private class RewardedDelegate: NSObject, FullScreenContentDelegate {
     let onDismiss: () -> Void
     init(_ onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
-    func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) { onDismiss() }
-    func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) { onDismiss() }
+    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) { onDismiss() }
+    func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) { onDismiss() }
 }
 
-private class InterstitialDelegate: NSObject, GADFullScreenContentDelegate {
+private class InterstitialDelegate: NSObject, FullScreenContentDelegate {
     let onDismiss: () -> Void
     init(_ onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
-    func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) { onDismiss() }
-    func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) { onDismiss() }
+    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) { onDismiss() }
+    func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) { onDismiss() }
 }

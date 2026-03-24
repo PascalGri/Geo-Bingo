@@ -7,30 +7,30 @@ import ComposeApp
 @objc class ConsentManagerBridge: NSObject {
 
     @objc static func requestConsent() {
-        let parameters = UMPRequestParameters()
+        let parameters = RequestParameters()
         // Set to true only for testing — remove in production
         // parameters.tagForUnderAgeOfConsent = false
 
-        UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(
+        ConsentInformation.shared.requestConsentInfoUpdate(
             with: parameters,
             completionHandler: { error in
                 guard error == nil else {
                     // On error: call Kotlin with no personalization
-                    ConsentManagerKt.onConsentReady(canPersonalize: false)
+                    ConsentManagerBridgeCompanion.shared.onConsentReady(canPersonalize: false)
                     return
                 }
 
-                UMPConsentForm.loadAndPresentIfRequired(from: topViewController()) { formError in
-                    let status = UMPConsentInformation.sharedInstance.consentStatus
+                ConsentForm.loadAndPresentIfRequired(from: topViewController()) { formError in
+                    let status = ConsentInformation.shared.consentStatus
                     let canPersonalize = (status == .obtained || status == .notRequired)
-                    ConsentManagerKt.onConsentReady(canPersonalize: canPersonalize)
+                    ConsentManagerBridgeCompanion.shared.onConsentReady(canPersonalize: canPersonalize)
                 }
             }
         )
     }
 
     @objc static func showPrivacyOptionsForm() {
-        UMPConsentForm.presentPrivacyOptionsForm(from: topViewController()) { _ in
+        ConsentForm.presentPrivacyOptionsForm(from: topViewController()) { _ in
             ConsentManagerBridgeCompanion.shared.privacyOptionsCallback?()
             ConsentManagerBridgeCompanion.shared.privacyOptionsCallback = nil
         }

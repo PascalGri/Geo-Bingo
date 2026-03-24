@@ -15,14 +15,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 private var consentReady = false
 private var personalizedAdsAllowed = true  // UMP sets this via bridge
 
-// Called from Swift ConsentManagerBridge after consent is determined
-fun onConsentReady(canPersonalize: Boolean) {
-    personalizedAdsAllowed = canPersonalize
-    consentReady = true
-    pendingOnReady?.invoke()
-    pendingOnReady = null
-}
-
 private var pendingOnReady: (() -> Unit)? = null
 
 actual object ConsentManager {
@@ -47,12 +39,18 @@ actual object ConsentManager {
 // Companion object so Swift can call back into Kotlin
 object ConsentManagerBridgeCompanion {
     var privacyOptionsCallback: (() -> Unit)? = null
+    var shouldShowPrivacyForm = false
 
     fun showPrivacyOptions(onDismiss: () -> Unit) {
         privacyOptionsCallback = onDismiss
-        // Signal Swift to show the form — polling via a shared flag
         shouldShowPrivacyForm = true
     }
 
-    var shouldShowPrivacyForm = false
+    // Called from Swift ConsentManagerBridge after UMP consent is determined
+    fun onConsentReady(canPersonalize: Boolean) {
+        personalizedAdsAllowed = canPersonalize
+        consentReady = true
+        pendingOnReady?.invoke()
+        pendingOnReady = null
+    }
 }
