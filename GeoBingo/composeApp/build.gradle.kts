@@ -158,3 +158,16 @@ tasks.named<Copy>("wasmJsProcessResources") {
     duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
     from("src/webMain/resources")
 }
+
+// buildWeb: webpack-Bundle + statische Ressourcen immer in den Output kopieren.
+// Statt ./gradlew wasmJsBrowserProductionWebpack diesen Task verwenden.
+tasks.register("buildWeb") {
+    dependsOn("wasmJsBrowserProductionWebpack")
+    doLast {
+        project.copy {
+            from("src/webMain/resources")
+            into("build/dist/wasmJs/productionExecutable")
+            duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+        }
+    }
+}

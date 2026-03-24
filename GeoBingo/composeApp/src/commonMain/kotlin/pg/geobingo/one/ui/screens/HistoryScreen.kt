@@ -1,5 +1,6 @@
 package pg.geobingo.one.ui.screens
 
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -173,14 +174,13 @@ private fun HistoryEntryCard(entry: GameHistoryEntry, isLatest: Boolean) {
                 Column {
                     if (entry.date.isNotBlank()) {
                         val dateText = try {
-                            val datePart = entry.date.substringBefore("T")
-                            val timePart = entry.date.substringAfter("T").substringBefore(".")
-                                .substringBefore("Z").substringBefore("+")
-                            val parts = datePart.split("-")
-                            val timeParts = timePart.split(":")
-                            if (parts.size >= 3 && timeParts.size >= 2) {
-                                "${parts[2]}.${parts[1]}.${parts[0]}  ${timeParts[0]}:${timeParts[1]}"
-                            } else ""
+                            val instant = kotlinx.datetime.Instant.parse(entry.date)
+                            val local = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                            val day = local.dayOfMonth.toString().padStart(2, '0')
+                            val month = local.monthNumber.toString().padStart(2, '0')
+                            val hour = local.hour.toString().padStart(2, '0')
+                            val minute = local.minute.toString().padStart(2, '0')
+                            "$day.$month.${local.year}  $hour:$minute"
                         } catch (_: Exception) { "" }
                         if (dateText.isNotEmpty()) {
                             Text(

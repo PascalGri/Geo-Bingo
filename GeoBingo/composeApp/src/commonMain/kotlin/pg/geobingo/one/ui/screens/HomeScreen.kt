@@ -1,5 +1,6 @@
 package pg.geobingo.one.ui.screens
 
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -367,15 +368,13 @@ private fun HomeStep(icon: ImageVector, number: String, text: String) {
 private fun formatHistoryDate(isoDate: String): String {
     if (isoDate.isBlank()) return ""
     return try {
-        // ISO format: 2026-03-21T14:30:00.123456789Z
-        val datePart = isoDate.substringBefore("T")
-        val timePart = isoDate.substringAfter("T").substringBefore(".")
-            .substringBefore("Z").substringBefore("+")
-        val parts = datePart.split("-")
-        val timeParts = timePart.split(":")
-        if (parts.size >= 3 && timeParts.size >= 2) {
-            "${parts[2]}.${parts[1]}.${parts[0]}  ${timeParts[0]}:${timeParts[1]}"
-        } else ""
+        val instant = kotlinx.datetime.Instant.parse(isoDate)
+        val local = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+        val day = local.dayOfMonth.toString().padStart(2, '0')
+        val month = local.monthNumber.toString().padStart(2, '0')
+        val hour = local.hour.toString().padStart(2, '0')
+        val minute = local.minute.toString().padStart(2, '0')
+        "$day.$month.${local.year}  $hour:$minute"
     } catch (_: Exception) {
         ""
     }
