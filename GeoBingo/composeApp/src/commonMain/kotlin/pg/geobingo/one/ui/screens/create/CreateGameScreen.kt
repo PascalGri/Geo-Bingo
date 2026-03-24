@@ -9,6 +9,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -330,32 +332,27 @@ fun CreateGameScreen(gameState: GameState) {
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // Preset grid (3 columns) with shuffle fade
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.graphicsLayer { alpha = shuffleAlpha.value },
+                // Preset chips with shuffle fade
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { alpha = shuffleAlpha.value },
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    visiblePresets.chunked(3).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            rowItems.forEach { category ->
-                                val isSelected = category.id in selectedPresetIds
-                                DarkCategorySelectCard(
-                                    category = category,
-                                    isSelected = isSelected,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        selectedPresetIds = if (isSelected)
-                                            selectedPresetIds - category.id
-                                        else
-                                            selectedPresetIds + category.id
-                                    },
-                                )
-                            }
-                            repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
-                        }
+                    visiblePresets.forEach { category ->
+                        val isSelected = category.id in selectedPresetIds
+                        DarkCategorySelectCard(
+                            category = category,
+                            isSelected = isSelected,
+                            onClick = {
+                                selectedPresetIds = if (isSelected)
+                                    selectedPresetIds - category.id
+                                else
+                                    selectedPresetIds + category.id
+                            },
+                        )
                     }
                 }
 

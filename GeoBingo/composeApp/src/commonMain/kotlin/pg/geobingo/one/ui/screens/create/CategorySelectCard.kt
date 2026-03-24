@@ -5,23 +5,24 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
-import pg.geobingo.one.data.getCategoryIcon
-import pg.geobingo.one.data.getCategoryIconRotation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Category
@@ -37,10 +38,9 @@ internal fun DarkCategorySelectCard(
 ) {
     var showInfo by remember { mutableStateOf(false) }
 
-    // Scale bounce on selection change
     val scaleAnim = remember { Animatable(1f) }
     LaunchedEffect(isSelected) {
-        scaleAnim.animateTo(1.12f, tween(100))
+        scaleAnim.animateTo(0.92f, tween(80))
         scaleAnim.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
     }
 
@@ -48,14 +48,6 @@ internal fun DarkCategorySelectCard(
         AlertDialog(
             onDismissRequest = { showInfo = false },
             containerColor = ColorSurface,
-            icon = {
-                Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = null,
-                    tint = if (isSelected) ColorPrimary else ColorOnSurfaceVariant,
-                    modifier = Modifier.size(32.dp).rotate(getCategoryIconRotation(category.id)),
-                )
-            },
             title = {
                 Text(
                     text = category.name,
@@ -94,80 +86,49 @@ internal fun DarkCategorySelectCard(
         )
     }
 
-    if (isSelected) {
-        GradientBorderCard(
-            modifier = modifier
-                .scale(scaleAnim.value)
-                .aspectRatio(0.85f)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showInfo = true },
-                ),
-            cornerRadius = 10.dp,
-            borderColors = GradientPrimary,
-            backgroundColor = ColorPrimaryContainer,
-            borderWidth = 1.5.dp,
+    val shape = RoundedCornerShape(20.dp)
+
+    Box(
+        modifier = modifier
+            .scale(scaleAnim.value)
+            .clip(shape)
+            .then(
+                if (isSelected) {
+                    Modifier.background(
+                        Brush.linearGradient(GradientPrimary)
+                    )
+                } else {
+                    Modifier
+                        .background(ColorSurfaceVariant)
+                        .border(1.dp, ColorOutline, shape)
+                }
+            )
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showInfo = true },
+            )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
+            if (isSelected) {
                 Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = category.name,
-                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
-                    tint = ColorPrimary,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorOnPrimaryContainer,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 12.sp,
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = androidx.compose.ui.graphics.Color.White,
                 )
             }
-        }
-    } else {
-        Card(
-            modifier = modifier
-                .scale(scaleAnim.value)
-                .aspectRatio(0.85f)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showInfo = true },
-                ),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = getCategoryIcon(category.id),
-                    contentDescription = category.name,
-                    modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)),
-                    tint = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorOnSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 12.sp,
-                )
-            }
+            Text(
+                text = category.name,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) androidx.compose.ui.graphics.Color.White else ColorOnSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
