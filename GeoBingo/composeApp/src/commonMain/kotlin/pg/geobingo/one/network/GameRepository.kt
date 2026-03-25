@@ -22,7 +22,8 @@ data class GameDto(
     val status: String = "lobby",
     val duration_s: Int = 300,
     val review_category_index: Int = 0,
-    val joker_mode: Boolean = false
+    val joker_mode: Boolean = false,
+    val game_mode: String = "CLASSIC",
 )
 
 @Serializable
@@ -67,7 +68,7 @@ data class VoteSubmissionDto(val id: String = "", val game_id: String = "", val 
 private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: String, val category_id: String)
 
 @Serializable
-private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false)
+private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false, val game_mode: String = "CLASSIC")
 
 @Serializable
 data class JokerLabelDto(val game_id: String = "", val player_id: String = "", val label: String = "")
@@ -148,9 +149,9 @@ private val httpClient = HttpClient()
 
 object GameRepository {
 
-    suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false): GameDto =
+    suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false, gameMode: String = "CLASSIC"): GameDto =
         supabase.from("games").insert(
-            GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode)
+            GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode, game_mode = gameMode)
         ) { select() }.decodeSingle()
 
     suspend fun setJokerLabel(gameId: String, playerId: String, label: String) {

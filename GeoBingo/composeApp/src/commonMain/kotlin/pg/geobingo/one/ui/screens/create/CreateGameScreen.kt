@@ -153,7 +153,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     val presets = presetPool.filter { it.id in selectedPresetIds }
                                     val allCategories = customCategories + presets
                                     val code = generateCode()
-                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode)
+                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode, gameMode.name)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
                                     val avatarBytes = selectedAvatarBytes

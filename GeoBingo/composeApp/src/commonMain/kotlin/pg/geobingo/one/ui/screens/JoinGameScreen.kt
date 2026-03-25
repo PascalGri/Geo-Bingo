@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.PLAYER_COLORS
+import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
@@ -269,6 +270,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 gameState.session.myPlayerId = playerDto.id
                                 gameState.gameplay.gameDurationMinutes = game.duration_s / 60
                                 gameState.joker.jokerMode = game.joker_mode
+                                gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (_: Exception) { GameMode.CLASSIC }
                                 gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
                                 gameState.gameplay.lobbyPlayers = players
                                 gameState.session.currentScreen = Screen.LOBBY
