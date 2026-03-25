@@ -9,6 +9,7 @@ import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.ui.components.SyncAvatars
 import pg.geobingo.one.ui.screens.*
+import pg.geobingo.one.ui.screens.ModeSelectScreen
 import pg.geobingo.one.ui.screens.create.CreateGameScreen
 import pg.geobingo.one.ui.screens.game.GameScreen
 import pg.geobingo.one.ui.screens.results.ResultsScreen
@@ -33,6 +34,7 @@ fun App() {
         when (gameState.session.currentScreen) {
             Screen.HOME -> HomeScreen(gameState)
             Screen.HOW_TO_PLAY -> HowToPlayScreen(gameState)
+            Screen.SELECT_MODE -> ModeSelectScreen(gameState)
             Screen.CREATE_GAME -> CreateGameScreen(gameState)
             Screen.JOIN_GAME -> JoinGameScreen(gameState)
             Screen.LOBBY -> LobbyScreen(gameState)

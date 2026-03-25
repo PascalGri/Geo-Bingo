@@ -137,7 +137,7 @@ fun HomeScreen(gameState: GameState) {
                 ) {
                     GradientButton(
                         text = "Runde erstellen",
-                        onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
+                        onClick = { gameState.session.currentScreen = Screen.SELECT_MODE },
                         modifier = Modifier.fillMaxWidth().graphicsLayer {
                             translationY = btnOffsets[0].value
                             alpha = btnAlphas[0].value

@@ -13,8 +13,10 @@ import pg.geobingo.one.network.VoteDto
 import pg.geobingo.one.network.toHex
 
 enum class Screen {
-    HOME, HOW_TO_PLAY, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS
+    HOME, HOW_TO_PLAY, SELECT_MODE, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS
 }
+
+enum class GameMode { CLASSIC, BLIND_BINGO, WEIRD_CORE }
 
 data class HistoryPlayer(
     val id: String,
@@ -252,6 +254,7 @@ class GameState {
         session.isHost = false
         session.myPlayerId = null
         joker.jokerMode = false
+        session.gameMode = GameMode.CLASSIC
         session.currentScreen = Screen.HOME
     }
 

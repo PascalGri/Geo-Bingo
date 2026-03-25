@@ -85,6 +85,31 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "weird"             -> Icons.Default.QuestionMark
     "miniature"         -> Icons.Default.ZoomIn
     "symmetry"          -> Icons.Default.Flip
+    // ── Weird Core ───────────────────────────────────────────────────────────
+    "wc_phone"          -> Icons.Default.PhoneAndroid
+    "wc_sign"           -> Icons.Default.Signpost
+    "wc_sign_no"        -> Icons.Default.DoNotDisturb
+    "wc_shoe"           -> Icons.AutoMirrored.Filled.DirectionsWalk
+    "wc_waiting"        -> Icons.Default.HourglassTop
+    "wc_chair"          -> Icons.Default.Chair
+    "wc_mirror"         -> Icons.Default.Flip
+    "wc_pigeon"         -> Icons.Default.Pets
+    "wc_selfie"         -> Icons.Default.PhotoCamera
+    "wc_stickers"       -> Icons.Default.Label
+    "wc_floor"          -> Icons.Default.Person
+    "wc_boring"         -> Icons.Default.Apartment
+    "wc_bag"            -> Icons.Default.ShoppingBag
+    "wc_door"           -> Icons.Default.Yard
+    "wc_food"           -> Icons.Default.RestaurantMenu
+    "wc_triangle"       -> Icons.Default.ChangeHistory
+    "wc_matching"       -> Icons.Default.Style
+    "wc_scale"          -> Icons.Default.ZoomIn
+    "wc_concrete"       -> Icons.Default.LocalFlorist
+    "wc_many"           -> Icons.Default.GridView
+    "wc_npc"            -> Icons.Default.SmartToy
+    "wc_wrong"          -> Icons.Default.MoodBad
+    "wc_queue"          -> Icons.Default.Groups
+    "wc_cable"          -> Icons.Default.Cable
     // ── Legacy IDs ────────────────────────────────────────────────────────────
     "flower"            -> Icons.Default.LocalFlorist
     "coffee"            -> Icons.Default.LocalCafe
