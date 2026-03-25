@@ -84,6 +84,19 @@ fun ModeSelectScreen(gameState: GameState) {
 
             Spacer(Modifier.height(4.dp))
 
+            QuickStartCard(
+                expanded = quickStartExpanded,
+                outdoor = quickStartOutdoor,
+                onToggleExpand = { quickStartExpanded = !quickStartExpanded },
+                onSelectOutdoor = { quickStartOutdoor = it },
+                onConfirm = {
+                    gameState.session.gameMode = GameMode.QUICK_START
+                    gameState.session.quickStartOutdoor = quickStartOutdoor
+                    gameState.session.currentScreen = Screen.CREATE_GAME
+                },
+                modifier = Modifier.staggered(1),
+            )
+
             ModeCard(
                 mode = GameMode.CLASSIC,
                 title = "Klassisch",
@@ -91,7 +104,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = "Wählt aus dutzenden Vorlagen oder erstellt eigene Kategorien. Wer zuerst fotografiert, bekommt Bonuspunkte.",
                 icon = Icons.Default.GridView,
                 gradientColors = GradientPrimary,
-                modifier = Modifier.staggered(1),
+                modifier = Modifier.staggered(2),
                 onClick = {
                     gameState.session.gameMode = GameMode.CLASSIC
                     gameState.session.currentScreen = Screen.CREATE_GAME
@@ -105,7 +118,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = "Ihr seht zu Beginn nur die erste Kategorie. Alle paar Minuten kommt eine neue dazu — plant voraus!",
                 icon = Icons.Default.VisibilityOff,
                 gradientColors = GradientCool,
-                modifier = Modifier.staggered(2),
+                modifier = Modifier.staggered(3),
                 onClick = {
                     gameState.session.gameMode = GameMode.BLIND_BINGO
                     gameState.session.currentScreen = Screen.CREATE_GAME
@@ -119,24 +132,11 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = "Vergiss klassische Fotografie. Hier zählen absurde Beobachtungen, NPC-Momente und Dinge, die eigentlich nicht existieren sollten.",
                 icon = Icons.Default.QuestionMark,
                 gradientColors = GradientWeird,
-                modifier = Modifier.staggered(3),
+                modifier = Modifier.staggered(4),
                 onClick = {
                     gameState.session.gameMode = GameMode.WEIRD_CORE
                     gameState.session.currentScreen = Screen.CREATE_GAME
                 },
-            )
-
-            QuickStartCard(
-                expanded = quickStartExpanded,
-                outdoor = quickStartOutdoor,
-                onToggleExpand = { quickStartExpanded = !quickStartExpanded },
-                onSelectOutdoor = { quickStartOutdoor = it },
-                onConfirm = {
-                    gameState.session.gameMode = GameMode.QUICK_START
-                    gameState.session.quickStartOutdoor = quickStartOutdoor
-                    gameState.session.currentScreen = Screen.CREATE_GAME
-                },
-                modifier = Modifier.staggered(4),
             )
 
             Spacer(Modifier.height(24.dp))

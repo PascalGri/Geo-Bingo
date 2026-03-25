@@ -38,10 +38,26 @@ val ColorOnError             = Color(0xFFFFFFFF)
 val ColorOnErrorContainer    = Color(0xFFFFD9E2)
 
 // === Gradient Color Sets (Neon Night: Rose → Fuchsia → Purple) ===
-val GradientPrimary = listOf(
-    Color(0xFFF43F5E), // Rose 500
+// === Mode gradient chain: Amber → Rose → Purple → Indigo → Lime ===
+val GradientQuickStart = listOf(
+    Color(0xFFF59E0B), // Amber 500
+    Color(0xFFF97316), // Orange 500
+    Color(0xFFF43F5E), // Rose 500  ← bridges into Classic
+)
+val GradientPrimary = listOf(   // Classic
+    Color(0xFFF43F5E), // Rose 500   ← continues from Quick Start
     Color(0xFFD946EF), // Fuchsia 500
-    Color(0xFFA855F7), // Purple 500
+    Color(0xFFA855F7), // Purple 500 ← bridges into Blind Bingo
+)
+val GradientCool = listOf(      // Blind Bingo
+    Color(0xFFA855F7), // Purple 500 ← continues from Classic
+    Color(0xFF7C3AED), // Violet 600
+    Color(0xFF6366F1), // Indigo 500 ← bridges into Weird Core
+)
+val GradientWeird = listOf(     // Weird Core
+    Color(0xFF6366F1), // Indigo 500 ← continues from Blind Bingo
+    Color(0xFF14B8A6), // Teal 500
+    Color(0xFF84CC16), // Lime 500
 )
 val GradientHot = listOf(
     Color(0xFFFF6B6B), // Coral
@@ -53,25 +69,10 @@ val GradientWarm = listOf(
     Color(0xFFE879F9), // Fuchsia 400
     Color(0xFFC026D3), // Fuchsia 700
 )
-val GradientCool = listOf(
-    Color(0xFFA855F7), // Purple 500
-    Color(0xFF7C3AED), // Violet 600
-    Color(0xFF6366F1), // Indigo 500
-)
 val GradientGold = listOf(
     Color(0xFFF59E0B), // Amber 500
     Color(0xFFFBBF24), // Yellow
     Color(0xFFF97316), // Orange
-)
-val GradientWeird = listOf(
-    Color(0xFF84CC16), // Lime 500
-    Color(0xFF22C55E), // Green 500
-    Color(0xFF10B981), // Emerald 500
-)
-val GradientQuickStart = listOf(
-    Color(0xFF38BDF8), // Sky 400
-    Color(0xFF22D3EE), // Cyan 400
-    Color(0xFF2DD4BF), // Teal 400
 )
 
 private val DarkColorScheme = darkColorScheme(
