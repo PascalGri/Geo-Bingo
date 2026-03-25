@@ -427,47 +427,61 @@ private fun BoldStep(
     desc: String,
     gradientColors: List<Color>,
 ) {
-    Row(
+    val accentColor = gradientColors.first()
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(ColorSurface)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .background(ColorSurfaceVariant)
     ) {
-        AnimatedGradientBox(
+        // Subtle tinted left edge
+        Box(
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(15.dp)),
-            gradientColors = gradientColors,
-            durationMillis = 4000,
+                .width(3.dp)
+                .matchParentSize()
+                .background(Brush.verticalGradient(gradientColors))
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp), tint = Color.White)
+            AnimatedGradientBox(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(15.dp)),
+                gradientColors = gradientColors,
+                durationMillis = 4000,
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp), tint = Color.White)
+                }
             }
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                "Schritt $number",
-                style = MaterialTheme.typography.labelSmall,
-                color = ColorOnSurfaceVariant,
-            )
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
-            )
-            Text(
-                desc,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-                lineHeight = 16.sp,
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    "Schritt $number",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                )
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorOnSurface,
+                )
+                Text(
+                    desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorOnSurfaceVariant,
+                    lineHeight = 16.sp,
+                )
+            }
         }
     }
 }
