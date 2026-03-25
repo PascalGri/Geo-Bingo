@@ -115,7 +115,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 subtitle = "Nur die absurdesten Kategorien",
                 description = "Vergiss klassische Fotografie. Hier zählen absurde Beobachtungen, NPC-Momente und Dinge, die eigentlich nicht existieren sollten.",
                 icon = Icons.Default.QuestionMark,
-                gradientColors = GradientWarm,
+                gradientColors = GradientWeird,
                 modifier = Modifier.staggered(3),
                 onClick = {
                     gameState.session.gameMode = GameMode.WEIRD_CORE

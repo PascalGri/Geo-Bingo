@@ -117,7 +117,7 @@ fun CreateGameScreen(gameState: GameState) {
                         gradientColors = when (gameMode) {
                             GameMode.CLASSIC -> GradientPrimary
                             GameMode.BLIND_BINGO -> GradientCool
-                            GameMode.WEIRD_CORE -> GradientWarm
+                            GameMode.WEIRD_CORE -> GradientWeird
                         },
                     )
                 },
@@ -189,7 +189,7 @@ fun CreateGameScreen(gameState: GameState) {
                         gradientColors = when (gameMode) {
                             GameMode.CLASSIC -> GradientPrimary
                             GameMode.BLIND_BINGO -> GradientCool
-                            GameMode.WEIRD_CORE -> GradientWarm
+                            GameMode.WEIRD_CORE -> GradientWeird
                         },
                         leadingIcon = if (isLoading) {
                             { CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) }
@@ -221,7 +221,7 @@ fun CreateGameScreen(gameState: GameState) {
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
-                    GameMode.WEIRD_CORE -> GradientWarm
+                    GameMode.WEIRD_CORE -> GradientWeird
                 },
             ) {
                 OutlinedTextField(
@@ -264,7 +264,7 @@ fun CreateGameScreen(gameState: GameState) {
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
-                    GameMode.WEIRD_CORE -> GradientWarm
+                    GameMode.WEIRD_CORE -> GradientWeird
                 },
             ) {
                 // Custom category input – hidden for Weird Core (categories are fixed/curated)
@@ -387,7 +387,7 @@ fun CreateGameScreen(gameState: GameState) {
 
                 // Preset / Weird Core category chips
                 val shuffleGradient = when (gameMode) {
-                    GameMode.WEIRD_CORE -> GradientWarm
+                    GameMode.WEIRD_CORE -> GradientWeird
                     GameMode.BLIND_BINGO -> GradientCool
                     else -> GradientPrimary
                 }
@@ -496,7 +496,7 @@ fun CreateGameScreen(gameState: GameState) {
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
-                    GameMode.WEIRD_CORE -> GradientWarm
+                    GameMode.WEIRD_CORE -> GradientWeird
                 },
             ) {
                 Slider(
@@ -599,7 +599,7 @@ private fun ModeBanner(gameMode: GameMode, modifier: Modifier = Modifier) {
             icon = Icons.Default.QuestionMark,
             title = "Weird Core aktiv",
             text = "Nur absurde Kategorien. Kein Standardfoto – gefragt sind unerwartete Momente, NPC-Beobachtungen und Dinge, die eigentlich nicht existieren sollten.",
-            colors = GradientWarm,
+            colors = GradientWeird,
         )
         else -> return
     }
