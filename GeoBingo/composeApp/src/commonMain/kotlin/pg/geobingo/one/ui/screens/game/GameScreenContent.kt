@@ -52,10 +52,18 @@ fun GameScreenContent(
     val contentAlpha = remember { Animatable(0f) }
     LaunchedEffect(Unit) { contentAlpha.animateTo(1f, tween(400)) }
 
+    val modeGradient = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE  -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
+    }
+    val modeColor = modeGradient.first()
+
     val isLow = gameState.gameplay.timeRemainingSeconds in 1..60
     val isCritical = gameState.gameplay.timeRemainingSeconds in 1..30
     val timerColor by animateColorAsState(
-        targetValue = if (isLow) ColorError else ColorPrimary,
+        targetValue = if (isLow) ColorError else modeColor,
         animationSpec = tween(500),
     )
 
@@ -188,6 +196,7 @@ fun GameScreenContent(
                                     captureCount = captured,
                                     totalCategories = gameState.gameplay.selectedCategories.size,
                                     photoBytes = gameState.photo.playerAvatarBytes[player.id],
+                                    accentColor = modeColor,
                                     onClick = {},
                                 )
                             }
@@ -231,12 +240,12 @@ fun GameScreenContent(
                             if (gameState.joker.jokerMode && !gameState.joker.myJokerUsed) {
                                 OutlinedButton(
                                     onClick = onJokerClick,
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
-                                    border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.6f)),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = modeColor),
+                                    border = BorderStroke(1.dp, modeColor.copy(alpha = 0.6f)),
                                     shape = RoundedCornerShape(20.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                 ) {
-                                    Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = ColorPrimary)
+                                    Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = modeColor)
                                     Spacer(Modifier.width(4.dp))
                                     Text("Joker", style = MaterialTheme.typography.labelMedium)
                                 }
@@ -364,7 +373,7 @@ internal fun BlindBingoLockedCard(revealIndex: Int) {
 }
 
 @Composable
-internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, onClick: () -> Unit) {
+internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, accentColor: Color = ColorPrimary, onClick: () -> Unit) {
     val bg = if (isActive)
         Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
     else
@@ -386,7 +395,7 @@ internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int,
             Text(
                 "$captureCount/$totalCategories",
                 fontSize = 11.sp,
-                color = if (captureCount >= totalCategories) ColorPrimary
+                color = if (captureCount >= totalCategories) accentColor
                     else (if (isActive) player.color else ColorOnSurfaceVariant).copy(alpha = 0.8f),
                 fontWeight = if (captureCount >= totalCategories) FontWeight.Bold else FontWeight.Normal,
             )

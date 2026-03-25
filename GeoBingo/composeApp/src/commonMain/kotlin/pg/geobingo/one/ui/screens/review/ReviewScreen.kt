@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
+import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
@@ -23,6 +24,12 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun ReviewScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
+    val modeColor = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary.first()
+        GameMode.BLIND_BINGO -> GradientCool.first()
+        GameMode.WEIRD_CORE  -> GradientWeird.first()
+        GameMode.QUICK_START -> GradientQuickStart.first()
+    }
     val gameId = gameState.session.gameId ?: return
     val categories = gameState.gameplay.selectedCategories
     val myPlayerId = gameState.session.myPlayerId ?: return
@@ -121,7 +128,7 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     if (numPlayers == 0 || categories.isEmpty()) {
-        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorPrimary) }
+        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = modeColor) }
         return
     }
 
@@ -129,7 +136,7 @@ fun ReviewScreen(gameState: GameState) {
     val totalSteps = categories.size * numPlayers
 
     if (stepIndex >= totalSteps) {
-        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorPrimary) }
+        Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = modeColor) }
         return
     }
 
@@ -186,8 +193,8 @@ fun ReviewScreen(gameState: GameState) {
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = ColorPrimaryContainer,
-                    border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.4f)),
+                    color = modeColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, modeColor.copy(alpha = 0.4f)),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
@@ -197,7 +204,7 @@ fun ReviewScreen(gameState: GameState) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
-                            color = ColorPrimary,
+                            color = modeColor,
                         )
                         Text(
                             "Dein Bild wird bewertet...",

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
@@ -133,6 +134,26 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
+    val gameMode = gameState.session.gameMode
+    val modeGradient = when (gameMode) {
+        GameMode.CLASSIC    -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
+    }
+    val modeLabel = when (gameMode) {
+        GameMode.CLASSIC    -> "Klassisch"
+        GameMode.BLIND_BINGO -> "Blind Bingo"
+        GameMode.WEIRD_CORE -> "Weird Core"
+        GameMode.QUICK_START -> "Quick Start"
+    }
+    val modeIcon = when (gameMode) {
+        GameMode.CLASSIC    -> Icons.Default.GridOn
+        GameMode.BLIND_BINGO -> Icons.Default.VisibilityOff
+        GameMode.WEIRD_CORE -> Icons.Default.QuestionMark
+        GameMode.QUICK_START -> Icons.Default.Bolt
+    }
+
     val anim = rememberStaggeredAnimation(count = 3)
     val btnOffset = remember { Animatable(80f) }
     val btnAlpha = remember { Animatable(0f) }
@@ -155,7 +176,7 @@ fun LobbyScreen(gameState: GameState) {
                     AnimatedGradientText(
                         text = "Wartezimmer",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        gradientColors = GradientPrimary,
+                        gradientColors = modeGradient,
                     )
                 },
                 navigationIcon = {
@@ -196,6 +217,7 @@ fun LobbyScreen(gameState: GameState) {
                                 "Mind. 2 Spieler nötig"
                             else
                                 "Spiel starten (${gameState.gameplay.lobbyPlayers.size} Spieler)",
+                            gradientColors = modeGradient,
                             onClick = {
                                 scope.launch {
                                     isStarting = true
@@ -217,7 +239,6 @@ fun LobbyScreen(gameState: GameState) {
                             },
                             enabled = gameState.gameplay.lobbyPlayers.size >= 2 && !isStarting,
                             modifier = Modifier.fillMaxWidth(),
-                            gradientColors = GradientPrimary,
                             leadingIcon = {
                                 Box(contentAlignment = Alignment.Center) {
                                     if (isStarting) {
@@ -253,7 +274,7 @@ fun LobbyScreen(gameState: GameState) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = ColorPrimary,
+                                color = modeGradient.first(),
                             )
                             Text(
                                 "Warte auf den Host...",
@@ -280,26 +301,49 @@ fun LobbyScreen(gameState: GameState) {
                 GradientBorderCard(
                     modifier = Modifier.fillMaxWidth().staggered(0),
                     cornerRadius = 20.dp,
-                    borderColors = GradientPrimary,
-                    backgroundColor = ColorPrimaryContainer,
+                    borderColors = modeGradient,
+                    backgroundColor = ColorSurface,
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        // Modus-Badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(modeGradient.first().copy(alpha = 0.15f))
+                                .padding(horizontal = 12.dp, vertical = 5.dp),
+                        ) {
+                            Icon(
+                                modeIcon,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = modeGradient.first(),
+                            )
+                            Text(
+                                modeLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = modeGradient.first(),
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
                         Text(
                             "Rundencode",
                             style = MaterialTheme.typography.labelMedium,
-                            color = ColorOnPrimaryContainer.copy(alpha = 0.7f),
+                            color = ColorOnSurfaceVariant,
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(8.dp))
                         AnimatedGradientText(
                             text = gameState.session.gameCode ?: "------",
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 8.sp,
                             ),
-                            gradientColors = GradientPrimary,
+                            gradientColors = modeGradient,
                             durationMillis = 2000,
                         )
                     }
@@ -315,7 +359,7 @@ fun LobbyScreen(gameState: GameState) {
                     AnimatedGradientText(
                         text = "Spieler (${gameState.gameplay.lobbyPlayers.size})",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        gradientColors = GradientCool,
+                        gradientColors = modeGradient,
                     )
                 }
             }

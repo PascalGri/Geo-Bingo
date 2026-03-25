@@ -55,6 +55,14 @@ fun ResultsScreen(gameState: GameState) {
         showConfetti = true
     }
 
+    val modeGradient = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE  -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
+    }
+    val modeColor = modeGradient.first()
+
     val anim = rememberStaggeredAnimation(count = 4, staggerDelay = 80L)
     val btnOffset = remember { Animatable(80f) }
     val btnAlpha = remember { Animatable(0f) }
@@ -125,7 +133,7 @@ fun ResultsScreen(gameState: GameState) {
                     AnimatedGradientText(
                         text = "Ergebnisse",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        gradientColors = GradientPrimary,
+                        gradientColors = modeGradient,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -159,20 +167,20 @@ fun ResultsScreen(gameState: GameState) {
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.5.dp, ColorPrimary),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                            border = BorderStroke(1.5.dp, modeColor),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = modeColor),
                             enabled = !rematchLoading,
                         ) {
                             if (rematchLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = modeColor)
                             } else {
-                                Icon(Icons.Default.Replay, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
+                                Icon(Icons.Default.Replay, null, modifier = Modifier.size(16.dp), tint = modeColor)
                                 Spacer(Modifier.width(6.dp))
                                 Text(
                                     "Rematch (gleiche Kategorien)",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ColorPrimary,
+                                    color = modeColor,
                                 )
                             }
                         }
@@ -194,7 +202,7 @@ fun ResultsScreen(gameState: GameState) {
                             shareManager.shareText(text)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        gradientColors = GradientCool,
+                        gradientColors = modeGradient,
                         leadingIcon = {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                         },
@@ -245,7 +253,7 @@ fun ResultsScreen(gameState: GameState) {
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        gradientColors = GradientPrimary,
+                        gradientColors = modeGradient,
                         leadingIcon = {
                             Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                         },

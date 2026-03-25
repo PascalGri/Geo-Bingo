@@ -48,8 +48,6 @@ fun CreateGameScreen(gameState: GameState) {
 
     var hostNameInput by remember { mutableStateOf("") }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var jokerMode by remember { mutableStateOf(false) }
-
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) selectedAvatarBytes = bytes
     }
@@ -161,7 +159,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     }
                                     val effectiveDuration = if (gameMode == GameMode.QUICK_START) 15 else durationMinutes.toInt()
                                     val code = generateCode()
-                                    val game = GameRepository.createGame(code, effectiveDuration * 60, jokerMode, gameMode.name)
+                                    val game = GameRepository.createGame(code, effectiveDuration * 60, false, gameMode.name)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
                                     val avatarBytes = selectedAvatarBytes
@@ -181,7 +179,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     gameState.session.isHost = true
                                     gameState.session.myPlayerId = hostDto.id
                                     gameState.gameplay.gameDurationMinutes = effectiveDuration
-                                    gameState.joker.jokerMode = jokerMode
+                                    gameState.joker.jokerMode = false
                                     gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
                                     gameState.gameplay.lobbyPlayers = listOf(hostDto)
                                     gameState.session.currentScreen = Screen.LOBBY
@@ -464,13 +462,20 @@ fun CreateGameScreen(gameState: GameState) {
 
             } // end if (gameMode != GameMode.QUICK_START)
 
-            // ── Speed Bonus Hinweis (nur Classic & Blind Bingo) ───────────
-            if (gameMode != GameMode.WEIRD_CORE && gameMode != GameMode.QUICK_START) {
+            // ── Speed Bonus Hinweis ───────────────────────────────────────
+            run {
                 val speedIndex = if (gameMode == GameMode.CLASSIC) 2 else 3
+                val speedGradient = when (gameMode) {
+                    GameMode.BLIND_BINGO -> GradientCool
+                    GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
+                    else -> GradientPrimary
+                }
+                val speedColor = speedGradient.first()
                 GradientBorderCard(
                     modifier = Modifier.fillMaxWidth().staggered(speedIndex),
                     cornerRadius = 12.dp,
-                    borderColors = GradientPrimary,
+                    borderColors = speedGradient,
                     backgroundColor = Color(0xFF0C0B15),
                     borderWidth = 1.dp,
                 ) {
@@ -479,19 +484,19 @@ fun CreateGameScreen(gameState: GameState) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = Color(0xFFD946EF))
+                            Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = speedColor)
                             Text(
                                 "Schnelligkeitsbonus",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFD946EF),
+                                color = speedColor,
                             )
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "Wer eine Kategorie als Erster fotografiert, bekommt +1 Tempopunkt.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFD946EF).copy(alpha = 0.85f),
+                            color = speedColor.copy(alpha = 0.85f),
                             lineHeight = 17.sp,
                             modifier = Modifier.padding(start = 24.dp),
                         )
@@ -535,66 +540,6 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
             } // end if (gameMode != GameMode.QUICK_START)
-
-            // ── 4. Joker-Modus (nur Classic) ──────────────────────────────
-            if (gameMode == GameMode.CLASSIC) {
-                DarkSectionCard(title = "Optionen", modifier = Modifier.staggered(4)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.Style, null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
-                                Text(
-                                    "Joker-Modus",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = ColorOnSurface,
-                                )
-                            }
-                            Text(
-                                "Jeder Spieler darf einmal ein Wildcard-Foto machen – mit eigenem Thema.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                                lineHeight = 16.sp,
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Switch(
-                            checked = jokerMode,
-                            onCheckedChange = { jokerMode = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = ColorPrimary,
-                                uncheckedThumbColor = ColorOnSurfaceVariant,
-                                uncheckedTrackColor = ColorSurfaceVariant,
-                            ),
-                        )
-                    }
-                    if (jokerMode) {
-                        Spacer(Modifier.height(10.dp))
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = ColorPrimaryContainer,
-                            border = BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f)),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
-                                Text(
-                                    "Spieler tippen auf den Joker-Button, geben ein Thema ein und machen ein Foto. Das Joker-Bild wird ganz normal abgestimmt.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = ColorOnPrimaryContainer,
-                                    lineHeight = 16.sp,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             Spacer(Modifier.height(4.dp))
         }

@@ -49,16 +49,18 @@
     <link rel="modulepreload" href="composeApp.js">
 
     <!-- AdSense: Script fuer Verifizierung im Head, aber Ads pausiert bis Consent -->
+    <!--
     <script>
         (window.adsbygoogle = window.adsbygoogle || []).pauseAdRequests = 1;
     </script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4871207394525716"
             crossorigin="anonymous"></script>
+    -->
 </head>
 <body>
 
     <!-- TOP BANNER -->
-    <div id="ad-top" class="ad-slot ad-slot-top" aria-hidden="true"></div>
+    <!-- <div id="ad-top" class="ad-slot ad-slot-top" aria-hidden="true"></div> -->
 
     <!-- LOADING SCREEN -->
     <div id="loading-screen">
@@ -93,9 +95,10 @@
     </noscript>
 
     <!-- BOTTOM BANNER -->
-    <div id="ad-bottom" class="ad-slot ad-slot-bottom" aria-hidden="true"></div>
+    <!-- <div id="ad-bottom" class="ad-slot ad-slot-bottom" aria-hidden="true"></div> -->
 
     <!-- DSGVO Consent Banner -->
+    <!--
     <div id="consent-banner" style="display:none" role="dialog" aria-label="Cookie-Einstellungen">
         <div id="consent-banner-inner">
             <p id="consent-text">
@@ -110,6 +113,7 @@
             </div>
         </div>
     </div>
+    -->
 
     <!-- Footer Links -->
     <div id="legal-footer">
@@ -146,6 +150,7 @@
     </script>
 
     <!-- DSGVO-konforme Consent-Logik: kein AdSense vor Einwilligung -->
+    <!--
     <script>
         var AD_CONSENT_KEY = 'katchit_ad_consent';
         var adsLoaded = false;
@@ -216,5 +221,6 @@
 
         window.addEventListener('resize', recalcAppHeight);
     </script>
+    -->
 </body>
 </html>

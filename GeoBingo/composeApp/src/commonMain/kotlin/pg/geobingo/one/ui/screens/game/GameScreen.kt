@@ -87,13 +87,21 @@ fun GameScreen(gameState: GameState) {
         }
     }
 
+    val modeGradient = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE  -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
+    }
+    val modeColor = modeGradient.first()
+
     if (jokerDialogVisible) {
         AlertDialog(
             onDismissRequest = { jokerDialogVisible = false },
             containerColor = ColorSurface,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Style, null, modifier = Modifier.size(20.dp), tint = ColorPrimary)
+                    Icon(Icons.Default.Style, null, modifier = Modifier.size(20.dp), tint = modeColor)
                     Text(
                         "Joker verwenden",
                         style = MaterialTheme.typography.titleMedium,
@@ -116,11 +124,11 @@ fun GameScreen(gameState: GameState) {
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ColorPrimary,
+                            focusedBorderColor = modeColor,
                             unfocusedBorderColor = ColorOutline,
                             focusedTextColor = ColorOnSurface,
                             unfocusedTextColor = ColorOnSurface,
-                            cursorColor = ColorPrimary,
+                            cursorColor = modeColor,
                         ),
                     )
                 }
