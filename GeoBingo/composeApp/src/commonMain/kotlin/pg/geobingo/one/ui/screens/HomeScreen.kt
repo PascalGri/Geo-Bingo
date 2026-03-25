@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,7 +27,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
@@ -50,7 +48,7 @@ fun HomeScreen(gameState: GameState) {
         snackbarHostState.showSnackbar(msg)
     }
 
-    val anim = rememberStaggeredAnimation(count = 8)
+    val anim = rememberStaggeredAnimation(count = 5)
     val btnOffsets = (0..1).map { remember { Animatable(80f) } }
     val btnAlphas = (0..1).map { remember { Animatable(0f) } }
     LaunchedEffect(Unit) {
@@ -86,14 +84,14 @@ fun HomeScreen(gameState: GameState) {
                         .staggered(0),
                 ) {
                     AnimatedGradientBox(
-                        modifier = Modifier.fillMaxWidth().height(340.dp),
+                        modifier = Modifier.fillMaxWidth().height(300.dp),
                         gradientColors = GradientPrimary,
                         durationMillis = 5000,
                     ) {}
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(340.dp)
+                            .height(300.dp)
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
@@ -106,23 +104,14 @@ fun HomeScreen(gameState: GameState) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(340.dp)
+                            .height(300.dp)
                             .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Spacer(Modifier.height(16.dp))
                         AnimatedHeroTitle()
                         Spacer(Modifier.height(10.dp))
                         HeroTagline()
-                        Spacer(Modifier.height(24.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            HeroPill(icon = Icons.Default.People, label = "Mit Freunden")
-                            HeroPill(icon = Icons.Default.LocationOn, label = "Stadtabenteuer")
-                            HeroPill(icon = Icons.Default.HowToVote, label = "Live-Voting")
-                        }
                     }
                 }
 
@@ -177,78 +166,13 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(36.dp))
-
-                // ── HOW IT WORKS ──────────────────────────────────────────────
-                Column(
-                    modifier = Modifier
-                        .staggered(2)
-                        .padding(horizontal = Spacing.screenHorizontal)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        "So einfach geht's",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorOnSurface,
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    )
-                    BoldStep(
-                        number = "1",
-                        icon = Icons.Default.GridView,
-                        title = "Kategorien wählen",
-                        desc = "Erstelle eine Runde und lade Freunde ein",
-                        gradientColors = GradientWarm,
-                    )
-                    BoldStep(
-                        number = "2",
-                        icon = Icons.Default.CameraAlt,
-                        title = "Fotografieren",
-                        desc = "Halte Motive so kreativ wie möglich fest",
-                        gradientColors = GradientPrimary,
-                    )
-                    BoldStep(
-                        number = "3",
-                        icon = Icons.Default.HowToVote,
-                        title = "Bewerten & gewinnen",
-                        desc = "Wähle die besten Fotos und küre den Sieger",
-                        gradientColors = GradientCool,
-                    )
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                // ── PRIVACY HINT ──────────────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .staggered(3)
-                        .padding(horizontal = Spacing.screenHorizontal)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Icon(
-                        Icons.Default.GppMaybe,
-                        contentDescription = null,
-                        tint = ColorOnSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(13.dp).padding(top = 1.dp),
-                    )
-                    Text(
-                        text = "Fotografiere keine Personen ohne deren Zustimmung (\u00A7 22 KUG).",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorOnSurfaceVariant.copy(alpha = 0.55f),
-                        lineHeight = 14.sp,
-                    )
-                }
-
                 Spacer(Modifier.height(28.dp))
 
                 // ── HISTORY ───────────────────────────────────────────────────
                 if (gameState.ui.gameHistory.isNotEmpty()) {
                     Column(
                         modifier = Modifier
-                            .staggered(4)
+                            .staggered(2)
                             .padding(horizontal = Spacing.screenHorizontal)
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -292,25 +216,12 @@ fun HomeScreen(gameState: GameState) {
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // ── FOOTER LINKS ──────────────────────────────────────────────
+                // ── FOOTER ────────────────────────────────────────────────────
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.staggered(5),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.staggered(3),
                 ) {
-                    TextButton(onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.HelpOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = ColorOnSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "Wie funktioniert's?",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
                     TextButton(onClick = { gameState.session.currentScreen = Screen.SETTINGS }) {
                         Icon(
                             Icons.Default.Settings,
@@ -325,12 +236,6 @@ fun HomeScreen(gameState: GameState) {
                             color = ColorOnSurfaceVariant,
                         )
                     }
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.staggered(6),
-                ) {
                     val uriHandler = LocalUriHandler.current
                     TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
                         Text(
@@ -348,11 +253,6 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Text(
-                    "KatchIt! v1.0",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ColorOutline,
-                )
                 Spacer(Modifier.height(28.dp))
             }
         }
@@ -367,28 +267,27 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
-    val transition = rememberInfiniteTransition(label = "titleShimmer")
+    val transition = rememberInfiniteTransition(label = "logoGradient")
     val offset by transition.animateFloat(
-        initialValue = -500f,
+        initialValue = -600f,
         targetValue = 700f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2800, easing = LinearEasing),
+            animation = tween(3200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
-        label = "shimmerOffset",
+        label = "gradientOffset",
     )
-    val shimmerBrush = Brush.linearGradient(
+    val gradientBrush = Brush.linearGradient(
         colors = listOf(
-            Color.White.copy(alpha = 0.82f),
-            Color.White.copy(alpha = 0.92f),
-            Color.White,
-            Color(0xFFF0E6FF),
-            Color.White,
-            Color.White.copy(alpha = 0.92f),
-            Color.White.copy(alpha = 0.82f),
+            Color(0xFFFFD166), // gold
+            Color(0xFFFF9F6B), // orange
+            Color(0xFFFF6B9D), // pink
+            Color(0xFFD46BFF), // violet
+            Color(0xFF6BAAFF), // sky blue
+            Color(0xFFFFD166), // gold (loop)
         ),
         start = Offset(offset, 0f),
-        end = Offset(offset + 380f, 120f),
+        end = Offset(offset + 700f, 150f),
     )
     Text(
         text = "KatchIt!",
@@ -396,7 +295,7 @@ private fun AnimatedHeroTitle() {
             fontWeight = FontWeight.ExtraBold,
             fontSize = 58.sp,
             letterSpacing = (-2).sp,
-            brush = shimmerBrush,
+            brush = gradientBrush,
         ),
         textAlign = TextAlign.Center,
     )
@@ -428,87 +327,6 @@ private fun HeroTagline() {
                         .background(Color.White.copy(alpha = 0.45f)),
                 )
             }
-        }
-    }
-}
-
-// ── HERO PILL ─────────────────────────────────────────────────────────────────
-
-@Composable
-private fun HeroPill(icon: ImageVector, label: String) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.15f))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(12.dp),
-            tint = Color.White.copy(alpha = 0.9f),
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.9f),
-        )
-    }
-}
-
-// ── BOLD STEP ─────────────────────────────────────────────────────────────────
-
-@Composable
-private fun BoldStep(
-    number: String,
-    icon: ImageVector,
-    title: String,
-    desc: String,
-    gradientColors: List<Color>,
-) {
-    val accentColor = gradientColors.first()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(ColorSurface)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(accentColor.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp), tint = accentColor)
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                "Schritt $number",
-                style = MaterialTheme.typography.labelSmall,
-                color = ColorOnSurfaceVariant,
-            )
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
-            )
-            Text(
-                desc,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOnSurfaceVariant,
-                lineHeight = 16.sp,
-            )
         }
     }
 }
