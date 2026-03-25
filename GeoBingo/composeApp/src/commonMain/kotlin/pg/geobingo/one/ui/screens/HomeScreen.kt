@@ -2,6 +2,11 @@ package pg.geobingo.one.ui.screens
 
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -19,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -80,20 +86,19 @@ fun HomeScreen(gameState: GameState) {
                         .staggered(0),
                 ) {
                     AnimatedGradientBox(
-                        modifier = Modifier.fillMaxWidth().height(300.dp),
+                        modifier = Modifier.fillMaxWidth().height(340.dp),
                         gradientColors = GradientPrimary,
                         durationMillis = 5000,
                     ) {}
-                    // Dark overlay for readability
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp)
+                            .height(340.dp)
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.Black.copy(alpha = 0.10f),
-                                        Color.Black.copy(alpha = 0.50f),
+                                        Color.Black.copy(alpha = 0.08f),
+                                        Color.Black.copy(alpha = 0.55f),
                                     )
                                 )
                             )
@@ -101,63 +106,27 @@ fun HomeScreen(gameState: GameState) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp)
+                            .height(340.dp)
                             .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(76.dp)
-                                .clip(RoundedCornerShape(22.dp))
-                                .background(Color.White.copy(alpha = 0.22f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = Color.White,
-                            )
-                        }
                         Spacer(Modifier.height(16.dp))
-                        Text(
-                            "KatchIt!",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 54.sp,
-                                letterSpacing = (-1.5).sp,
-                            ),
-                            color = Color.White,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Fotografiere. Vergleiche. Gewinne.",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                letterSpacing = 0.3.sp,
-                            ),
-                            color = Color.White.copy(alpha = 0.88f),
-                            textAlign = TextAlign.Center,
-                        )
+                        AnimatedHeroTitle()
+                        Spacer(Modifier.height(10.dp))
+                        HeroTagline()
+                        Spacer(Modifier.height(24.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            HeroPill(icon = Icons.Default.People, label = "Mit Freunden")
+                            HeroPill(icon = Icons.Default.LocationOn, label = "Stadtabenteuer")
+                            HeroPill(icon = Icons.Default.HowToVote, label = "Live-Voting")
+                        }
                     }
                 }
 
-                // ── FEATURE PILLS ─────────────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .staggered(1)
-                        .padding(top = 16.dp, bottom = 4.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screenHorizontal),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                ) {
-                    FeaturePill(icon = Icons.Default.People, label = "Mit Freunden")
-                    FeaturePill(icon = Icons.Default.LocationOn, label = "Stadtabenteuer")
-                    FeaturePill(icon = Icons.Default.HowToVote, label = "Live-Voting")
-                }
-
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(24.dp))
 
                 // ── CTA BUTTONS ───────────────────────────────────────────────
                 Column(
@@ -208,7 +177,7 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(36.dp))
 
                 // ── HOW IT WORKS ──────────────────────────────────────────────
                 Column(
@@ -235,14 +204,14 @@ fun HomeScreen(gameState: GameState) {
                     BoldStep(
                         number = "2",
                         icon = Icons.Default.CameraAlt,
-                        title = "Raus in die Stadt",
-                        desc = "Fotografiere Motive so kreativ wie möglich",
+                        title = "Fotografieren",
+                        desc = "Halte Motive so kreativ wie möglich fest",
                         gradientColors = GradientPrimary,
                     )
                     BoldStep(
                         number = "3",
                         icon = Icons.Default.HowToVote,
-                        title = "Abstimmen & gewinnen",
+                        title = "Bewerten & gewinnen",
                         desc = "Wähle die besten Fotos und küre den Sieger",
                         gradientColors = GradientCool,
                     )
@@ -394,12 +363,83 @@ fun HomeScreen(gameState: GameState) {
     }
 }
 
+// ── ANIMATED HERO TITLE ───────────────────────────────────────────────────────
+
 @Composable
-private fun FeaturePill(icon: ImageVector, label: String) {
+private fun AnimatedHeroTitle() {
+    val transition = rememberInfiniteTransition(label = "titleShimmer")
+    val offset by transition.animateFloat(
+        initialValue = -500f,
+        targetValue = 700f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmerOffset",
+    )
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.82f),
+            Color.White.copy(alpha = 0.92f),
+            Color.White,
+            Color(0xFFF0E6FF),
+            Color.White,
+            Color.White.copy(alpha = 0.92f),
+            Color.White.copy(alpha = 0.82f),
+        ),
+        start = Offset(offset, 0f),
+        end = Offset(offset + 380f, 120f),
+    )
+    Text(
+        text = "KatchIt!",
+        style = MaterialTheme.typography.displaySmall.copy(
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 58.sp,
+            letterSpacing = (-2).sp,
+            brush = shimmerBrush,
+        ),
+        textAlign = TextAlign.Center,
+    )
+}
+
+// ── HERO TAGLINE (Fotografiere · Bewerte · Gewinne) ───────────────────────────
+
+@Composable
+private fun HeroTagline() {
+    val words = listOf("Fotografiere", "Bewerte", "Gewinne")
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        words.forEachIndexed { index, word ->
+            Text(
+                text = word,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    letterSpacing = 0.2.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = Color.White.copy(alpha = 0.90f),
+            )
+            if (index < words.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.White.copy(alpha = 0.45f)),
+                )
+            }
+        }
+    }
+}
+
+// ── HERO PILL ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HeroPill(icon: ImageVector, label: String) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(ColorSurface)
+            .background(Color.White.copy(alpha = 0.15f))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -407,17 +447,19 @@ private fun FeaturePill(icon: ImageVector, label: String) {
         Icon(
             icon,
             contentDescription = null,
-            modifier = Modifier.size(13.dp),
-            tint = ColorPrimary,
+            modifier = Modifier.size(12.dp),
+            tint = Color.White.copy(alpha = 0.9f),
         )
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            color = ColorOnSurface,
+            color = Color.White.copy(alpha = 0.9f),
         )
     }
 }
+
+// ── BOLD STEP ─────────────────────────────────────────────────────────────────
 
 @Composable
 private fun BoldStep(
