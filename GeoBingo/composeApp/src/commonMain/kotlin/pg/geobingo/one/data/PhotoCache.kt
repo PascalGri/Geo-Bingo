@@ -3,12 +3,13 @@ package pg.geobingo.one.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import pg.geobingo.one.game.GameConstants
 
 /**
  * Size-capped photo cache with Compose state integration.
  * Evicts oldest entries (FIFO) when [maxEntries] is exceeded.
  */
-class PhotoCache(private val maxEntries: Int = 30) {
+class PhotoCache(private val maxEntries: Int = GameConstants.PHOTO_CACHE_MAX_ENTRIES) {
     // Compose-reactive map; any mutation triggers recomposition for readers.
     private var _photos by mutableStateOf(mapOf<String, ByteArray>())
     private val insertOrder = ArrayDeque<String>()

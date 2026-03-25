@@ -4,13 +4,17 @@ import androidx.compose.runtime.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.state.*
 import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRealtimeManager
+import pg.geobingo.one.network.GameSyncManager
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.VoteDto
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.util.AppLogger
 
 enum class Screen {
     HOME, HOW_TO_PLAY, SELECT_MODE, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS
@@ -44,8 +48,18 @@ class GameState {
     val joker = JokerState()
     val ui = UiState()
 
-    // ── Shared realtime manager ──────────────────────────────────────────
+    // ── Mutex for thread-safe state mutations ────────────────────────────
+    val stateMutex = Mutex()
+
+    // ── Feature managers ─────────────────────────────────────────────────
+    val scoring = ScoringManager(gameplay, review)
+    val history = HistoryManager(session, gameplay, ui, scoring)
+
+    // ── Shared realtime + sync managers ─────────────────────────────────
     var realtime: GameRealtimeManager? = null
+        private set
+
+    var syncManager: GameSyncManager? = null
         private set
 
     fun ensureRealtime(gameId: String): GameRealtimeManager {
@@ -56,11 +70,25 @@ class GameState {
         return mgr
     }
 
+    fun ensureSyncManager(gameId: String, scope: CoroutineScope): GameSyncManager {
+        val existing = syncManager
+        if (existing != null) return existing
+        val rt = ensureRealtime(gameId)
+        val mgr = GameSyncManager(gameId, rt, scope)
+        syncManager = mgr
+        mgr.start()
+        return mgr
+    }
+
     private fun cleanupRealtime() {
+        syncManager?.stop()
+        syncManager = null
         val rt = realtime ?: return
         realtime = null
         CoroutineScope(Dispatchers.Default).launch {
-            try { rt.unsubscribe() } catch (_: Exception) {}
+            try { rt.unsubscribe() } catch (e: Exception) {
+                AppLogger.w("GameState", "Realtime cleanup failed", e)
+            }
         }
     }
 
@@ -82,13 +110,31 @@ class GameState {
         gameplay.isGameRunning = false
     }
 
-    // ── Captures ────────────────────────────────────────────────────────
+    // ── Captures (synchronized to prevent race conditions) ──────────────
     fun toggleCapture(playerId: String, categoryId: String) {
         val updated = gameplay.captures.toMutableMap()
         val current = (updated[playerId] ?: emptySet()).toMutableSet()
         if (current.contains(categoryId)) current.remove(categoryId) else current.add(categoryId)
         updated[playerId] = current
         gameplay.captures = updated
+    }
+
+    /** Thread-safe capture update from concurrent sources (realtime, polling). */
+    fun updateCaptures(playerId: String, categoryId: String) {
+        val current = gameplay.captures[playerId] ?: emptySet()
+        if (categoryId !in current) {
+            gameplay.captures = gameplay.captures + (playerId to current + categoryId)
+        }
+    }
+
+    /** Thread-safe bulk capture update from polling. */
+    fun mergeCaptures(allCaptures: Map<String, Set<String>>) {
+        val merged = gameplay.captures.toMutableMap()
+        allCaptures.forEach { (pid, cats) ->
+            val existing = merged[pid] ?: emptySet()
+            merged[pid] = existing + cats
+        }
+        gameplay.captures = merged
     }
 
     fun isCaptured(playerId: String, categoryId: String): Boolean =
@@ -186,7 +232,7 @@ class GameState {
     fun getLastCaptureTime(playerId: String): String {
         return review.allCaptures
             .filter { it.player_id == playerId && it.created_at.isNotEmpty() }
-            .maxOfOrNull { it.created_at } ?: "9999-99-99T99:99:99Z"
+            .maxOfOrNull { it.created_at } ?: GameConstants.INFINITY_TIME
     }
 
     val rankedPlayers: List<Pair<Player, Int>> by derivedStateOf {
@@ -224,7 +270,7 @@ class GameState {
         gameplay.isGameRunning = false
         gameplay.currentPlayerIndex = 0
         gameplay.captures = mapOf()
-        photo.photoCache.clear()
+        photo.clear()
         review.votes = mapOf()
         review.reviewPlayerIndex = 0
         review.reviewCategoryIndex = 0
@@ -239,16 +285,13 @@ class GameState {
         joker.myJokerUsed = false
         joker.jokerLabels = mapOf()
         ui.consecutiveNetworkErrors = 0
-        photo.playerAvatarBytes = mapOf()
-        photo.triedAvatarDownloads = setOf()
-        photo.uploadingCategories = setOf()
     }
 
     fun resetGame() {
         cleanupRealtime()
         clearGameplayState()
         gameplay.selectedCategories = listOf()
-        gameplay.gameDurationMinutes = 15
+        gameplay.gameDurationMinutes = GameConstants.DEFAULT_GAME_DURATION_MINUTES
         session.gameId = null
         session.gameCode = null
         session.isHost = false

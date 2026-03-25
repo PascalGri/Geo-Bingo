@@ -21,13 +21,13 @@ fun SyncAvatars(gameState: GameState) {
             .distinct()
 
         allPlayers
-            .filter { id -> id !in gameState.photo.playerAvatarBytes && id !in gameState.photo.triedAvatarDownloads }
+            .filter { id -> !gameState.photo.playerAvatarBytes.containsKey(id) && !gameState.photo.isAvatarTried(id) }
             .forEach { playerId ->
                 scope.launch {
-                    gameState.photo.triedAvatarDownloads = gameState.photo.triedAvatarDownloads + playerId
+                    gameState.photo.markAvatarTried(playerId)
                     val bytes = GameRepository.downloadAvatarPhoto(playerId)
                     if (bytes != null) {
-                        gameState.photo.playerAvatarBytes = gameState.photo.playerAvatarBytes + (playerId to bytes)
+                        gameState.photo.setAvatar(playerId, bytes)
                     }
                 }
             }

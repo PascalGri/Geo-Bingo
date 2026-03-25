@@ -13,9 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.network.withRetry
@@ -48,12 +50,12 @@ fun ReviewScreen(gameState: GameState) {
                     Category(id = "joker_$playerId", name = label, emoji = "joker")
                 }.filter { jokerCat -> gameState.gameplay.selectedCategories.none { it.id == jokerCat.id } }
                 if (jokerCats.isNotEmpty()) gameState.gameplay.selectedCategories = gameState.gameplay.selectedCategories + jokerCats
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { AppLogger.w("Review", "Joker labels fetch failed", e) }
         }
     }
 
     LaunchedEffect(gameState.review.reviewCategoryIndex) {
-        try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { e.printStackTrace() }
+        try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) { AppLogger.w("Review", "Captures fetch failed", e) }
     }
 
     LaunchedEffect(gameId) {
@@ -65,7 +67,7 @@ fun ReviewScreen(gameState: GameState) {
                 gameState.review.hasSubmittedCurrentCategory = false
             }
             if (game.status == "results") {
-                try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { e.printStackTrace() }
+                try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { AppLogger.w("Review", "Votes fetch failed", e) }
                 gameState.session.currentScreen = Screen.RESULTS_TRANSITION
             }
         }
@@ -88,16 +90,16 @@ fun ReviewScreen(gameState: GameState) {
                             val nextStep = currentStepIndex + 1
                             val totalSteps = categories.size * numPlayers
                             if (nextStep >= totalSteps) {
-                                try { withRetry { GameRepository.setGameStatus(gameId, "results") } } catch (_: Exception) {}
-                                try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                                try { withRetry { GameRepository.setGameStatus(gameId, "results") } } catch (e: Exception) { AppLogger.e("Review", "Set game results failed", e) }
+                                try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { AppLogger.w("Review", "Votes fetch failed", e) }
                                 gameState.session.currentScreen = Screen.RESULTS_TRANSITION
                             } else {
-                                try { withRetry { GameRepository.setReviewCategoryIndex(gameId, nextStep) } } catch (_: Exception) {}
+                                try { withRetry { GameRepository.setReviewCategoryIndex(gameId, nextStep) } } catch (e: Exception) { AppLogger.e("Review", "Set review index failed", e) }
                                 gameState.review.reviewCategoryIndex = nextStep
                                 gameState.review.hasSubmittedCurrentCategory = false
                             }
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) { AppLogger.w("Review", "Vote submission check failed", e) }
                 }
             }
         }
@@ -105,7 +107,7 @@ fun ReviewScreen(gameState: GameState) {
 
     // Fallback polling (with backoff on errors)
     LaunchedEffect(gameId) {
-        var interval = 3_000L
+        var interval = GameConstants.POLLING_INITIAL_INTERVAL_MS
         while (true) {
             delay(interval)
             try {
@@ -119,10 +121,10 @@ fun ReviewScreen(gameState: GameState) {
                     gameState.review.allVotes = GameRepository.getVotes(gameId)
                     gameState.session.currentScreen = Screen.RESULTS_TRANSITION
                 }
-                interval = 3_000L
+                interval = GameConstants.POLLING_INITIAL_INTERVAL_MS
             } catch (e: Exception) {
-                e.printStackTrace()
-                interval = (interval * 1.5).toLong().coerceAtMost(15_000L)
+                AppLogger.w("Review", "Fallback polling error", e)
+                interval = (interval * GameConstants.POLLING_BACKOFF_FACTOR).toLong().coerceAtMost(GameConstants.POLLING_MAX_INTERVAL_MS)
             }
         }
     }
@@ -154,21 +156,21 @@ fun ReviewScreen(gameState: GameState) {
             if (submissionCount >= requiredVotes) {
                 val nextStep = stepIndex + 1
                 if (nextStep >= totalSteps) {
-                    try { withRetry { GameRepository.setGameStatus(gameId, "results") } } catch (_: Exception) {}
-                    try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (_: Exception) {}
+                    try { withRetry { GameRepository.setGameStatus(gameId, "results") } } catch (e: Exception) { AppLogger.e("Review", "Set results status failed", e) }
+                    try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) { AppLogger.w("Review", "Votes fetch failed", e) }
                     gameState.session.currentScreen = Screen.RESULTS_TRANSITION
                 } else {
                     val serverUpdated = try {
                         withRetry { GameRepository.setReviewCategoryIndex(gameId, nextStep) }
                         true
-                    } catch (_: Exception) { false }
+                    } catch (e: Exception) { AppLogger.e("Review", "Set review index failed", e); false }
                     if (serverUpdated) {
                         gameState.review.reviewCategoryIndex = nextStep
                         gameState.review.hasSubmittedCurrentCategory = false
                     }
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { AppLogger.e("Review", "advanceStep failed", e) }
     }
 
     // Auto-skip self-voting: show brief toast, then wait for others
@@ -177,7 +179,7 @@ fun ReviewScreen(gameState: GameState) {
     LaunchedEffect(stepIndex, isSelf) {
         if (isSelf && !gameState.review.hasSubmittedCurrentCategory) {
             selfVoteToast = true
-            delay(1200)
+            delay(GameConstants.SELF_VOTE_TOAST_DELAY_MS)
             selfVoteToast = false
             gameState.review.hasSubmittedCurrentCategory = true
             advanceStep()
@@ -234,7 +236,7 @@ fun ReviewScreen(gameState: GameState) {
                             val nextStep = stepIndex + 1
                             if (nextStep >= totalSteps) GameRepository.setGameStatus(gameId, "results")
                             else GameRepository.setReviewCategoryIndex(gameId, nextStep)
-                        } catch (e: Exception) { e.printStackTrace() }
+                        } catch (e: Exception) { AppLogger.e("Review", "Force advance failed", e) }
                     }
                 },
             )
@@ -254,7 +256,7 @@ fun ReviewScreen(gameState: GameState) {
                 onVote = { rating ->
                     scope.launch {
                         gameState.review.hasSubmittedCurrentCategory = true
-                        try { withRetry { GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, rating) } } catch (_: Exception) {}
+                        try { withRetry { GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, rating) } } catch (e: Exception) { AppLogger.e("Review", "Vote submit failed", e) }
                         // Always try to advance, even if vote submission had issues
                         advanceStep()
                     }
@@ -262,7 +264,7 @@ fun ReviewScreen(gameState: GameState) {
                 onNoPhoto = {
                     scope.launch {
                         gameState.review.hasSubmittedCurrentCategory = true
-                        try { withRetry { GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey) } } catch (_: Exception) {}
+                        try { withRetry { GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey) } } catch (e: Exception) { AppLogger.e("Review", "Step submission failed", e) }
                         advanceStep()
                     }
                 },

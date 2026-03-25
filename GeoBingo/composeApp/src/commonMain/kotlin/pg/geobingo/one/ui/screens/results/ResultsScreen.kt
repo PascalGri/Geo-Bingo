@@ -23,7 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
@@ -87,9 +89,9 @@ fun ResultsScreen(gameState: GameState) {
                     Category(id = "joker_$playerId", name = label, emoji = "joker")
                 }.filter { jokerCat -> gameState.gameplay.selectedCategories.none { it.id == jokerCat.id } }
                 if (jokerCats.isNotEmpty()) gameState.gameplay.selectedCategories = gameState.gameplay.selectedCategories + jokerCats
-            } catch (_: Exception) {}
+            } catch (e: Exception) { AppLogger.w("Results", "Joker labels fetch failed", e) }
             // Refresh captures to include joker captures
-            try { gameState.review.allCaptures = GameRepository.getCaptures(gid) } catch (_: Exception) {}
+            try { gameState.review.allCaptures = GameRepository.getCaptures(gid) } catch (e: Exception) { AppLogger.w("Results", "Captures fetch failed", e) }
         }
     }
 
@@ -113,14 +115,14 @@ fun ResultsScreen(gameState: GameState) {
                     append("]}")
                 }
                 LocalPhotoStore.saveGameMeta(gid, metaJson)
-            } catch (_: Exception) {}
+            } catch (e: Exception) { AppLogger.d("Results", "Game meta save failed", e) }
         }
         // Host cleans up server storage after a delay (let other players download photos first)
         if (gameState.session.isHost && gid != null) {
-            kotlinx.coroutines.delay(10_000)
+            kotlinx.coroutines.delay(GameConstants.RESULTS_CLEANUP_DELAY_MS)
             try {
                 GameRepository.cleanupStoragePhotos(gid, gameState.gameplay.players.map { it.id })
-            } catch (_: Exception) {}
+            } catch (e: Exception) { AppLogger.w("Results", "Storage cleanup failed", e) }
         }
     }
 
@@ -159,7 +161,7 @@ fun ResultsScreen(gameState: GameState) {
                                             GameRepository.addCategories(newGame.id, gameState.gameplay.selectedCategories)
                                             gameState.resetForRematch(newGame.id, newCode, newPlayer.id)
                                         } catch (e: Exception) {
-                                            e.printStackTrace()
+                                            AppLogger.e("Results", "Rematch creation failed", e)
                                             rematchLoading = false
                                         }
                                     }

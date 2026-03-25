@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
@@ -67,7 +69,7 @@ fun CreateGameScreen(gameState: GameState) {
         mutableStateOf(presetPool.take(VISIBLE_PRESET_COUNT))
     }
 
-    var durationMinutes by remember { mutableStateOf(15f) }
+    var durationMinutes by remember { mutableStateOf(GameConstants.DEFAULT_GAME_DURATION_MINUTES.toFloat()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -157,32 +159,50 @@ fun CreateGameScreen(gameState: GameState) {
                                         val presets = presetPool.filter { it.id in selectedPresetIds }
                                         customCategories + presets
                                     }
-                                    val effectiveDuration = if (gameMode == GameMode.QUICK_START) 15 else durationMinutes.toInt()
+                                    val effectiveDuration = if (gameMode == GameMode.QUICK_START) GameConstants.DEFAULT_GAME_DURATION_MINUTES else durationMinutes.toInt()
                                     val code = generateCode()
+
+                                    // Step 1: Create game (rollback point)
                                     val game = GameRepository.createGame(code, effectiveDuration * 60, false, gameMode.name)
-                                    val hostColor = PLAYER_COLORS[0].toHex()
-                                    val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
-                                    val avatarBytes = selectedAvatarBytes
-                                    if (avatarBytes != null) {
-                                        try {
-                                            GameRepository.uploadAvatarPhoto(hostDto.id, avatarBytes)
-                                            GameRepository.setPlayerAvatar(hostDto.id, "selfie")
-                                        } catch (e: Exception) { e.printStackTrace() }
-                                        try { LocalPhotoStore.saveAvatar(hostDto.id, avatarBytes) } catch (_: Exception) {}
+                                    try {
+                                        // Step 2: Add host player
+                                        val hostColor = PLAYER_COLORS[0].toHex()
+                                        val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
+
+                                        // Step 3: Upload avatar (optional, non-critical)
+                                        val avatarBytes = selectedAvatarBytes
+                                        if (avatarBytes != null) {
+                                            try {
+                                                GameRepository.uploadAvatarPhoto(hostDto.id, avatarBytes)
+                                                GameRepository.setPlayerAvatar(hostDto.id, "selfie")
+                                            } catch (e: Exception) { AppLogger.w("Create", "Avatar upload failed", e) }
+                                            try { LocalPhotoStore.saveAvatar(hostDto.id, avatarBytes) } catch (e: Exception) { AppLogger.d("Create", "Avatar local save failed", e) }
+                                        }
+
+                                        // Step 4: Add categories
+                                        val categoryDtos = GameRepository.addCategories(game.id, allCategories)
+
+                                        // All critical steps succeeded — update state
+                                        if (avatarBytes != null) {
+                                            gameState.photo.setAvatar(hostDto.id, avatarBytes)
+                                        }
+                                        gameState.session.gameId = game.id
+                                        gameState.session.gameCode = game.code
+                                        gameState.session.isHost = true
+                                        gameState.session.myPlayerId = hostDto.id
+                                        gameState.gameplay.gameDurationMinutes = effectiveDuration
+                                        gameState.joker.jokerMode = false
+                                        gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
+                                        gameState.gameplay.lobbyPlayers = listOf(hostDto)
+                                        gameState.session.currentScreen = Screen.LOBBY
+                                    } catch (e: Exception) {
+                                        // Cleanup: mark orphaned game as closed
+                                        AppLogger.e("Create", "Game setup failed, cleaning up game ${game.id}", e)
+                                        try { GameRepository.setGameStatus(game.id, "closed") } catch (cleanupErr: Exception) {
+                                            AppLogger.w("Create", "Cleanup of orphaned game failed", cleanupErr)
+                                        }
+                                        throw e
                                     }
-                                    val categoryDtos = GameRepository.addCategories(game.id, allCategories)
-                                    if (avatarBytes != null) {
-                                        gameState.photo.playerAvatarBytes = gameState.photo.playerAvatarBytes + (hostDto.id to avatarBytes)
-                                    }
-                                    gameState.session.gameId = game.id
-                                    gameState.session.gameCode = game.code
-                                    gameState.session.isHost = true
-                                    gameState.session.myPlayerId = hostDto.id
-                                    gameState.gameplay.gameDurationMinutes = effectiveDuration
-                                    gameState.joker.jokerMode = false
-                                    gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
-                                    gameState.gameplay.lobbyPlayers = listOf(hostDto)
-                                    gameState.session.currentScreen = Screen.LOBBY
                                 } catch (e: Exception) {
                                     errorMessage = "Fehler: ${e.message}"
                                 } finally {
@@ -471,74 +491,29 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.QUICK_START -> GradientQuickStart
                     else -> GradientPrimary
                 }
-                val speedColor = speedGradient.first()
-                GradientBorderCard(
-                    modifier = Modifier.fillMaxWidth().staggered(speedIndex),
-                    cornerRadius = 12.dp,
-                    borderColors = speedGradient,
-                    backgroundColor = Color(0xFF0C0B15),
-                    borderWidth = 1.dp,
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Bolt, null, modifier = Modifier.size(18.dp), tint = speedColor)
-                            Text(
-                                "Schnelligkeitsbonus",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = speedColor,
-                            )
-                        }
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Wer eine Kategorie als Erster fotografiert, bekommt +1 Tempopunkt.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = speedColor.copy(alpha = 0.85f),
-                            lineHeight = 17.sp,
-                            modifier = Modifier.padding(start = 24.dp),
-                        )
-                    }
-                }
+                SpeedBonusCard(
+                    gradientColors = speedGradient,
+                    modifier = Modifier.staggered(speedIndex),
+                )
             }
 
             // ── 3. Spielzeit ──────────────────────────────────────────────
             if (gameMode != GameMode.QUICK_START) {
-            val timeIndex = when (gameMode) {
-                GameMode.CLASSIC -> 3
-                else -> 4
-            }
-            DarkSectionCard(
-                title = "Spielzeit — ${durationMinutes.toInt()} Min",
-                modifier = Modifier.staggered(timeIndex),
-                gradientColors = when (gameMode) {
-                    GameMode.CLASSIC -> GradientPrimary
-                    GameMode.BLIND_BINGO -> GradientCool
-                    GameMode.WEIRD_CORE -> GradientWeird
-                    GameMode.QUICK_START -> GradientQuickStart
-                },
-            ) {
-                Slider(
-                    value = durationMinutes,
-                    onValueChange = { durationMinutes = it },
-                    valueRange = 5f..60f,
-                    steps = 10,
-                    colors = SliderDefaults.colors(
-                        thumbColor = ColorPrimary,
-                        activeTrackColor = ColorPrimary,
-                        inactiveTrackColor = ColorSurfaceVariant,
-                    ),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("5 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    Text("60 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                val timeIndex = when (gameMode) {
+                    GameMode.CLASSIC -> 3
+                    else -> 4
                 }
-            }
+                DurationSection(
+                    durationMinutes = durationMinutes,
+                    onDurationChange = { durationMinutes = it },
+                    gradientColors = when (gameMode) {
+                        GameMode.CLASSIC -> GradientPrimary
+                        GameMode.BLIND_BINGO -> GradientCool
+                        GameMode.WEIRD_CORE -> GradientWeird
+                        GameMode.QUICK_START -> GradientQuickStart
+                    },
+                    modifier = Modifier.staggered(timeIndex),
+                )
             } // end if (gameMode != GameMode.QUICK_START)
 
             Spacer(Modifier.height(4.dp))

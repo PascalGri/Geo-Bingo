@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.PLAYER_COLORS
 import pg.geobingo.one.game.GameMode
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
@@ -256,11 +257,11 @@ fun JoinGameScreen(gameState: GameState) {
                                     try {
                                         GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
                                         GameRepository.setPlayerAvatar(playerDto.id, "selfie")
-                                    } catch (e: Exception) { e.printStackTrace() }
-                                    try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (_: Exception) {}
+                                    } catch (e: Exception) { AppLogger.w("Join", "Avatar upload failed", e) }
+                                    try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (e: Exception) { AppLogger.d("Join", "Avatar local save failed", e) }
                                 }
                                 if (avatarBytes != null) {
-                                    gameState.photo.playerAvatarBytes = gameState.photo.playerAvatarBytes + (playerDto.id to avatarBytes)
+                                    gameState.photo.setAvatar(playerDto.id, avatarBytes)
                                 }
                                 val players = GameRepository.getPlayers(game.id)
                                 val categories = GameRepository.getCategories(game.id)
@@ -270,7 +271,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 gameState.session.myPlayerId = playerDto.id
                                 gameState.gameplay.gameDurationMinutes = game.duration_s / 60
                                 gameState.joker.jokerMode = game.joker_mode
-                                gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (_: Exception) { GameMode.CLASSIC }
+                                gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (e: Exception) { AppLogger.d("Join", "Unknown game mode: ${game.game_mode}", e); GameMode.CLASSIC }
                                 gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
                                 gameState.gameplay.lobbyPlayers = players
                                 gameState.session.currentScreen = Screen.LOBBY

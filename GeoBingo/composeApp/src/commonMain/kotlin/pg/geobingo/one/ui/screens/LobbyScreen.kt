@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
@@ -47,11 +49,18 @@ fun LobbyScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.session.gameId ?: return
-    val realtime = remember(gameId) { gameState.ensureRealtime(gameId) }
+    val syncScope = rememberCoroutineScope()
+    val sync = remember(gameId) { gameState.ensureSyncManager(gameId, syncScope) }
+    val realtime = gameState.realtime
     val feedback = rememberFeedback(gameState)
 
+    // Cleanup realtime when leaving screen
+    DisposableEffect(gameId) {
+        onDispose { /* sync will be cleaned up on game reset */ }
+    }
+
     // Lobby auto-close timeout (host only): 5 min without a second player joining
-    var lobbyTimeoutSeconds by remember { mutableStateOf(300) }
+    var lobbyTimeoutSeconds by remember { mutableStateOf(GameConstants.LOBBY_TIMEOUT_SECONDS) }
     LaunchedEffect(gameId) {
         if (!gameState.session.isHost) return@LaunchedEffect
         while (lobbyTimeoutSeconds > 0) {
@@ -59,77 +68,48 @@ fun LobbyScreen(gameState: GameState) {
             if (gameState.gameplay.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
             lobbyTimeoutSeconds--
         }
-        try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { e.printStackTrace() }
+        try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
         gameState.resetGame()
     }
 
     // Initial player load
     LaunchedEffect(gameId) {
-        try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
+        try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
     }
 
-    // 1. Subscribe first
+    // Sync: player joined (realtime + polling via SyncManager)
     LaunchedEffect(gameId) {
-        realtime.subscribe()
-    }
-
-    // 2. Realtime: player joined
-    LaunchedEffect(gameId) {
-        realtime.playerInserts.collect {
-            try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { e.printStackTrace() }
+        sync.playerJoined.collect {
+            try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Player reload failed", e) }
         }
     }
 
-    // 3. Realtime: game status changes (guests transition automatically)
+    // Sync: game status changes (handles both realtime + polling)
     LaunchedEffect(gameId) {
-        if (!gameState.session.isHost) {
-            realtime.gameUpdates.collect { game ->
+        sync.gameUpdates.collect { game ->
+            // Refresh lobby players from polling
+            try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Player reload failed", e) }
+
+            if (!gameState.session.isHost) {
                 when (game.status) {
                     "running" -> {
-                        val playerDtos = GameRepository.getPlayers(gameId)
-                        gameState.gameplay.players = playerDtos.map { it.toPlayer() }
-                        gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
-                        gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
-                        gameState.gameplay.isGameRunning = true
-                        gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
-                            .takeIf { it >= 0 } ?: 0
-                        feedback.gameStart()
-                        gameState.session.currentScreen = Screen.GAME
+                        if (gameState.session.currentScreen == Screen.LOBBY) {
+                            val playerDtos = GameRepository.getPlayers(gameId)
+                            gameState.gameplay.players = playerDtos.map { it.toPlayer() }
+                            gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
+                            gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
+                            gameState.gameplay.isGameRunning = true
+                            gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
+                                .takeIf { it >= 0 } ?: 0
+                            feedback.gameStart()
+                            gameState.session.currentScreen = Screen.GAME
+                        }
                     }
                     "closed" -> {
                         gameState.ui.pendingToast = "Der Host hat die Lobby geschlossen."
                         gameState.resetGame()
                     }
                 }
-            }
-        }
-    }
-
-    // 4. Fallback Polling (with backoff on errors)
-    LaunchedEffect(gameId) {
-        var interval = 3_000L
-        while (true) {
-            delay(interval)
-            try {
-                gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId)
-                if (!gameState.session.isHost) {
-                    val game = GameRepository.getGameById(gameId)
-                    if (game?.status == "running" && gameState.session.currentScreen == Screen.LOBBY) {
-                        val playerDtos = GameRepository.getPlayers(gameId)
-                        gameState.gameplay.players = playerDtos.map { it.toPlayer() }
-                        gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
-                        gameState.gameplay.timeRemainingSeconds = gameState.gameplay.gameDurationMinutes * 60
-                        gameState.gameplay.isGameRunning = true
-                        gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
-                            .takeIf { it >= 0 } ?: 0
-                        feedback.gameStart()
-                        gameState.session.currentScreen = Screen.GAME
-                    }
-                }
-                interval = 3_000L
-            } catch (e: Exception) {
-                e.printStackTrace()
-                interval = (interval * 1.5).toLong().coerceAtMost(15_000L)
             }
         }
     }

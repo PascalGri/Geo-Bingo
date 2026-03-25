@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -28,8 +30,8 @@ internal fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: St
                     advanceCalled = true
                     onReadyToAdvance()
                 }
-            } catch (e: Exception) { e.printStackTrace() }
-            delay(1_500)
+            } catch (e: Exception) { AppLogger.w("Waiting", "Vote count poll failed", e) }
+            delay(GameConstants.WAITING_POLL_INTERVAL_MS)
         }
     }
     Box(modifier = Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {

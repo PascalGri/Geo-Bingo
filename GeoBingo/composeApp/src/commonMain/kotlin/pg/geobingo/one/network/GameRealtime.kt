@@ -4,6 +4,7 @@ import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import pg.geobingo.one.util.AppLogger
 
 class GameRealtimeManager(private val gameId: String) {
 
@@ -44,7 +45,7 @@ class GameRealtimeManager(private val gameId: String) {
         try {
             channel.subscribe(blockUntilSubscribed = true)
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.e("Realtime", "Subscribe failed for game $gameId", e)
         }
     }
 
@@ -52,7 +53,7 @@ class GameRealtimeManager(private val gameId: String) {
         try {
             channel.unsubscribe()
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.w("Realtime", "Unsubscribe failed for game $gameId", e)
         }
     }
 }

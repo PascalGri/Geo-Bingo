@@ -95,7 +95,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "wc_mirror"         -> Icons.Default.Flip
     "wc_pigeon"         -> Icons.Default.Pets
     "wc_selfie"         -> Icons.Default.PhotoCamera
-    "wc_stickers"       -> Icons.Default.Label
+    "wc_stickers"       -> @Suppress("DEPRECATION") Icons.Default.Label
     "wc_floor"          -> Icons.Default.Person
     "wc_boring"         -> Icons.Default.Apartment
     "wc_bag"            -> Icons.Default.ShoppingBag
@@ -113,7 +113,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "wc_umbrella"       -> Icons.Default.Umbrella
     "wc_twins"          -> Icons.Default.PeopleAlt
     "wc_cat"            -> Icons.Default.Pets
-    "wc_postit"         -> Icons.Default.StickyNote2
+    "wc_postit"         -> @Suppress("DEPRECATION") Icons.Default.StickyNote2
     "wc_cloud"          -> Icons.Default.Cloud
     "wc_shadow_art"     -> Icons.Default.Tonality
     "wc_expired"        -> Icons.Default.EventBusy
@@ -121,7 +121,7 @@ fun getCategoryIcon(categoryId: String): ImageVector = when (categoryId) {
     "wc_charging"       -> Icons.Default.BatteryChargingFull
     "wc_glove"          -> Icons.Default.BackHand
     "wc_graffiti_name"  -> Icons.Default.TextFields
-    "wc_upsidedown"     -> Icons.Default.RotateLeft
+    "wc_upsidedown"     -> @Suppress("DEPRECATION") Icons.Default.RotateLeft
     "wc_plant_fight"    -> Icons.Default.LocalFlorist
     "wc_award"          -> Icons.Default.EmojiEvents
     "wc_door_steps"     -> Icons.Default.DoorFront

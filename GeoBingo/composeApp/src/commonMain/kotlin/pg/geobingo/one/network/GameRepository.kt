@@ -8,9 +8,10 @@ import pg.geobingo.one.data.CATEGORY_DESCRIPTIONS
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.PLAYER_COLORS
+import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.platform.LocalPhotoStore
+import pg.geobingo.one.util.AppLogger
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.seconds
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.readRawBytes
@@ -185,14 +186,21 @@ object GameRepository {
         try {
             val cached = LocalPhotoStore.loadAvatar(playerId)
             if (cached != null) return cached
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.d("Repo", "Avatar cache miss for $playerId", e)
+        }
         return try {
             val path = "avatars/$playerId.jpg"
-            val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
             val bytes = httpClient.get(url).readRawBytes()
-            try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (e: Exception) {
+                AppLogger.d("Repo", "Avatar local save failed for $playerId", e)
+            }
             bytes
-        } catch (_: Exception) { null }
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "Avatar download failed for $playerId", e)
+            null
+        }
     }
 
     suspend fun addCategories(gameId: String, categories: List<Category>): List<CategoryDto> {
@@ -232,13 +240,13 @@ object GameRepository {
     suspend fun uploadPhoto(gameId: String, playerId: String, categoryId: String, bytes: ByteArray): String {
         val path = "$gameId/$playerId/$categoryId.jpg"
         supabase.storage.from("photos").upload(path, bytes) { upsert = true }
-        return supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+        return supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
     }
 
     suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray, latitude: Double? = null, longitude: Double? = null) {
         val path = "$gameId/$playerId/$categoryId.jpg"
         supabase.storage.from("photos").upload(path, photoBytes) { upsert = true }
-        val url = supabase.storage.from("photos").createSignedUrl(path, 86400.seconds)
+        val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
         supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url, latitude = latitude, longitude = longitude))
     }
 
@@ -247,17 +255,24 @@ object GameRepository {
         try {
             val cached = LocalPhotoStore.loadPhoto(gameId, playerId, categoryId)
             if (cached != null) return cached
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.d("Repo", "Photo cache miss for $playerId/$categoryId", e)
+        }
 
         // 2. Network download
         return try {
             val path = "$gameId/$playerId/$categoryId.jpg"
-            val url = supabase.storage.from("photos").createSignedUrl(path, 3600.seconds)
+            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
             val bytes = httpClient.get(url).readRawBytes()
             // 3. Cache locally for future access
-            try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (e: Exception) {
+                AppLogger.d("Repo", "Photo local save failed", e)
+            }
             bytes
-        } catch (_: Exception) { null }
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "Photo download failed for $playerId/$categoryId", e)
+            null
+        }
     }
 
     suspend fun getCaptures(gameId: String): List<CaptureDto> =
@@ -278,7 +293,7 @@ object GameRepository {
             )
         } catch (e: Exception) {
             // Duplicate vote is OK - continue to submit vote_submission
-            e.printStackTrace()
+            AppLogger.d("Repo", "Vote insert (may be duplicate)", e)
         }
         try {
             supabase.from("vote_submissions").insert(
@@ -389,13 +404,17 @@ object GameRepository {
                     supabase.storage.from("photos").delete(paths)
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "Game photo cleanup failed for $gameId", e)
+        }
         try {
             // Delete avatar photos
             val avatarPaths = playerIds.map { "avatars/$it.jpg" }
             if (avatarPaths.isNotEmpty()) {
                 supabase.storage.from("photos").delete(avatarPaths)
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "Avatar cleanup failed for $gameId", e)
+        }
     }
 }

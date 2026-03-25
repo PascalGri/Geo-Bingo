@@ -308,7 +308,7 @@ fun GameScreenContent(
                                 val otherCapturers = gameState.gameplay.players.filter { p ->
                                     p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
                                 }
-                                val isUploading = category.id in gameState.photo.uploadingCategories
+                                val isUploading = gameState.photo.isUploading(category.id)
                                 val showUploadSuccess = uploadSuccessCategory == category.id
                                 DarkBingoCategoryCard(
                                     category = category,
