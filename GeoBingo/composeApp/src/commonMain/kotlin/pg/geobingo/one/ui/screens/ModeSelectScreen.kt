@@ -3,6 +3,8 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
@@ -36,8 +37,10 @@ import pg.geobingo.one.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSelectScreen(gameState: GameState) {
-    val anim = rememberStaggeredAnimation(count = 4)
+    val anim = rememberStaggeredAnimation(count = 5)
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
+    var quickStartExpanded by remember { mutableStateOf(false) }
+    var quickStartOutdoor by remember { mutableStateOf(true) }
 
     SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
@@ -123,7 +126,209 @@ fun ModeSelectScreen(gameState: GameState) {
                 },
             )
 
+            QuickStartCard(
+                expanded = quickStartExpanded,
+                outdoor = quickStartOutdoor,
+                onToggleExpand = { quickStartExpanded = !quickStartExpanded },
+                onSelectOutdoor = { quickStartOutdoor = it },
+                onConfirm = {
+                    gameState.session.gameMode = GameMode.QUICK_START
+                    gameState.session.quickStartOutdoor = quickStartOutdoor
+                    gameState.session.currentScreen = Screen.CREATE_GAME
+                },
+                modifier = Modifier.staggered(4),
+            )
+
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun QuickStartCard(
+    expanded: Boolean,
+    outdoor: Boolean,
+    onToggleExpand: () -> Unit,
+    onSelectOutdoor: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gradientColors = GradientQuickStart
+    val accentColor = gradientColors.first()
+    val scope = rememberCoroutineScope()
+    val pressScale = remember { Animatable(1f) }
+
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = pressScale.value; scaleY = pressScale.value }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        scope.launch { pressScale.animateTo(0.97f, tween(80)) }
+                        tryAwaitRelease()
+                        scope.launch { pressScale.animateTo(1f, tween(120)) }
+                    },
+                    onTap = { onToggleExpand() },
+                )
+            },
+        cornerRadius = 18.dp,
+        borderColors = gradientColors,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.5.dp,
+        glassmorphism = false,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = gradientColors,
+                                start = Offset(0f, 0f),
+                                end = Offset(200f, 200f),
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bolt,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Quick Start",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnSurface,
+                    )
+                    Text(
+                        "15 Min · 5 Kategorien · sofort losspielen",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accentColor,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Kein Setup, kein Warten. Nur Name eingeben, Umgebung wählen und die Runde startet direkt.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                        lineHeight = 17.sp,
+                    )
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp).padding(top = 2.dp),
+                    tint = ColorOnSurfaceVariant,
+                )
+            }
+
+            if (expanded) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = ColorOutlineVariant)
+                Spacer(Modifier.height(14.dp))
+
+                Text(
+                    "Wo spielt ihr?",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    // Draußen
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(true) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                "Draußen",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                    // Drinnen
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (!outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (!outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(false) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                "Drinnen",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Brush.linearGradient(gradientColors))
+                        .clickable { onConfirm() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Los geht's",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+            }
         }
     }
 }

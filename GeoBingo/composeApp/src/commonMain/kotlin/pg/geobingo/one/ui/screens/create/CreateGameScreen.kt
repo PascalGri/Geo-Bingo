@@ -77,7 +77,7 @@ fun CreateGameScreen(gameState: GameState) {
     val shuffleAlpha = remember { Animatable(1f) }
 
     val totalCategories = customCategories.size + selectedPresetIds.size
-    val canStart = hostNameInput.trim().isNotEmpty() && totalCategories >= 2
+    val canStart = hostNameInput.trim().isNotEmpty() && (gameMode == GameMode.QUICK_START || totalCategories >= 2)
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(errorMessage) {
         val msg = errorMessage ?: return@LaunchedEffect
@@ -104,6 +104,7 @@ fun CreateGameScreen(gameState: GameState) {
         GameMode.CLASSIC -> "Klassisch"
         GameMode.BLIND_BINGO -> "Blind Bingo"
         GameMode.WEIRD_CORE -> "Weird Core"
+        GameMode.QUICK_START -> "Quick Start"
     }
 
     Scaffold(
@@ -118,6 +119,7 @@ fun CreateGameScreen(gameState: GameState) {
                             GameMode.CLASSIC -> GradientPrimary
                             GameMode.BLIND_BINGO -> GradientCool
                             GameMode.WEIRD_CORE -> GradientWeird
+                            GameMode.QUICK_START -> GradientQuickStart
                         },
                     )
                 },
@@ -142,6 +144,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GradientButton(
                         text = when {
                             hostNameInput.trim().isEmpty() -> "Name eingeben"
+                            gameMode == GameMode.QUICK_START -> "Runde erstellen  ·  5 Kategorien"
                             totalCategories < 2 -> "Mind. 2 Kategorien wählen"
                             else -> "Runde erstellen  ·  $totalCategories Kategorien"
                         },
@@ -150,10 +153,15 @@ fun CreateGameScreen(gameState: GameState) {
                                 isLoading = true
                                 errorMessage = null
                                 try {
-                                    val presets = presetPool.filter { it.id in selectedPresetIds }
-                                    val allCategories = customCategories + presets
+                                    val allCategories = if (gameMode == GameMode.QUICK_START) {
+                                        quickStartCategories(gameState.session.quickStartOutdoor)
+                                    } else {
+                                        val presets = presetPool.filter { it.id in selectedPresetIds }
+                                        customCategories + presets
+                                    }
+                                    val effectiveDuration = if (gameMode == GameMode.QUICK_START) 15 else durationMinutes.toInt()
                                     val code = generateCode()
-                                    val game = GameRepository.createGame(code, durationMinutes.toInt() * 60, jokerMode, gameMode.name)
+                                    val game = GameRepository.createGame(code, effectiveDuration * 60, jokerMode, gameMode.name)
                                     val hostColor = PLAYER_COLORS[0].toHex()
                                     val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
                                     val avatarBytes = selectedAvatarBytes
@@ -172,7 +180,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     gameState.session.gameCode = game.code
                                     gameState.session.isHost = true
                                     gameState.session.myPlayerId = hostDto.id
-                                    gameState.gameplay.gameDurationMinutes = durationMinutes.toInt()
+                                    gameState.gameplay.gameDurationMinutes = effectiveDuration
                                     gameState.joker.jokerMode = jokerMode
                                     gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
                                     gameState.gameplay.lobbyPlayers = listOf(hostDto)
@@ -190,6 +198,7 @@ fun CreateGameScreen(gameState: GameState) {
                             GameMode.CLASSIC -> GradientPrimary
                             GameMode.BLIND_BINGO -> GradientCool
                             GameMode.WEIRD_CORE -> GradientWeird
+                            GameMode.QUICK_START -> GradientQuickStart
                         },
                         leadingIcon = if (isLoading) {
                             { CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) }
@@ -209,7 +218,7 @@ fun CreateGameScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // ── Modus-Banner für Blind Bingo & Weird Core ─────────────────
+            // ── Modus-Banner für Blind Bingo, Weird Core & Quick Start ────
             if (gameMode != GameMode.CLASSIC) {
                 ModeBanner(gameMode = gameMode, modifier = Modifier.staggered(0))
             }
@@ -222,6 +231,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
                 },
             ) {
                 OutlinedTextField(
@@ -257,6 +267,7 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── 2. Kategorien ─────────────────────────────────────────────
+            if (gameMode != GameMode.QUICK_START) {
             val catSectionIndex = if (gameMode == GameMode.CLASSIC) 1 else 2
             DarkSectionCard(
                 title = "Kategorien  ·  $totalCategories ausgewählt",
@@ -265,6 +276,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
                 },
             ) {
                 // Custom category input – hidden for Weird Core (categories are fixed/curated)
@@ -450,8 +462,10 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
+            } // end if (gameMode != GameMode.QUICK_START)
+
             // ── Speed Bonus Hinweis (nur Classic & Blind Bingo) ───────────
-            if (gameMode != GameMode.WEIRD_CORE) {
+            if (gameMode != GameMode.WEIRD_CORE && gameMode != GameMode.QUICK_START) {
                 val speedIndex = if (gameMode == GameMode.CLASSIC) 2 else 3
                 GradientBorderCard(
                     modifier = Modifier.fillMaxWidth().staggered(speedIndex),
@@ -486,6 +500,7 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── 3. Spielzeit ──────────────────────────────────────────────
+            if (gameMode != GameMode.QUICK_START) {
             val timeIndex = when (gameMode) {
                 GameMode.CLASSIC -> 3
                 else -> 4
@@ -497,6 +512,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
                 },
             ) {
                 Slider(
@@ -518,6 +534,7 @@ fun CreateGameScreen(gameState: GameState) {
                     Text("60 Min", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                 }
             }
+            } // end if (gameMode != GameMode.QUICK_START)
 
             // ── 4. Joker-Modus (nur Classic) ──────────────────────────────
             if (gameMode == GameMode.CLASSIC) {
@@ -600,6 +617,12 @@ private fun ModeBanner(gameMode: GameMode, modifier: Modifier = Modifier) {
             title = "Weird Core aktiv",
             text = "Nur absurde Kategorien. Kein Standardfoto – gefragt sind unerwartete Momente, NPC-Beobachtungen und Dinge, die eigentlich nicht existieren sollten.",
             colors = GradientWeird,
+        )
+        GameMode.QUICK_START -> ModeBannerData(
+            icon = Icons.Default.Bolt,
+            title = "Quick Start aktiv",
+            text = "15 Minuten, 5 vorgefertigte Kategorien – einfach Name eingeben und direkt losspielen.",
+            colors = GradientQuickStart,
         )
         else -> return
     }

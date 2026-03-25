@@ -68,6 +68,11 @@ val GradientWeird = listOf(
     Color(0xFF22C55E), // Green 500
     Color(0xFF10B981), // Emerald 500
 )
+val GradientQuickStart = listOf(
+    Color(0xFF38BDF8), // Sky 400
+    Color(0xFF22D3EE), // Cyan 400
+    Color(0xFF2DD4BF), // Teal 400
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = ColorPrimary,

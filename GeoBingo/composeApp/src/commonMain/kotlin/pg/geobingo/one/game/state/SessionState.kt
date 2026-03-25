@@ -13,4 +13,5 @@ class SessionState {
     var isHost by mutableStateOf(false)
     var myPlayerId by mutableStateOf<String?>(null)
     var gameMode by mutableStateOf(GameMode.CLASSIC)
+    var quickStartOutdoor by mutableStateOf(true)
 }
