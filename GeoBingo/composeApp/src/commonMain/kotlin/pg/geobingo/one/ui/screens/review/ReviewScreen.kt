@@ -21,6 +21,7 @@ import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.network.withRetry
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -209,7 +210,7 @@ fun ReviewScreen(gameState: GameState) {
                             color = modeColor,
                         )
                         Text(
-                            "Dein Bild wird bewertet...",
+                            S.current.yourPhotoBeingRated,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = ColorOnPrimaryContainer,

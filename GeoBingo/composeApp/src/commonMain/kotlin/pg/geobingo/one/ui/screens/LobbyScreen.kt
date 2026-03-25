@@ -1,9 +1,12 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,10 +20,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,12 +37,14 @@ import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
 import pg.geobingo.one.ui.theme.Spacing
@@ -53,6 +61,8 @@ fun LobbyScreen(gameState: GameState) {
     val sync = remember(gameId) { gameState.ensureSyncManager(gameId, syncScope) }
     val realtime = gameState.realtime
     val feedback = rememberFeedback(gameState)
+    val clipboardManager = LocalClipboardManager.current
+    val shareManager = rememberShareManager()
 
     // Cleanup realtime when leaving screen
     DisposableEffect(gameId) {
@@ -84,6 +94,17 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
+    // Auto-assign teams when lobby players change
+    LaunchedEffect(gameState.gameplay.lobbyPlayers.size) {
+        if (gameState.gameplay.teamModeEnabled && gameState.session.isHost) {
+            val assignments = mutableMapOf<String, Int>()
+            gameState.gameplay.lobbyPlayers.forEachIndexed { i, p ->
+                assignments[p.id] = if (i % 2 == 0) 1 else 2
+            }
+            gameState.gameplay.teamAssignments = assignments
+        }
+    }
+
     // Sync: game status changes (handles both realtime + polling)
     LaunchedEffect(gameId) {
         sync.gameUpdates.collect { game ->
@@ -106,7 +127,7 @@ fun LobbyScreen(gameState: GameState) {
                         }
                     }
                     "closed" -> {
-                        gameState.ui.pendingToast = "Der Host hat die Lobby geschlossen."
+                        gameState.ui.pendingToast = S.current.hostClosedLobby
                         gameState.resetGame()
                     }
                 }
@@ -122,10 +143,10 @@ fun LobbyScreen(gameState: GameState) {
         GameMode.QUICK_START -> GradientQuickStart
     }
     val modeLabel = when (gameMode) {
-        GameMode.CLASSIC    -> "Klassisch"
-        GameMode.BLIND_BINGO -> "Blind Bingo"
-        GameMode.WEIRD_CORE -> "Weird Core"
-        GameMode.QUICK_START -> "Quick Start"
+        GameMode.CLASSIC    -> S.current.modeClassic
+        GameMode.BLIND_BINGO -> S.current.modeBlindBingo
+        GameMode.WEIRD_CORE -> S.current.modeWeirdCore
+        GameMode.QUICK_START -> S.current.modeQuickStart
     }
     val modeIcon = when (gameMode) {
         GameMode.CLASSIC    -> Icons.Default.GridOn
@@ -154,14 +175,14 @@ fun LobbyScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "Wartezimmer",
+                        text = S.current.waitingRoom,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = modeGradient,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.resetGame() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Verlassen", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.leave, tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -181,7 +202,7 @@ fun LobbyScreen(gameState: GameState) {
                                 if (lobbyTimeoutSeconds % 2 == 0) 1f else 0.6f
                             } else 1f
                             Text(
-                                "Lobby schließt in $timeStr",
+                                S.current.lobbyClosesIn(timeStr),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ColorError,
                                 fontWeight = FontWeight.Bold,
@@ -194,9 +215,9 @@ fun LobbyScreen(gameState: GameState) {
                         }
                         GradientButton(
                             text = if (gameState.gameplay.lobbyPlayers.size < 2)
-                                "Mind. 2 Spieler nötig"
+                                S.current.minPlayersNeeded(2)
                             else
-                                "Spiel starten (${gameState.gameplay.lobbyPlayers.size} Spieler)",
+                                S.current.startGame(gameState.gameplay.lobbyPlayers.size),
                             gradientColors = modeGradient,
                             onClick = {
                                 scope.launch {
@@ -257,7 +278,7 @@ fun LobbyScreen(gameState: GameState) {
                                 color = modeGradient.first(),
                             )
                             Text(
-                                "Warte auf den Host...",
+                                S.current.waitingForHost,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = ColorOnSurfaceVariant,
                                 fontWeight = FontWeight.Medium,
@@ -312,20 +333,82 @@ fun LobbyScreen(gameState: GameState) {
                         }
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            "Rundencode",
+                            S.current.roundCode,
                             style = MaterialTheme.typography.labelMedium,
                             color = ColorOnSurfaceVariant,
                         )
                         Spacer(Modifier.height(8.dp))
+                        val code = gameState.session.gameCode ?: "------"
                         AnimatedGradientText(
-                            text = gameState.session.gameCode ?: "------",
+                            text = code,
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 8.sp,
                             ),
                             gradientColors = modeGradient,
                             durationMillis = 2000,
+                            modifier = Modifier.clickable {
+                                clipboardManager.setText(AnnotatedString(code))
+                                gameState.ui.pendingToast = S.current.codeCopied
+                            },
                         )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            S.current.tapToCopy,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            FilledTonalButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(code))
+                                    gameState.ui.pendingToast = S.current.codeCopied
+                                },
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = modeGradient.first().copy(alpha = 0.12f),
+                                ),
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = S.current.codeCopied,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = modeGradient.first(),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    S.current.roundCode,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = modeGradient.first(),
+                                )
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    shareManager.shareText(code)
+                                },
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = modeGradient.first().copy(alpha = 0.12f),
+                                ),
+                            ) {
+                                Icon(
+                                    Icons.Default.Share,
+                                    contentDescription = S.current.shareCode,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = modeGradient.first(),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    S.current.share,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = modeGradient.first(),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -337,7 +420,7 @@ fun LobbyScreen(gameState: GameState) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     AnimatedGradientText(
-                        text = "Spieler (${gameState.gameplay.lobbyPlayers.size})",
+                        text = S.current.playersCount(gameState.gameplay.lobbyPlayers.size),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = modeGradient,
                     )
@@ -347,6 +430,227 @@ fun LobbyScreen(gameState: GameState) {
             val hostPlayerId = gameState.gameplay.lobbyPlayers.firstOrNull()?.id
             items(gameState.gameplay.lobbyPlayers) { player ->
                 LobbyPlayerRow(player = player, isMe = player.id == gameState.session.myPlayerId, isHost = player.id == hostPlayerId, photoBytes = gameState.photo.playerAvatarBytes[player.id])
+            }
+
+            // ── Team Assignment Section ──────────────────────────────────
+            if (gameState.gameplay.teamModeEnabled) {
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    GradientBorderCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 16.dp,
+                        borderColors = modeGradient,
+                        backgroundColor = ColorSurface,
+                        borderWidth = 1.dp,
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            AnimatedGradientText(
+                                text = S.current.selectTeams,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                gradientColors = modeGradient,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                // Team 1
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Brush.linearGradient(listOf(modeGradient.first().copy(alpha = 0.2f), modeGradient.first().copy(alpha = 0.05f))))
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            S.current.teamName(1),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = modeGradient.first(),
+                                        )
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    gameState.gameplay.lobbyPlayers.filter {
+                                        gameState.gameplay.teamAssignments[it.id] == 1
+                                    }.forEach { player ->
+                                        val isClickable = gameState.session.isHost
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = modeGradient.first().copy(alpha = 0.08f),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 3.dp)
+                                                .then(
+                                                    if (isClickable) Modifier.clickable {
+                                                        val updated = gameState.gameplay.teamAssignments.toMutableMap()
+                                                        updated[player.id] = 2
+                                                        gameState.gameplay.teamAssignments = updated
+                                                    } else Modifier
+                                                ),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(modeGradient.first()),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    player.name,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = ColorOnSurface,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                // Team 2
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Brush.linearGradient(listOf(modeGradient.last().copy(alpha = 0.2f), modeGradient.last().copy(alpha = 0.05f))))
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            S.current.teamName(2),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = modeGradient.last(),
+                                        )
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    gameState.gameplay.lobbyPlayers.filter {
+                                        gameState.gameplay.teamAssignments[it.id] == 2
+                                    }.forEach { player ->
+                                        val isClickable = gameState.session.isHost
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = modeGradient.last().copy(alpha = 0.08f),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 3.dp)
+                                                .then(
+                                                    if (isClickable) Modifier.clickable {
+                                                        val updated = gameState.gameplay.teamAssignments.toMutableMap()
+                                                        updated[player.id] = 1
+                                                        gameState.gameplay.teamAssignments = updated
+                                                    } else Modifier
+                                                ),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(modeGradient.last()),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    player.name,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = ColorOnSurface,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Quick reactions
+            item {
+                var lastReaction by remember { mutableStateOf<String?>(null) }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                ) {
+                    val reactionItems = listOf(
+                        Icons.Default.ThumbUp to S.current.ready,
+                        Icons.Default.Timer to S.current.hurryUp,
+                    )
+                    reactionItems.forEach { (icon, label) ->
+                        OutlinedButton(
+                            onClick = {
+                                lastReaction = label
+                                gameState.ui.pendingToast = label
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                modeGradient.first().copy(alpha = 0.4f),
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                        ) {
+                            Icon(
+                                icon,
+                                contentDescription = label,
+                                modifier = Modifier.size(16.dp),
+                                tint = modeGradient.first(),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = modeGradient.first(),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Empty lobby hint when only host is present
+            if (gameState.gameplay.lobbyPlayers.size <= 1) {
+                item {
+                    val shareIconAlpha = remember { Animatable(0.4f) }
+                    LaunchedEffect(Unit) {
+                        shareIconAlpha.animateTo(
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(800),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .graphicsLayer { alpha = shareIconAlpha.value },
+                            tint = modeGradient.first().copy(alpha = 0.6f),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            S.current.emptyLobbyHint,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ColorOnSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
             }
         }
     }
@@ -392,7 +696,7 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, isHost: Boolean, ph
                         .background(ColorPrimaryContainer)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
-                    Text("Du", style = MaterialTheme.typography.labelSmall, color = ColorPrimary)
+                    Text(S.current.you, style = MaterialTheme.typography.labelSmall, color = ColorPrimary)
                 }
             }
         }

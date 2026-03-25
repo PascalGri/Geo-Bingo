@@ -1,5 +1,6 @@
 package pg.geobingo.one.ui.screens.game
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -8,6 +9,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,6 +43,7 @@ import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.*
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -164,14 +171,14 @@ fun GameScreenContent(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     Text(
-                                        if (gameState.review.allCategoriesCaptured) "Du hast alle gefunden!"
-                                        else "Jemand hat alle gefunden!",
+                                        if (gameState.review.allCategoriesCaptured) S.current.youFoundAll
+                                        else S.current.someoneFoundAll,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                     )
                                     Text(
-                                        "Noch ${finishCountdownSeconds}s",
+                                        S.current.secondsRemaining(finishCountdownSeconds),
                                         style = MaterialTheme.typography.titleLarge,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
@@ -233,7 +240,7 @@ fun GameScreenContent(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(myPlayer.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
-                                Text("$myCount/$totalCats gefunden", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                Text(S.current.foundCount(myCount, totalCats), style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                             }
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -247,7 +254,7 @@ fun GameScreenContent(
                                 ) {
                                     Icon(Icons.Default.Style, null, modifier = Modifier.size(14.dp), tint = modeColor)
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Joker", style = MaterialTheme.typography.labelMedium)
+                                    Text(S.current.joker, style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             OutlinedButton(
@@ -260,8 +267,8 @@ fun GameScreenContent(
                             ) {
                                 val needed = gameState.gameplay.players.size
                                 Text(
-                                    if (gameState.review.hasVotedToEnd) "Abgestimmt (${gameState.review.endVoteCount}/$needed)"
-                                    else "Vorzeitig beenden (${gameState.review.endVoteCount}/$needed)",
+                                    if (gameState.review.hasVotedToEnd) S.current.votedToEnd(gameState.review.endVoteCount, needed)
+                                    else S.current.voteToEnd(gameState.review.endVoteCount, needed),
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                             }
@@ -296,30 +303,45 @@ fun GameScreenContent(
                         items(gameState.gameplay.selectedCategories.size) { index ->
                             val category = gameState.gameplay.selectedCategories[index]
                             val isRevealed = index < revealedCount
-                            if (!isRevealed) {
-                                BlindBingoLockedCard(revealIndex = index + 1)
-                            } else {
-                                val captured = gameState.isCaptured(myPlayer.id, category.id)
-                                val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
-                                var thumbnail by remember(photoBytes) { mutableStateOf<ImageBitmap?>(null) }
-                                LaunchedEffect(photoBytes) {
-                                    thumbnail = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
+                            val isNextToReveal = isBlindBingo && index == revealedCount
+
+                            AnimatedContent(
+                                targetState = isRevealed,
+                                transitionSpec = {
+                                    (fadeIn(tween(400)) + scaleIn(tween(400), initialScale = 0.8f))
+                                        .togetherWith(fadeOut(tween(200)) + scaleOut(tween(200), targetScale = 0.8f))
+                                },
+                                label = "categoryReveal",
+                            ) { revealed ->
+                                if (!revealed) {
+                                    BlindBingoLockedCard(
+                                        revealIndex = index + 1,
+                                        isNextToReveal = isNextToReveal,
+                                        glowColors = modeGradient,
+                                    )
+                                } else {
+                                    val captured = gameState.isCaptured(myPlayer.id, category.id)
+                                    val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                                    var thumbnail by remember(photoBytes) { mutableStateOf<ImageBitmap?>(null) }
+                                    LaunchedEffect(photoBytes) {
+                                        thumbnail = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
+                                    }
+                                    val otherCapturers = gameState.gameplay.players.filter { p ->
+                                        p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
+                                    }
+                                    val isUploading = gameState.photo.isUploading(category.id)
+                                    val showUploadSuccess = uploadSuccessCategory == category.id
+                                    DarkBingoCategoryCard(
+                                        category = category,
+                                        isCaptured = captured,
+                                        isUploading = isUploading,
+                                        showUploadSuccess = showUploadSuccess,
+                                        playerColor = myPlayer.color,
+                                        thumbnail = thumbnail,
+                                        otherCapturingPlayers = otherCapturers,
+                                        onCameraClick = { onCameraClick(myPlayer.id, category.id) },
+                                    )
                                 }
-                                val otherCapturers = gameState.gameplay.players.filter { p ->
-                                    p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
-                                }
-                                val isUploading = gameState.photo.isUploading(category.id)
-                                val showUploadSuccess = uploadSuccessCategory == category.id
-                                DarkBingoCategoryCard(
-                                    category = category,
-                                    isCaptured = captured,
-                                    isUploading = isUploading,
-                                    showUploadSuccess = showUploadSuccess,
-                                    playerColor = myPlayer.color,
-                                    thumbnail = thumbnail,
-                                    otherCapturingPlayers = otherCapturers,
-                                    onCameraClick = { onCameraClick(myPlayer.id, category.id) },
-                                )
                             }
                         }
                     }
@@ -330,7 +352,11 @@ fun GameScreenContent(
 }
 
 @Composable
-internal fun BlindBingoLockedCard(revealIndex: Int) {
+internal fun BlindBingoLockedCard(
+    revealIndex: Int,
+    isNextToReveal: Boolean = false,
+    glowColors: List<Color> = emptyList(),
+) {
     val transition = rememberInfiniteTransition(label = "lockedPulse")
     val alpha by transition.animateFloat(
         initialValue = 0.4f,
@@ -341,11 +367,32 @@ internal fun BlindBingoLockedCard(revealIndex: Int) {
         ),
         label = "lockedAlpha",
     )
+
+    // Pulsing glow border when this card is the next to be revealed
+    val glowAlpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glowAlpha",
+    )
+
+    val borderStroke = if (isNextToReveal && glowColors.size >= 2) {
+        BorderStroke(
+            2.dp,
+            Brush.linearGradient(glowColors.map { it.copy(alpha = glowAlpha) }),
+        )
+    } else {
+        BorderStroke(1.dp, ColorOutlineVariant)
+    }
+
     Card(
         modifier = Modifier.aspectRatio(0.9f).fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = ColorSurfaceVariant),
-        border = BorderStroke(1.dp, ColorOutlineVariant),
+        border = borderStroke,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -359,13 +406,17 @@ internal fun BlindBingoLockedCard(revealIndex: Int) {
                     imageVector = Icons.Default.Lock,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp).graphicsLayer { this.alpha = alpha },
-                    tint = ColorOnSurfaceVariant,
+                    tint = if (isNextToReveal && glowColors.isNotEmpty())
+                        glowColors.first().copy(alpha = alpha)
+                    else ColorOnSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "#$revealIndex",
                     style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant.copy(alpha = alpha),
+                    color = if (isNextToReveal && glowColors.isNotEmpty())
+                        glowColors.first().copy(alpha = alpha)
+                    else ColorOnSurfaceVariant.copy(alpha = alpha),
                 )
             }
         }

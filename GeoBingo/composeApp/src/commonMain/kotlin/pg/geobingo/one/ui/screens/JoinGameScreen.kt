@@ -40,6 +40,7 @@ import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
@@ -90,7 +91,7 @@ fun JoinGameScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "Runde beitreten",
+                        text = S.current.joinRound,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientHot,
                     )
@@ -99,7 +100,7 @@ fun JoinGameScreen(gameState: GameState) {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Zurück",
+                            contentDescription = S.current.back,
                             tint = ColorPrimary,
                         )
                     }
@@ -142,7 +143,7 @@ fun JoinGameScreen(gameState: GameState) {
             Spacer(Modifier.height(24.dp))
 
             AnimatedGradientText(
-                text = "Code eingeben",
+                text = S.current.enterCode,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 gradientColors = GradientHot,
                 durationMillis = 2500,
@@ -152,7 +153,7 @@ fun JoinGameScreen(gameState: GameState) {
             Spacer(Modifier.height(8.dp))
 
             Text(
-                "Gib den Code ein, den dir\nder Rundenersteller gegeben hat.",
+                S.current.otherPlayersJoinViaCode,
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -165,7 +166,7 @@ fun JoinGameScreen(gameState: GameState) {
             OutlinedTextField(
                 value = codeInput,
                 onValueChange = { if (it.length <= 6) codeInput = it.uppercase() },
-                label = { Text("Rundencode", color = ColorOnSurfaceVariant) },
+                label = { Text(S.current.roundCode, color = ColorOnSurfaceVariant) },
                 placeholder = { Text("ABC123", color = ColorOutline) },
                 modifier = Modifier.fillMaxWidth().staggered(3),
                 singleLine = true,
@@ -198,8 +199,8 @@ fun JoinGameScreen(gameState: GameState) {
             OutlinedTextField(
                 value = nameInput,
                 onValueChange = { if (it.length <= 20) nameInput = it },
-                label = { Text("Dein Name", color = ColorOnSurfaceVariant) },
-                placeholder = { Text("z.B. Anna", color = ColorOutline) },
+                label = { Text(S.current.nameAndAvatar, color = ColorOnSurfaceVariant) },
+                placeholder = { Text(S.current.namePlaceholder, color = ColorOutline) },
                 modifier = Modifier.fillMaxWidth().staggered(4),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -231,7 +232,7 @@ fun JoinGameScreen(gameState: GameState) {
             Spacer(Modifier.weight(1f))
 
             GradientButton(
-                text = "Beitreten",
+                text = S.current.joinGame,
                 modifier = Modifier.fillMaxWidth().graphicsLayer {
                     translationY = btnOffset.value
                     alpha = btnAlpha.value
@@ -245,9 +246,9 @@ fun JoinGameScreen(gameState: GameState) {
                         try {
                             val game = GameRepository.getGameByCode(codeInput.trim())
                             if (game == null) {
-                                errorMessage = "Runde nicht gefunden. Code prüfen."
+                                errorMessage = "${S.current.error}: Code"
                             } else if (game.status != "lobby") {
-                                errorMessage = "Diese Runde ist bereits gestartet."
+                                errorMessage = "${S.current.error}: Game started"
                             } else {
                                 val colorIndex = (0..7).random()
                                 val color = PLAYER_COLORS[colorIndex].toHex()

@@ -27,6 +27,7 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.RequestLocationPermission
 import pg.geobingo.one.platform.getCurrentLocation
 import pg.geobingo.one.platform.rememberPhotoCapturer
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -74,7 +75,7 @@ fun GameScreen(gameState: GameState) {
                         true
                     } catch (e: Exception) {
                         AppLogger.e("Game", "Capture upload failed for $cid", e)
-                        gameState.ui.pendingToast = "Upload fehlgeschlagen. Bitte erneut versuchen."
+                        gameState.ui.pendingToast = S.current.uploadFailed
                         false
                     }
                     // Save joker label separately (so capture retry doesn't block it)
@@ -112,7 +113,7 @@ fun GameScreen(gameState: GameState) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Default.Style, null, modifier = Modifier.size(20.dp), tint = modeColor)
                     Text(
-                        "Joker verwenden",
+                        S.current.useJoker,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = ColorOnSurface,
@@ -122,14 +123,14 @@ fun GameScreen(gameState: GameState) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Gib ein Thema für dein Joker-Foto ein:",
+                        S.current.jokerTopicPrompt,
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorOnSurfaceVariant,
                     )
                     OutlinedTextField(
                         value = jokerLabelInput,
                         onValueChange = { if (it.length <= 40) jokerLabelInput = it },
-                        placeholder = { Text("z.B. Rote Tür", color = ColorOnSurfaceVariant) },
+                        placeholder = { Text(S.current.jokerTopicPlaceholder, color = ColorOnSurfaceVariant) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -144,7 +145,7 @@ fun GameScreen(gameState: GameState) {
             },
             confirmButton = {
                 GradientButton(
-                    text = "Foto machen",
+                    text = S.current.takePhoto,
                     onClick = {
                         jokerDialogVisible = false
                         val myId = gameState.session.myPlayerId ?: return@GradientButton
@@ -168,7 +169,7 @@ fun GameScreen(gameState: GameState) {
             },
             dismissButton = {
                 TextButton(onClick = { jokerDialogVisible = false }) {
-                    Text("Abbrechen")
+                    Text(S.current.cancel)
                 }
             },
         )
@@ -333,7 +334,7 @@ fun GameScreen(gameState: GameState) {
                         true
                     } catch (e: Exception) {
                         AppLogger.e("Game", "End vote submission failed", e)
-                        gameState.ui.pendingToast = "Abstimmung fehlgeschlagen."
+                        gameState.ui.pendingToast = S.current.voteFailed
                         false
                     }
                     if (!success) {

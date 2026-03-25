@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.game.*
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -134,7 +135,7 @@ fun HomeScreen(gameState: GameState) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     GradientButton(
-                        text = "Runde erstellen",
+                        text = S.current.createRound,
                         onClick = { gameState.session.currentScreen = Screen.SELECT_MODE },
                         modifier = Modifier.fillMaxWidth().graphicsLayer {
                             translationY = btnOffsets[0].value
@@ -166,7 +167,7 @@ fun HomeScreen(gameState: GameState) {
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Runde beitreten",
+                            S.current.joinRound,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 17.sp,
@@ -175,7 +176,26 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY },
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = ColorOnSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        S.current.howToPlay,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
 
                 // ── DISCLAIMER ────────────────────────────────────────────────
                 Row(
@@ -193,7 +213,7 @@ fun HomeScreen(gameState: GameState) {
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Fotografiere nur Personen mit deren Einverständnis.",
+                        S.current.photoConsentDisclaimer,
                         style = MaterialTheme.typography.labelSmall,
                         color = ColorOnSurfaceVariant.copy(alpha = 0.55f),
                         textAlign = TextAlign.Center,
@@ -228,7 +248,7 @@ fun HomeScreen(gameState: GameState) {
                                     tint = ColorOnSurfaceVariant,
                                 )
                                 Text(
-                                    "Letzte Spiele",
+                                    S.current.recentGames,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = ColorOnSurface,
@@ -237,7 +257,7 @@ fun HomeScreen(gameState: GameState) {
                             if (gameState.ui.gameHistory.size > 3) {
                                 TextButton(onClick = { gameState.session.currentScreen = Screen.HISTORY }) {
                                     Text(
-                                        "Alle anzeigen",
+                                        S.current.showAll,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = ColorPrimary,
                                     )
@@ -250,6 +270,9 @@ fun HomeScreen(gameState: GameState) {
                     }
                     Spacer(Modifier.height(24.dp))
                 }
+
+                // Push footer to bottom when content is short
+                Spacer(Modifier.weight(1f))
 
                 // ── FOOTER ────────────────────────────────────────────────────
                 Row(
@@ -266,7 +289,21 @@ fun HomeScreen(gameState: GameState) {
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            "Einstellungen",
+                            S.current.settings,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { gameState.session.currentScreen = Screen.STATS }) {
+                        Icon(
+                            Icons.Default.BarChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = ColorOnSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            S.current.statsTitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = ColorOnSurfaceVariant,
                         )
@@ -274,21 +311,21 @@ fun HomeScreen(gameState: GameState) {
                     val uriHandler = LocalUriHandler.current
                     TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
                         Text(
-                            "Impressum",
+                            S.current.impressum,
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorOutline,
                         )
                     }
                     TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
                         Text(
-                            "Datenschutz",
+                            S.current.privacy,
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorOutline,
                         )
                     }
                 }
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(16.dp))
             }
         }
 
@@ -323,7 +360,7 @@ private fun AnimatedHeroTitle() {
 
 @Composable
 private fun HeroTagline() {
-    val words = listOf("Fotografiere", "Bewerte", "Gewinne")
+    val words = listOf(S.current.heroTagCapture, S.current.heroTagRate, S.current.heroTagWin)
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -417,7 +454,7 @@ private fun HomeHistoryCard(entry: GameHistoryEntry, onClick: () -> Unit) {
                         color = ColorOnSurface,
                     )
                     Text(
-                        "${winner.score} Pkt.",
+                        "${winner.score} ${S.current.pointsAbbrev}",
                         style = MaterialTheme.typography.labelSmall,
                         color = ColorPrimary,
                     )
@@ -451,7 +488,7 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
                     )
                 }
                 Text(
-                    "Runde ${entry.gameCode}",
+                    "${S.current.roundCode} ${entry.gameCode}",
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorOnSurfaceVariant,
                     fontSize = 10.sp,
@@ -484,7 +521,7 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
                                 color = ColorOnSurface,
                             )
                             Text(
-                                "${winner.score} Punkte",
+                                "${winner.score} ${S.current.points}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = ColorPrimary,
                             )
@@ -520,7 +557,7 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            "${hp.score} Pkt.",
+                            "${hp.score} ${S.current.pointsAbbrev}",
                             style = MaterialTheme.typography.bodySmall,
                             color = ColorOnSurfaceVariant,
                         )
@@ -528,7 +565,7 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
                 }
 
                 Text(
-                    "${entry.totalCategories} Kategorien  |  ${entry.players.size} Spieler" +
+                    "${entry.totalCategories} ${S.current.categories}  |  ${entry.players.size} ${S.current.players}" +
                             if (entry.jokerMode) "  |  Joker" else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorOnSurfaceVariant,
@@ -537,7 +574,7 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Schliessen", color = ColorPrimary)
+                Text(S.current.close, color = ColorPrimary)
             }
         },
     )

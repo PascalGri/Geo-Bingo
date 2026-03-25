@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.util.AppLogger
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -38,19 +39,19 @@ internal fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: St
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CircularProgressIndicator(color = ColorPrimary)
             AnimatedGradientText(
-                text = if (isSelf) "Dein Bild wird bewertet" else "Abgestimmt!",
+                text = if (isSelf) S.current.yourPhotoBeingRated else S.current.voting,
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 gradientColors = GradientPrimary,
             )
             Text(
-                if (isSelf) "Die anderen stimmen gerade über dein Foto ab"
-                else "$submittedCount von $requiredVotes haben abgestimmt",
+                if (isSelf) S.current.othersAreVoting
+                else S.current.votedOf(submittedCount, requiredVotes),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorOnSurfaceVariant,
             )
             if (isHost) {
                 OutlinedButton(onClick = onForceAdvance, modifier = Modifier.padding(top = 16.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant), border = BorderStroke(1.dp, ColorOutlineVariant), shape = RoundedCornerShape(20.dp)) {
-                    Text("Überspringen (Host-Option)", style = MaterialTheme.typography.labelSmall)
+                    Text(S.current.skipHostOption, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

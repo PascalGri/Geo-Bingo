@@ -27,6 +27,8 @@ class HistoryManager(
             players = rankedPlayers.map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = jokerMode,
             date = now,
+            gameId = session.gameId ?: "",
+            categories = gameplay.selectedCategories.map { HistoryCategory(id = it.id, name = it.name) },
         )
         ui.gameHistory = listOf(entry) + ui.gameHistory
     }

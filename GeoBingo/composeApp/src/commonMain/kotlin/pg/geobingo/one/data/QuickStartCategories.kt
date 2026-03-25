@@ -59,6 +59,18 @@ private val QUICK_START_INDOOR_POOL: List<Category> = listOf(
         "Fotografiere eine Zahl, die irgendwo zu sehen ist – Uhr, Schild, Aufschrift."),
 )
 
-fun quickStartCategories(outdoor: Boolean): List<Category> =
-    if (outdoor) QUICK_START_OUTDOOR_POOL.shuffled().take(5)
-    else QUICK_START_INDOOR_POOL.shuffled().take(5)
+fun quickStartCategories(outdoor: Boolean, difficulty: String = "medium"): List<Category> {
+    val pool = if (outdoor) QUICK_START_OUTDOOR_POOL else QUICK_START_INDOOR_POOL
+    return pool.shuffled().take(5)
+}
+
+/**
+ * Returns a stable preview of 5 category names for the given outdoor/difficulty combo.
+ * Uses a deterministic seed so the preview stays consistent while selections remain unchanged.
+ */
+fun quickStartCategoryPreview(outdoor: Boolean, difficulty: String): List<String> {
+    val pool = if (outdoor) QUICK_START_OUTDOOR_POOL else QUICK_START_INDOOR_POOL
+    // Use a seeded shuffle so the preview is stable for the same inputs
+    val seed = (if (outdoor) 1 else 0) * 31 + difficulty.hashCode()
+    return pool.shuffled(kotlin.random.Random(seed)).take(5).map { it.name }
+}

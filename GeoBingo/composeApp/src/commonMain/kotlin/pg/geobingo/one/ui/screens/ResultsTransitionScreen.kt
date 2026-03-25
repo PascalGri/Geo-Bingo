@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.rememberFeedback
 
@@ -53,7 +54,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             AnimatedGradientText(
-                text = "Ergebnis",
+                text = S.current.results,
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,

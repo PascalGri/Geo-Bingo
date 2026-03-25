@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -48,14 +49,14 @@ fun HowToPlayScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "So geht's",
+                        text = S.current.howToPlayTitle,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -74,7 +75,7 @@ fun HowToPlayScreen(gameState: GameState) {
 
             // Hero tagline
             Text(
-                text = "Erkundet gemeinsam\neure Stadt.",
+                text = S.current.exploreYourCity,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     brush = Brush.linearGradient(GradientPrimary),
@@ -87,36 +88,36 @@ fun HowToPlayScreen(gameState: GameState) {
             StepCard(
                 number = "1",
                 icon = Icons.Default.GroupAdd,
-                title = "Runde erstellen",
-                body = "Eine Person erstellt eine Runde und wählt Kategorien – z.B. \"Roter Porsche\" oder \"Straßenmusiker\". Die anderen treten per Code bei.",
+                title = S.current.step1Title,
+                body = S.current.step1Body,
                 modifier = Modifier.staggered(1),
             )
             StepCard(
                 number = "2",
                 icon = Icons.AutoMirrored.Filled.DirectionsWalk,
-                title = "Raus in die Stadt",
-                body = "Sobald alle dabei sind, startet der Host das Spiel. Jetzt habt ihr eine festgelegte Zeit, um so viele Kategorien wie möglich zu fotografieren.",
+                title = S.current.step2Title,
+                body = S.current.step2Body,
                 modifier = Modifier.staggered(2),
             )
             StepCard(
                 number = "3",
                 icon = Icons.Default.CameraAlt,
-                title = "Fotos aufnehmen",
-                body = "Findet ihr ein Motiv, tippt auf die Kategorie und macht ein Foto. Jeder Spieler kann jede Kategorie fotografieren.",
+                title = S.current.step3Title,
+                body = S.current.step3Body,
                 modifier = Modifier.staggered(3),
             )
             StepCard(
                 number = "4",
                 icon = Icons.Default.HowToVote,
-                title = "Bewerten",
-                body = "Nach der Zeit bewertet ihr alle Fotos mit 1–5 Sternen. Je besser das Bild zur Kategorie passt, desto mehr Sterne – und jeder Stern zählt als ein Punkt.",
+                title = S.current.step4Title,
+                body = S.current.step4Body,
                 modifier = Modifier.staggered(4),
             )
             StepCard(
                 number = "5",
                 icon = Icons.Default.EmojiEvents,
-                title = "Sieger küren",
-                body = "Die Sterne aller Mitspieler werden pro Kategorie gemittelt und ergeben deine Punkte. Wer insgesamt die meisten Punkte sammelt, gewinnt!",
+                title = S.current.step5Title,
+                body = S.current.step5Body,
                 modifier = Modifier.staggered(5),
             )
 
@@ -131,14 +132,14 @@ fun HowToPlayScreen(gameState: GameState) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Bolt, null, modifier = Modifier.size(20.dp), tint = Color(0xFFD946EF))
                         Text(
-                            "Schnelligkeitsbonus",
+                            S.current.speedBonusTipTitle,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFD946EF),
                         )
                     }
                     Text(
-                        "Wer als Erster eine Kategorie fotografiert, bekommt +1 Bonuspunkt obendrauf. Schnell sein lohnt sich!",
+                        S.current.speedBonusTipBody,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFD946EF).copy(alpha = 0.85f),
                         lineHeight = 18.sp,
@@ -157,22 +158,22 @@ fun HowToPlayScreen(gameState: GameState) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Lightbulb, null, tint = ColorPrimary, modifier = Modifier.size(18.dp))
                         Text(
-                            "Tipps",
+                            S.current.tipsTitle,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = ColorOnPrimaryContainer,
                         )
                     }
-                    TipItem("Spielt in einer neuen Stadt oder Gegend – macht es spannender.")
-                    TipItem("Je mehr Spieler, desto lustiger die Abstimmung.")
-                    TipItem("15–30 Minuten sind ideal. Bei mehr Zeit mehr Kategorien wählen.")
+                    TipItem(S.current.tip1)
+                    TipItem(S.current.tip2)
+                    TipItem(S.current.tip3)
                 }
             }
 
             Spacer(Modifier.height(8.dp))
 
             GradientButton(
-                text = "Runde erstellen",
+                text = S.current.createRound,
                 onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
                 modifier = Modifier.fillMaxWidth().staggered(8),
                 gradientColors = GradientPrimary,

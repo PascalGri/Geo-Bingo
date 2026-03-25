@@ -1,0 +1,270 @@
+package pg.geobingo.one.i18n
+
+object En : StringRes {
+    // ── General ─────────────────────────────────────────────────────────
+    override val appName = "KatchIt!"
+    override val back = "Back"
+    override val close = "Close"
+    override val cancel = "Cancel"
+    override val confirm = "Confirm"
+    override val save = "Save"
+    override val delete = "Delete"
+    override val share = "Share"
+    override val retry = "Retry"
+    override val loading = "Loading..."
+    override val error = "Error"
+    override val ok = "OK"
+    override val you = "You"
+    override val points = "Points"
+    override val pointsAbbrev = "Pts."
+    override val categories = "Categories"
+    override val players = "Players"
+
+    // ── Offline ─────────────────────────────────────────────────────────
+    override val noInternet = "No internet connection"
+
+    // ── Home ────────────────────────────────────────────────────────────
+    override val createRound = "Create round"
+    override val joinRound = "Join round"
+    override val heroTagCapture = "Capture"
+    override val heroTagRate = "Rate"
+    override val heroTagWin = "Win"
+    override val photoConsentDisclaimer = "Only photograph people with their consent."
+    override val recentGames = "Recent games"
+    override val showAll = "Show all"
+    override val settings = "Settings"
+    override val impressum = "Imprint"
+    override val privacy = "Privacy"
+    override val howToPlay = "How to play"
+    override val roundCode = "Round code"
+
+    // ── Onboarding ──────────────────────────────────────────────────────
+    override val onboardingTitle1 = "Welcome to KatchIt!"
+    override val onboardingBody1 = "Explore your city together and photograph exciting subjects in various categories."
+    override val onboardingTitle2 = "Choose your mode"
+    override val onboardingBody2 = "Classic, Blind Bingo, Weird Core or Quick Start -- the right game mode for every group."
+    override val onboardingTitle3 = "Capture & Collect"
+    override val onboardingBody3 = "Find subjects for each category and take a photo. First to capture gets bonus points!"
+    override val onboardingTitle4 = "Rate & Win"
+    override val onboardingBody4 = "After time runs out, rate all photos with 1-5 stars. Most points wins!"
+    override val onboardingSkip = "Skip"
+    override val onboardingNext = "Next"
+    override val onboardingStart = "Let's go!"
+
+    // ── Mode Select ─────────────────────────────────────────────────────
+    override val gameMode = "Game mode"
+    override val howDoYouWantToPlay = "How do you want to play?"
+    override val modeClassic = "Classic"
+    override val modeClassicSubtitle = "Choose categories, take photos, vote"
+    override val modeClassicDesc = "Pick from dozens of templates or create your own categories. First to capture gets bonus points."
+    override val modeBlindBingo = "Blind Bingo"
+    override val modeBlindBingoSubtitle = "Categories revealed one by one"
+    override val modeBlindBingoDesc = "You only see the first category at the start. A new one appears every few minutes -- plan ahead!"
+    override val modeWeirdCore = "Weird Core"
+    override val modeWeirdCoreSubtitle = "Only the most absurd categories"
+    override val modeWeirdCoreDesc = "Forget classic photography. This is about absurd observations, NPC moments, and things that shouldn't exist."
+    override val modeQuickStart = "Quick Start"
+    override val modeQuickStartSubtitle = "15 min \u00B7 5 categories \u00B7 play instantly"
+    override val modeQuickStartDesc = "No setup, no waiting. Just enter your name, pick your environment, and start playing."
+    override val letsGo = "Let's go!"
+    override val whereDoYouPlay = "Where are you playing?"
+    override val outdoor = "Outdoor"
+    override val indoor = "Indoor"
+
+    // ── Create Game ─────────────────────────────────────────────────────
+    override val nameAndAvatar = "Name & Avatar"
+    override val namePlaceholder = "e.g. Pascal"
+    override val otherPlayersJoinViaCode = "Other players join via a code."
+    override val categoriesSelected = "Categories"
+    override val customCategory = "Custom category..."
+    override val templates = "Templates"
+    override val otherSuggestions = "Other suggestions"
+    override val enterName = "Enter name"
+    override val minCategoriesNeeded = "Min. 2 categories needed"
+    override fun createRoundWithCategories(count: Int) = "Create round  \u00B7  $count categories"
+    override val quickStartCreateRound = "Create round  \u00B7  5 categories"
+
+    // ── Create Game Banners ─────────────────────────────────────────────
+    override val blindBingoActive = "Blind Bingo active"
+    override val blindBingoActiveDesc = "Only the first category is visible at the start. New categories are gradually revealed during the game."
+    override val weirdCoreActive = "Weird Core active"
+    override val weirdCoreActiveDesc = "Only absurd categories. No standard photos -- unexpected moments, NPC observations, and things that shouldn't exist."
+    override val quickStartActive = "Quick Start active"
+    override val quickStartActiveDesc = "15 minutes, 5 preset categories -- just enter your name and start playing."
+    override val weirdCoreCategoryHint = "Select the categories you want to play with."
+
+    // ── Duration ────────────────────────────────────────────────────────
+    override val gameDuration = "Game duration"
+    override fun minutesLabel(min: Int) = "$min minutes"
+
+    // ── Speed Bonus ─────────────────────────────────────────────────────
+    override val speedBonus = "Speed bonus"
+    override val speedBonusDesc = "First to capture a category gets +1 bonus point on top. Speed pays off!"
+
+    // ── Join Game ───────────────────────────────────────────────────────
+    override val enterCode = "Enter code"
+    override val joinGame = "Join"
+
+    // ── Lobby ───────────────────────────────────────────────────────────
+    override val waitingRoom = "Waiting room"
+    override val leave = "Leave"
+    override fun playersCount(count: Int) = "Players ($count)"
+    override fun minPlayersNeeded(count: Int) = "Min. $count players needed"
+    override fun startGame(playerCount: Int) = "Start game ($playerCount players)"
+    override val waitingForHost = "Waiting for host..."
+    override fun lobbyClosesIn(time: String) = "Lobby closes in $time"
+    override val hostClosedLobby = "The host closed the lobby."
+    override val codeCopied = "Code copied!"
+    override val shareCode = "Share code"
+    override val tapToCopy = "Tap to copy"
+
+    // ── Game Screen ─────────────────────────────────────────────────────
+    override fun foundCount(found: Int, total: Int) = "$found/$total found"
+    override val joker = "Joker"
+    override val useJoker = "Use Joker"
+    override val jokerTopicPrompt = "Enter a topic for your Joker photo:"
+    override val jokerTopicPlaceholder = "e.g. Red door"
+    override val takePhoto = "Take photo"
+    override fun voteToEnd(current: Int, total: Int) = "End early ($current/$total)"
+    override fun votedToEnd(current: Int, total: Int) = "Voted ($current/$total)"
+    override val uploadFailed = "Upload failed. Please try again."
+    override val voteFailed = "Vote failed."
+    override val youFoundAll = "You found them all!"
+    override val someoneFoundAll = "Someone found them all!"
+    override fun secondsRemaining(sec: Int) = "${sec}s left"
+
+    // ── Review ──────────────────────────────────────────────────────────
+    override val voting = "Voting"
+    override val yourPhotoBeingRated = "Your photo is being rated..."
+    override val othersAreVoting = "Others are voting on your photo"
+    override fun votedOf(current: Int, total: Int) = "$current of $total have voted"
+    override val skipHostOption = "Skip (Host option)"
+    override val noPhotoFound = "No photo found"
+    override val noSubmissionSkipping = "No submission -- skipping..."
+    override val howWellDoesItFit = "How well does this photo fit?"
+    override val tapTheStars = "Tap the stars"
+    override val doesntFitAtAll = "Doesn't fit at all"
+    override val barelyFits = "Barely fits"
+    override val fitsOkay = "Fits okay"
+    override val fitsWell = "Fits well"
+    override val perfect = "Perfect!"
+    override val rate = "Rate"
+    override fun categoryOfTotal(current: Int, total: Int) = "Category $current/$total"
+    override fun playerOfTotal(current: Int, total: Int) = "Player $current/$total"
+
+    // ── Results ─────────────────────────────────────────────────────────
+    override val results = "Results"
+    override val wins = "wins!"
+    override val allResults = "All results"
+    override val bestPhoto = "Best Photo"
+    override val allPhotos = "All photos"
+    override val rematchSameCategories = "Rematch (same categories)"
+    override val newGame = "New game"
+    override val watchBonus = "Watch bonus"
+    override val shareResultText = "KatchIt! Round finished"
+    override val showYourSkills = "Show your skills and play KatchIt!"
+
+    // ── Results Detail ──────────────────────────────────────────────────
+    override val categoryBreakdown = "Category details"
+    override val speedBonusLabel = "Speed Bonus"
+    override val averageRating = "Average"
+    override val controversialPhoto = "Controversial"
+    override val bestInCategory = "Best photo"
+
+    // ── Rematch Voting ──────────────────────────────────────────────────
+    override val rematch = "Rematch"
+    override val voteForRematch = "Suggest rematch"
+    override val sameCategories = "Same categories"
+    override val newCategories = "New categories"
+    override val rematchVoteQuestion = "Play again?"
+    override fun rematchVotes(current: Int, total: Int) = "$current/$total want rematch"
+    override val waitingForRematchVotes = "Waiting for votes..."
+
+    // ── History ─────────────────────────────────────────────────────────
+    override val gameHistory = "Game history"
+    override val noGamesYet = "No games played yet"
+    override val playedGamesAppearHere = "Played games appear here."
+    override val photos = "Photos"
+    override val noPhotosAvailable = "No photos available"
+
+    // ── How to Play ─────────────────────────────────────────────────────
+    override val howToPlayTitle = "How to play"
+    override val exploreYourCity = "Explore your\ncity together."
+    override val step1Title = "Create a round"
+    override val step1Body = "One person creates a round and chooses categories -- e.g. \"Red Porsche\" or \"Street musician\". Others join via code."
+    override val step2Title = "Get out there"
+    override val step2Body = "Once everyone's in, the host starts the game. You now have a set time to photograph as many categories as possible."
+    override val step3Title = "Take photos"
+    override val step3Body = "Find a subject, tap the category and take a photo. Every player can photograph every category."
+    override val step4Title = "Rate"
+    override val step4Body = "After time's up, rate all photos with 1-5 stars. The better the photo fits the category, the more stars -- each star counts as one point."
+    override val step5Title = "Crown the winner"
+    override val step5Body = "Stars from all players are averaged per category to form your score. Whoever collects the most points wins!"
+    override val speedBonusTipTitle = "Speed bonus"
+    override val speedBonusTipBody = "First to capture a category gets +1 bonus point on top. Speed pays off!"
+    override val tipsTitle = "Tips"
+    override val tip1 = "Play in a new city or neighborhood -- it's more exciting."
+    override val tip2 = "More players means funnier voting rounds."
+    override val tip3 = "15-30 minutes is ideal. More time? Add more categories."
+
+    // ── Settings ────────────────────────────────────────────────────────
+    override val settingsTitle = "Settings"
+    override val general = "General"
+    override val soundEffects = "Sound effects"
+    override val soundEffectsDesc = "Play sounds on actions"
+    override val hapticFeedback = "Haptic feedback"
+    override val hapticFeedbackDesc = "Vibrations on interactions"
+    override val advertising = "Advertising"
+    override val adSettings = "Ad settings"
+    override val adSettingsDesc = "Show or change consent"
+    override val support = "Support"
+    override val contact = "Contact"
+    override val legal = "Legal"
+    override val privacyPolicy = "Privacy policy"
+    override val language = "Language"
+    override val languageDesc = "Change app language"
+
+    // ── Stats ───────────────────────────────────────────────────────────
+    override val statsTitle = "Statistics"
+    override val gamesPlayed = "Games played"
+    override val gamesWon = "Games won"
+    override val winRate = "Win rate"
+    override val avgRating = "Average"
+    override val longestStreak = "Longest streak"
+    override val noStatsYet = "No statistics yet."
+
+    // ── Quick Start Options ─────────────────────────────────────────────
+    override val duration10min = "10 min"
+    override val duration15min = "15 min"
+    override val duration20min = "20 min"
+    override val difficultyEasy = "Easy"
+    override val difficultyMedium = "Medium"
+    override val difficultyHard = "Hard"
+    override val previewCategories = "Preview"
+
+    // ── Team Mode ───────────────────────────────────────────────────────
+    override val teamMode = "Team mode"
+    override val teamModeDesc = "Play in teams! Shared score, shared strategy."
+    override val team = "Team"
+    override fun teamName(number: Int) = "Team $number"
+    override val teamScore = "Team score"
+    override val selectTeams = "Select teams"
+
+    // ── Chat / Reactions ────────────────────────────────────────────────
+    override val ready = "Ready!"
+    override val hurryUp = "Hurry up!"
+    override val niceShot = "Nice shot!"
+    override val funny = "Funny!"
+    override val wow = "Wow!"
+    override val reactions = "Reactions"
+
+    // ── Empty States ────────────────────────────────────────────────────
+    override val emptyNoCategoriesHint = "Tap templates or create custom categories"
+    override val emptyLobbyHint = "Share the code with friends!"
+    override val emptyNoPhotoRetryHint = "No photo submitted. Try again."
+    override val emptyAllCaughtCelebration = "All categories complete! Well done!"
+
+    // ── Transition Screens ──────────────────────────────────────────────
+    override val reviewInProgress = "Review in progress..."
+    override val calculatingResults = "Calculating results..."
+}

@@ -1,6 +1,7 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,7 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +25,10 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.i18n.Language
+import pg.geobingo.one.i18n.S
+import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,14 +42,14 @@ fun SettingsScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "Einstellungen",
+                        text = S.current.settingsTitle,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -61,19 +66,19 @@ fun SettingsScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Sound & Haptic section
-            SettingsSection(title = "Allgemein") {
+            SettingsSection(title = S.current.general) {
                 SettingsToggleRow(
                     icon = Icons.AutoMirrored.Filled.VolumeUp,
-                    title = "Soundeffekte",
-                    subtitle = "Töne bei Aktionen abspielen",
+                    title = S.current.soundEffects,
+                    subtitle = S.current.soundEffectsDesc,
                     checked = gameState.ui.soundEnabled,
                     onCheckedChange = { gameState.ui.updateSoundEnabled(it) },
                 )
                 HorizontalDivider(color = ColorOutlineVariant)
                 SettingsToggleRow(
                     icon = Icons.Default.Vibration,
-                    title = "Haptisches Feedback",
-                    subtitle = "Vibrationen bei Interaktionen",
+                    title = S.current.hapticFeedback,
+                    subtitle = S.current.hapticFeedbackDesc,
                     checked = gameState.ui.hapticEnabled,
                     onCheckedChange = { gameState.ui.updateHapticEnabled(it) },
                 )
@@ -81,37 +86,85 @@ fun SettingsScreen(gameState: GameState) {
 
             // Advertising section — nur auf iOS/Android sichtbar
             if (AdManager.isAdSupported) {
-                SettingsSection(title = "Werbung") {
+                SettingsSection(title = S.current.advertising) {
                     SettingsClickRow(
                         icon = Icons.Default.Campaign,
-                        title = "Werbeeinstellungen",
-                        subtitle = "Einwilligung anzeigen oder ändern",
+                        title = S.current.adSettings,
+                        subtitle = S.current.adSettingsDesc,
                         onClick = { ConsentManager.showPrivacyOptionsForm {} },
                     )
                 }
             }
 
+            // Language section
+            SettingsSection(title = S.current.language) {
+                var showLangDialog by remember { mutableStateOf(false) }
+                SettingsClickRow(
+                    icon = Icons.Default.Language,
+                    title = S.current.language,
+                    subtitle = S.language.displayName,
+                    onClick = { showLangDialog = true },
+                )
+                if (showLangDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLangDialog = false },
+                        containerColor = ColorSurface,
+                        title = { Text(S.current.language, color = ColorOnSurface) },
+                        text = {
+                            Column {
+                                Language.entries.forEach { lang ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                S.setLanguage(lang)
+                                                AppSettings.setString(SettingsKeys.LANGUAGE, lang.code)
+                                                showLangDialog = false
+                                            }
+                                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        RadioButton(
+                                            selected = S.language == lang,
+                                            onClick = null,
+                                            colors = RadioButtonDefaults.colors(selectedColor = ColorPrimary),
+                                        )
+                                        Text(lang.displayName, color = ColorOnSurface, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showLangDialog = false }) {
+                                Text(S.current.close, color = ColorPrimary)
+                            }
+                        },
+                    )
+                }
+            }
+
             // Support section
-            SettingsSection(title = "Support") {
+            SettingsSection(title = S.current.support) {
                 SettingsClickRow(
                     icon = Icons.Default.Email,
-                    title = "Kontakt",
+                    title = S.current.contact,
                     subtitle = "support@katchit.app",
                     onClick = { uriHandler.openUri("mailto:support@katchit.app") },
                 )
             }
 
             // Legal section
-            SettingsSection(title = "Rechtliches") {
+            SettingsSection(title = S.current.legal) {
                 SettingsClickRow(
                     icon = Icons.Default.Description,
-                    title = "Impressum",
+                    title = S.current.impressum,
                     onClick = { uriHandler.openUri("https://katchit.app/impressum.html") },
                 )
                 HorizontalDivider(color = ColorOutlineVariant)
                 SettingsClickRow(
                     icon = Icons.Default.Shield,
-                    title = "Datenschutzerklärung",
+                    title = S.current.privacyPolicy,
                     onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") },
                 )
             }

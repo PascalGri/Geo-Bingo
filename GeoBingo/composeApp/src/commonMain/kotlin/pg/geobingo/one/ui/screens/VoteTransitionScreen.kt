@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.rememberFeedback
 
@@ -46,7 +47,7 @@ fun VoteTransitionScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             AnimatedGradientText(
-                text = "Abstimmung",
+                text = S.current.voting,
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
@@ -55,7 +56,7 @@ fun VoteTransitionScreen(gameState: GameState) {
             )
 
             Text(
-                text = "Stimmt jetzt über die Fotos ab!",
+                text = S.current.reviewInProgress,
                 style = MaterialTheme.typography.bodyLarge,
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,

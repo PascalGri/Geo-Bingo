@@ -1,9 +1,14 @@
 package pg.geobingo.one.ui.screens.review
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +43,7 @@ import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.toImageBitmap
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.platform.SoundPlayer
 
@@ -55,6 +61,9 @@ internal fun DarkSinglePhotoVotingScreen(
     var photoLoading by remember(stepIndex) { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
+
+    // Floating reaction state
+    var floatingReaction by remember(stepIndex) { mutableStateOf<String?>(null) }
 
     // Star rating state
     var selectedRating by remember(stepIndex) { mutableStateOf(0) }
@@ -123,11 +132,11 @@ internal fun DarkSinglePhotoVotingScreen(
                 title = {
                     Column {
                         AnimatedGradientText(
-                            text = "Abstimmung",
+                            text = S.current.voting,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             gradientColors = GradientPrimary,
                         )
-                        Text("Kategorie ${categoryIndex + 1}/$totalCategories • Spieler ${targetPlayerIndex + 1}/$totalPlayers", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                        Text("${S.current.categoryOfTotal(categoryIndex + 1, totalCategories)} • ${S.current.playerOfTotal(targetPlayerIndex + 1, totalPlayers)}", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -139,7 +148,7 @@ internal fun DarkSinglePhotoVotingScreen(
             GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = GradientPrimary, backgroundColor = ColorPrimaryContainer) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
-                    Text("Wie gut passt dieses Bild?", style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
+                    Text(S.current.howWellDoesItFit, style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -147,12 +156,67 @@ internal fun DarkSinglePhotoVotingScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(targetPlayer.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
             }
-            Box(modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
-                if (photoLoading) ShimmerPlaceholder(modifier = Modifier.fillMaxSize(), cornerRadius = 14.dp)
-                else if (photo != null) Image(bitmap = photo!!, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)
-                    Text("Kein Foto gefunden", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
+                    if (photoLoading) ShimmerPlaceholder(modifier = Modifier.fillMaxSize(), cornerRadius = 14.dp)
+                    else if (photo != null) Image(bitmap = photo!!, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)
+                        Text(S.current.noPhotoFound, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                    }
+                }
+                // Floating reaction overlay
+                if (floatingReaction != null) {
+                    Text(
+                        text = floatingReaction ?: "",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.45f),
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                    )
+                }
+            }
+            // Reaction chips row
+            if (!photoLoading && photo != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                ) {
+                    val reactionItems = listOf(
+                        S.current.niceShot,
+                        S.current.funny,
+                        S.current.wow,
+                    )
+                    reactionItems.forEach { label ->
+                        OutlinedButton(
+                            onClick = {
+                                floatingReaction = label
+                                scope.launch {
+                                    delay(1500)
+                                    floatingReaction = null
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                GradientPrimary.first().copy(alpha = 0.4f),
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = GradientPrimary.first(),
+                            )
+                        }
+                    }
                 }
             }
             if (!photoLoading && photo == null) {
@@ -160,7 +224,7 @@ internal fun DarkSinglePhotoVotingScreen(
                     modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(14.dp)).background(ColorError.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Keine Einsendung – wird übersprungen...", color = ColorError, fontWeight = FontWeight.Bold)
+                    Text(S.current.noSubmissionSkipping, color = ColorError, fontWeight = FontWeight.Bold)
                 }
             } else {
                 // Star rating section
@@ -243,12 +307,12 @@ internal fun DarkSinglePhotoVotingScreen(
                     // Rating label
                     Text(
                         text = when (selectedRating) {
-                            0 -> "Tippe auf die Sterne"
-                            1 -> "Passt gar nicht"
-                            2 -> "Passt kaum"
-                            3 -> "Passt okay"
-                            4 -> "Passt gut"
-                            5 -> "Perfekt!"
+                            0 -> S.current.tapTheStars
+                            1 -> S.current.doesntFitAtAll
+                            2 -> S.current.barelyFits
+                            3 -> S.current.fitsOkay
+                            4 -> S.current.fitsWell
+                            5 -> S.current.perfect
                             else -> ""
                         },
                         style = MaterialTheme.typography.bodyMedium,
@@ -257,7 +321,7 @@ internal fun DarkSinglePhotoVotingScreen(
                     )
                     // Confirm button
                     GradientButton(
-                        text = "Bewerten",
+                        text = S.current.rate,
                         onClick = {
                             if (selectedRating > 0 && !submitted) {
                                 if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)

@@ -21,8 +21,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.i18n.Language
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.ConsentManager
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.rememberConnectivityState
 import pg.geobingo.one.ui.components.SyncAvatars
 import pg.geobingo.one.ui.screens.*
@@ -37,6 +41,13 @@ import pg.geobingo.one.ui.theme.KatchItTheme
 fun App() {
     val gameState = remember { GameState() }
     val isConnected by rememberConnectivityState()
+
+    // Initialize language from saved preference
+    LaunchedEffect(Unit) {
+        val savedLang = AppSettings.getString(SettingsKeys.LANGUAGE, "de")
+        val lang = Language.entries.find { it.code == savedLang } ?: Language.DE
+        S.setLanguage(lang)
+    }
 
     // Consent einmalig beim App-Start anfordern, danach Ads vorladen
     LaunchedEffect(Unit) {
@@ -71,7 +82,7 @@ fun App() {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Keine Internetverbindung",
+                        S.current.noInternet,
                         color = Color.White,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -82,6 +93,7 @@ fun App() {
             Box(modifier = Modifier.weight(1f)) {
                 SyncAvatars(gameState)
                 when (gameState.session.currentScreen) {
+                    Screen.ONBOARDING -> OnboardingScreen(gameState)
                     Screen.HOME -> HomeScreen(gameState)
                     Screen.HOW_TO_PLAY -> HowToPlayScreen(gameState)
                     Screen.SELECT_MODE -> ModeSelectScreen(gameState)
@@ -95,6 +107,7 @@ fun App() {
                     Screen.RESULTS -> ResultsScreen(gameState)
                     Screen.HISTORY -> HistoryScreen(gameState)
                     Screen.SETTINGS -> SettingsScreen(gameState)
+                    Screen.STATS -> StatsScreen(gameState)
                 }
             }
         }

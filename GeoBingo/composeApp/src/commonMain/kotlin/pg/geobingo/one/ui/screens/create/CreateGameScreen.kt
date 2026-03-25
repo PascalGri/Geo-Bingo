@@ -41,6 +41,7 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.components.SelfiePicker
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +71,7 @@ fun CreateGameScreen(gameState: GameState) {
     }
 
     var durationMinutes by remember { mutableStateOf(GameConstants.DEFAULT_GAME_DURATION_MINUTES.toFloat()) }
+    var teamModeEnabled by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -101,10 +103,10 @@ fun CreateGameScreen(gameState: GameState) {
     SystemBackHandler { gameState.session.currentScreen = Screen.SELECT_MODE }
 
     val topBarTitle = when (gameMode) {
-        GameMode.CLASSIC -> "Klassisch"
-        GameMode.BLIND_BINGO -> "Blind Bingo"
-        GameMode.WEIRD_CORE -> "Weird Core"
-        GameMode.QUICK_START -> "Quick Start"
+        GameMode.CLASSIC -> S.current.modeClassic
+        GameMode.BLIND_BINGO -> S.current.modeBlindBingo
+        GameMode.WEIRD_CORE -> S.current.modeWeirdCore
+        GameMode.QUICK_START -> S.current.modeQuickStart
     }
 
     Scaffold(
@@ -125,7 +127,7 @@ fun CreateGameScreen(gameState: GameState) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.SELECT_MODE }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -143,10 +145,10 @@ fun CreateGameScreen(gameState: GameState) {
                 Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp)) {
                     GradientButton(
                         text = when {
-                            hostNameInput.trim().isEmpty() -> "Name eingeben"
-                            gameMode == GameMode.QUICK_START -> "Runde erstellen  ·  5 Kategorien"
-                            totalCategories < 2 -> "Mind. 2 Kategorien wählen"
-                            else -> "Runde erstellen  ·  $totalCategories Kategorien"
+                            hostNameInput.trim().isEmpty() -> S.current.enterName
+                            gameMode == GameMode.QUICK_START -> S.current.quickStartCreateRound
+                            totalCategories < 2 -> S.current.minCategoriesNeeded
+                            else -> S.current.createRoundWithCategories(totalCategories)
                         },
                         onClick = {
                             scope.launch {
@@ -159,7 +161,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         val presets = presetPool.filter { it.id in selectedPresetIds }
                                         customCategories + presets
                                     }
-                                    val effectiveDuration = if (gameMode == GameMode.QUICK_START) GameConstants.DEFAULT_GAME_DURATION_MINUTES else durationMinutes.toInt()
+                                    val effectiveDuration = if (gameMode == GameMode.QUICK_START) gameState.session.quickStartDurationMinutes else durationMinutes.toInt()
                                     val code = generateCode()
 
                                     // Step 1: Create game (rollback point)
@@ -194,6 +196,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         gameState.joker.jokerMode = false
                                         gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
                                         gameState.gameplay.lobbyPlayers = listOf(hostDto)
+                                        gameState.gameplay.teamModeEnabled = teamModeEnabled
                                         gameState.session.currentScreen = Screen.LOBBY
                                     } catch (e: Exception) {
                                         // Cleanup: mark orphaned game as closed
@@ -243,7 +246,7 @@ fun CreateGameScreen(gameState: GameState) {
 
             // ── 1. Name & Avatar ──────────────────────────────────────────
             DarkSectionCard(
-                title = "Name & Avatar",
+                title = S.current.nameAndAvatar,
                 modifier = Modifier.staggered(if (gameMode == GameMode.CLASSIC) 0 else 1),
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
@@ -255,7 +258,7 @@ fun CreateGameScreen(gameState: GameState) {
                 OutlinedTextField(
                     value = hostNameInput,
                     onValueChange = { if (it.length <= 20) hostNameInput = it },
-                    placeholder = { Text("z.B. Pascal", color = ColorOnSurfaceVariant) },
+                    placeholder = { Text(S.current.namePlaceholder, color = ColorOnSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -278,7 +281,7 @@ fun CreateGameScreen(gameState: GameState) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Andere Spieler treten über einen Code bei.",
+                    S.current.otherPlayersJoinViaCode,
                     style = MaterialTheme.typography.bodySmall,
                     color = ColorOnSurfaceVariant,
                 )
@@ -288,7 +291,7 @@ fun CreateGameScreen(gameState: GameState) {
             if (gameMode != GameMode.QUICK_START) {
             val catSectionIndex = if (gameMode == GameMode.CLASSIC) 1 else 2
             DarkSectionCard(
-                title = "Kategorien  ·  $totalCategories ausgewählt",
+                title = "${S.current.categoriesSelected}  \u00B7  $totalCategories",
                 modifier = Modifier.staggered(catSectionIndex),
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
@@ -306,7 +309,7 @@ fun CreateGameScreen(gameState: GameState) {
                         OutlinedTextField(
                             value = customNameInput,
                             onValueChange = { if (it.length <= 30) customNameInput = it },
-                            placeholder = { Text("Eigene Kategorie...", color = ColorOnSurfaceVariant) },
+                            placeholder = { Text(S.current.customCategory, color = ColorOnSurfaceVariant) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
@@ -401,14 +404,14 @@ fun CreateGameScreen(gameState: GameState) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         HorizontalDivider(modifier = Modifier.weight(1f), color = ColorOutlineVariant)
-                        Text("Vorlagen", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                        Text(S.current.templates, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                         HorizontalDivider(modifier = Modifier.weight(1f), color = ColorOutlineVariant)
                     }
                     Spacer(Modifier.height(12.dp))
                 } else {
                     // Weird Core: small note
                     Text(
-                        "Wähle die Kategorien aus, mit denen ihr spielen wollt.",
+                        S.current.weirdCoreCategoryHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorOnSurfaceVariant,
                     )
@@ -471,7 +474,7 @@ fun CreateGameScreen(gameState: GameState) {
                     ) {
                         Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(16.dp), tint = Color.White)
                         Text(
-                            "Andere Vorschläge",
+                            S.current.otherSuggestions,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
@@ -516,6 +519,75 @@ fun CreateGameScreen(gameState: GameState) {
                 )
             } // end if (gameMode != GameMode.QUICK_START)
 
+            // ── Team Mode Toggle ──────────────────────────────────────────
+            run {
+                val teamIndex = when (gameMode) {
+                    GameMode.CLASSIC -> 4
+                    GameMode.QUICK_START -> 3
+                    else -> 5
+                }
+                val teamGradient = when (gameMode) {
+                    GameMode.CLASSIC -> GradientPrimary
+                    GameMode.BLIND_BINGO -> GradientCool
+                    GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
+                }
+                DarkSectionCard(
+                    title = S.current.teamMode,
+                    modifier = Modifier.staggered(teamIndex),
+                    gradientColors = teamGradient,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                S.current.teamModeDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorOnSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(
+                            checked = teamModeEnabled,
+                            onCheckedChange = { teamModeEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = teamGradient.first(),
+                                uncheckedThumbColor = ColorOnSurfaceVariant,
+                                uncheckedTrackColor = ColorSurfaceVariant,
+                            ),
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = teamModeEnabled,
+                        enter = expandVertically(tween(300)) + fadeIn(tween(300)),
+                        exit = shrinkVertically(tween(300)) + fadeOut(tween(300)),
+                    ) {
+                        Column {
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.Groups,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = teamGradient.first().copy(alpha = 0.7f),
+                                )
+                                Text(
+                                    S.current.selectTeams,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = teamGradient.first().copy(alpha = 0.7f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(4.dp))
         }
     }
@@ -528,20 +600,20 @@ private fun ModeBanner(gameMode: GameMode, modifier: Modifier = Modifier) {
     val (icon, title, text, gradientColors) = when (gameMode) {
         GameMode.BLIND_BINGO -> ModeBannerData(
             icon = Icons.Default.VisibilityOff,
-            title = "Blind Bingo aktiv",
-            text = "Zu Beginn ist nur die erste Kategorie sichtbar. Im Laufe des Spiels werden nach und nach neue Kategorien enthüllt.",
+            title = S.current.blindBingoActive,
+            text = S.current.blindBingoActiveDesc,
             colors = GradientCool,
         )
         GameMode.WEIRD_CORE -> ModeBannerData(
             icon = Icons.Default.QuestionMark,
-            title = "Weird Core aktiv",
-            text = "Nur absurde Kategorien. Kein Standardfoto – gefragt sind unerwartete Momente, NPC-Beobachtungen und Dinge, die eigentlich nicht existieren sollten.",
+            title = S.current.weirdCoreActive,
+            text = S.current.weirdCoreActiveDesc,
             colors = GradientWeird,
         )
         GameMode.QUICK_START -> ModeBannerData(
             icon = Icons.Default.Bolt,
-            title = "Quick Start aktiv",
-            text = "15 Minuten, 5 vorgefertigte Kategorien – einfach Name eingeben und direkt losspielen.",
+            title = S.current.quickStartActive,
+            text = S.current.quickStartActiveDesc,
             colors = GradientQuickStart,
         )
         else -> return

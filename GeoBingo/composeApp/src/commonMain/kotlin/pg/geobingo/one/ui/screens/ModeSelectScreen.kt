@@ -28,10 +28,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
+import pg.geobingo.one.data.quickStartCategoryPreview
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +43,8 @@ fun ModeSelectScreen(gameState: GameState) {
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
+    var quickStartDuration by remember { mutableStateOf(15) }
+    var quickStartDifficulty by remember { mutableStateOf("medium") }
 
     SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
 
@@ -49,14 +53,14 @@ fun ModeSelectScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "Spielmodus",
+                        text = S.current.gameMode,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         gradientColors = GradientPrimary,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = ColorPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -75,7 +79,7 @@ fun ModeSelectScreen(gameState: GameState) {
             Spacer(Modifier.height(8.dp))
 
             Text(
-                "Wie wollt ihr spielen?",
+                S.current.howDoYouWantToPlay,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = ColorOnSurface,
@@ -87,11 +91,18 @@ fun ModeSelectScreen(gameState: GameState) {
             QuickStartCard(
                 expanded = quickStartExpanded,
                 outdoor = quickStartOutdoor,
+                duration = quickStartDuration,
+                difficulty = quickStartDifficulty,
                 onToggleExpand = { quickStartExpanded = !quickStartExpanded },
                 onSelectOutdoor = { quickStartOutdoor = it },
+                onSelectDuration = { quickStartDuration = it },
+                onSelectDifficulty = { quickStartDifficulty = it },
                 onConfirm = {
                     gameState.session.gameMode = GameMode.QUICK_START
                     gameState.session.quickStartOutdoor = quickStartOutdoor
+                    gameState.session.quickStartDurationMinutes = quickStartDuration
+                    gameState.session.quickStartDifficulty = quickStartDifficulty
+                    gameState.gameplay.gameDurationMinutes = quickStartDuration
                     gameState.session.currentScreen = Screen.CREATE_GAME
                 },
                 modifier = Modifier.staggered(1),
@@ -99,9 +110,9 @@ fun ModeSelectScreen(gameState: GameState) {
 
             ModeCard(
                 mode = GameMode.CLASSIC,
-                title = "Klassisch",
-                subtitle = "Kategorien wählen, Fotos schießen, abstimmen",
-                description = "Wählt aus dutzenden Vorlagen oder erstellt eigene Kategorien. Wer zuerst fotografiert, bekommt Bonuspunkte.",
+                title = S.current.modeClassic,
+                subtitle = S.current.modeClassicSubtitle,
+                description = S.current.modeClassicDesc,
                 icon = Icons.Default.GridView,
                 gradientColors = GradientPrimary,
                 modifier = Modifier.staggered(2),
@@ -113,9 +124,9 @@ fun ModeSelectScreen(gameState: GameState) {
 
             ModeCard(
                 mode = GameMode.BLIND_BINGO,
-                title = "Blind Bingo",
-                subtitle = "Kategorien werden nach und nach enthüllt",
-                description = "Ihr seht zu Beginn nur die erste Kategorie. Alle paar Minuten kommt eine neue dazu — plant voraus!",
+                title = S.current.modeBlindBingo,
+                subtitle = S.current.modeBlindBingoSubtitle,
+                description = S.current.modeBlindBingoDesc,
                 icon = Icons.Default.VisibilityOff,
                 gradientColors = GradientCool,
                 modifier = Modifier.staggered(3),
@@ -127,9 +138,9 @@ fun ModeSelectScreen(gameState: GameState) {
 
             ModeCard(
                 mode = GameMode.WEIRD_CORE,
-                title = "Weird Core",
-                subtitle = "Nur die absurdesten Kategorien",
-                description = "Vergiss klassische Fotografie. Hier zählen absurde Beobachtungen, NPC-Momente und Dinge, die eigentlich nicht existieren sollten.",
+                title = S.current.modeWeirdCore,
+                subtitle = S.current.modeWeirdCoreSubtitle,
+                description = S.current.modeWeirdCoreDesc,
                 icon = Icons.Default.QuestionMark,
                 gradientColors = GradientWeird,
                 modifier = Modifier.staggered(4),
@@ -144,12 +155,17 @@ fun ModeSelectScreen(gameState: GameState) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickStartCard(
     expanded: Boolean,
     outdoor: Boolean,
+    duration: Int,
+    difficulty: String,
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
+    onSelectDuration: (Int) -> Unit,
+    onSelectDifficulty: (String) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -205,20 +221,20 @@ private fun QuickStartCard(
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Quick Start",
+                        S.current.modeQuickStart,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = ColorOnSurface,
                     )
                     Text(
-                        "15 Min · 5 Kategorien · sofort losspielen",
+                        S.current.modeQuickStartSubtitle,
                         style = MaterialTheme.typography.labelMedium,
                         color = accentColor,
                         fontWeight = FontWeight.Medium,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Kein Setup, kein Warten. Nur Name eingeben, Umgebung wählen und die Runde startet direkt.",
+                        S.current.modeQuickStartDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorOnSurfaceVariant,
                         lineHeight = 17.sp,
@@ -238,7 +254,7 @@ private fun QuickStartCard(
                 Spacer(Modifier.height(14.dp))
 
                 Text(
-                    "Wo spielt ihr?",
+                    S.current.whereDoYouPlay,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = ColorOnSurfaceVariant,
@@ -272,7 +288,7 @@ private fun QuickStartCard(
                         ) {
                             Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
                             Text(
-                                "Draußen",
+                                S.current.outdoor,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (outdoor) Color.White else ColorOnSurfaceVariant,
@@ -301,10 +317,131 @@ private fun QuickStartCard(
                         ) {
                             Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
                             Text(
-                                "Drinnen",
+                                S.current.indoor,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // ── Duration selection ──────────────────────────────────────
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    S.current.gameDuration,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val durationBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    listOf(
+                        10 to S.current.duration10min,
+                        15 to S.current.duration15min,
+                        20 to S.current.duration20min,
+                    ).forEach { (minutes, label) ->
+                        val selected = duration == minutes
+                        Box(
+                            modifier = durationBtnModifier
+                                .background(
+                                    if (selected) Brush.linearGradient(gradientColors)
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .clickable { onSelectDuration(minutes) }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selected) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // ── Difficulty selection ────────────────────────────────────
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val diffBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    listOf(
+                        "easy" to S.current.difficultyEasy,
+                        "medium" to S.current.difficultyMedium,
+                        "hard" to S.current.difficultyHard,
+                    ).forEach { (diff, label) ->
+                        val selected = difficulty == diff
+                        Box(
+                            modifier = diffBtnModifier
+                                .background(
+                                    if (selected) Brush.linearGradient(gradientColors)
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .clickable { onSelectDifficulty(diff) }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selected) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // ── Category preview ────────────────────────────────────────
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    S.current.previewCategories,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+
+                val previewNames = remember(outdoor, difficulty) {
+                    quickStartCategoryPreview(outdoor, difficulty)
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    previewNames.forEach { name ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ColorSurfaceVariant)
+                                .border(1.dp, ColorOutline, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ColorOnSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
                             )
                         }
                     }
@@ -322,7 +459,7 @@ private fun QuickStartCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "Los geht's",
+                        S.current.letsGo,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,

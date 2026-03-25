@@ -35,6 +35,7 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 internal fun formatRating(value: Double): String {
@@ -98,6 +99,32 @@ fun ResultsScreen(gameState: GameState) {
     // Save to history once on entry, then cleanup server storage
     LaunchedEffect(Unit) {
         gameState.saveToHistory()
+        // Update persistent stats
+        val myId = gameState.session.myPlayerId
+        if (myId != null) {
+            val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
+            AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
+
+            val isWinner = ranked.firstOrNull()?.first?.id == myId
+            if (isWinner) {
+                val gamesWon = AppSettings.getInt(SettingsKeys.GAMES_WON, 0) + 1
+                AppSettings.setInt(SettingsKeys.GAMES_WON, gamesWon)
+                val currentStreak = AppSettings.getInt(SettingsKeys.CURRENT_WIN_STREAK, 0) + 1
+                AppSettings.setInt(SettingsKeys.CURRENT_WIN_STREAK, currentStreak)
+                val longestStreak = AppSettings.getInt(SettingsKeys.LONGEST_WIN_STREAK, 0)
+                if (currentStreak > longestStreak) AppSettings.setInt(SettingsKeys.LONGEST_WIN_STREAK, currentStreak)
+            } else {
+                AppSettings.setInt(SettingsKeys.CURRENT_WIN_STREAK, 0)
+            }
+
+            val myAvgRating = gameState.getPlayerAverageRating(myId)
+            if (myAvgRating != null) {
+                val totalStars = AppSettings.getInt(SettingsKeys.TOTAL_STARS_EARNED, 0) + (myAvgRating * 10).toInt()
+                val totalCount = AppSettings.getInt(SettingsKeys.TOTAL_STARS_COUNT, 0) + 10
+                AppSettings.setInt(SettingsKeys.TOTAL_STARS_EARNED, totalStars)
+                AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, totalCount)
+            }
+        }
         // Save game metadata locally
         val gid = gameState.session.gameId
         if (gid != null) {
@@ -133,7 +160,7 @@ fun ResultsScreen(gameState: GameState) {
             TopAppBar(
                 title = {
                     AnimatedGradientText(
-                        text = "Ergebnisse",
+                        text = S.current.results,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         gradientColors = modeGradient,
                     )
@@ -144,16 +171,28 @@ fun ResultsScreen(gameState: GameState) {
         bottomBar = {
             Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
                 var rematchLoading by remember { mutableStateOf(false) }
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    if (gameState.session.isHost) {
-                        OutlinedButton(
-                            onClick = {
+                var showRematchDialog by remember { mutableStateOf(false) }
+
+                if (showRematchDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showRematchDialog = false },
+                        title = {
+                            Text(
+                                S.current.rematchVoteQuestion,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        },
+                        text = null,
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showRematchDialog = false
                                 if (!rematchLoading) {
                                     rematchLoading = true
                                     scope.launch {
                                         try {
                                             val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
-                                            val name = myPlayer?.name ?: "Host"
+                                            val name = myPlayer?.name ?: "Player"
                                             val colorHex = myPlayer?.color?.toHex() ?: "#4CAF50"
                                             val newCode = generateCode()
                                             val newGame = GameRepository.createGame(newCode, gameState.gameplay.gameDurationMinutes * 60)
@@ -166,40 +205,59 @@ fun ResultsScreen(gameState: GameState) {
                                         }
                                     }
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.5.dp, modeColor),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = modeColor),
-                            enabled = !rematchLoading,
-                        ) {
-                            if (rematchLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = modeColor)
-                            } else {
-                                Icon(Icons.Default.Replay, null, modifier = Modifier.size(16.dp), tint = modeColor)
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    "Rematch (gleiche Kategorien)",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = modeColor,
-                                )
+                            }) {
+                                Text(S.current.sameCategories, color = modeColor)
                             }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                showRematchDialog = false
+                                gameState.resetGame()
+                                gameState.session.currentScreen = Screen.SELECT_MODE
+                            }) {
+                                Text(S.current.newCategories, color = modeColor)
+                            }
+                        },
+                        containerColor = ColorSurface,
+                        titleContentColor = ColorOnSurface,
+                    )
+                }
+
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    OutlinedButton(
+                        onClick = { showRematchDialog = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        border = BorderStroke(1.5.dp, modeColor),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = modeColor),
+                        enabled = !rematchLoading,
+                    ) {
+                        if (rematchLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = modeColor)
+                        } else {
+                            Icon(Icons.Default.Replay, null, modifier = Modifier.size(16.dp), tint = modeColor)
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                S.current.rematch,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = modeColor,
+                            )
                         }
-                        Spacer(Modifier.height(8.dp))
                     }
+                    Spacer(Modifier.height(8.dp))
                     GradientButton(
-                        text = "Teilen",
+                        text = S.current.share,
                         onClick = {
                             val text = buildString {
-                                append("KatchIt! Runde beendet\n\n")
+                                append("${S.current.shareResultText}\n\n")
                                 ranked.take(3).forEachIndexed { index, (player, score) ->
                                     val medal = when(index) { 0 -> "#1"; 1 -> "#2"; 2 -> "#3"; else -> "" }
                                     val avg = gameState.getPlayerAverageRating(player.id)
                                     val starText = if (avg != null) " (${formatRating(avg)})" else ""
-                                    append("$medal ${player.name}: $score Pkt.$starText\n")
+                                    append("$medal ${player.name}: $score ${S.current.pointsAbbrev}$starText\n")
                                 }
-                                append("\nZeig, was du kannst und spiele KatchIt!")
+                                append("\n${S.current.showYourSkills}")
                             }
                             shareManager.shareText(text)
                         },
@@ -233,13 +291,13 @@ fun ResultsScreen(gameState: GameState) {
                             } else {
                                 Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Bonus ansehen", style = MaterialTheme.typography.labelLarge)
+                                Text(S.current.watchBonus, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     GradientButton(
-                        text = "Neues Spiel",
+                        text = S.current.newGame,
                         onClick = {
                             // Interstitial Ad max 1x pro 3 Spiele
                             if (AdManager.isAdSupported) {
@@ -295,7 +353,7 @@ fun ResultsScreen(gameState: GameState) {
                         color = ColorOnBackground,
                     )
                     Text(
-                        "gewinnt!",
+                        S.current.wins,
                         style = MaterialTheme.typography.bodyLarge,
                         color = ColorOnSurfaceVariant,
                     )
@@ -316,15 +374,40 @@ fun ResultsScreen(gameState: GameState) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    "Alle Ergebnisse",
+                    S.current.allResults,
                     style = MaterialTheme.typography.labelLarge,
                     color = ColorOnSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
+                val firstCapturers = remember(gameState.review.allCaptures) { gameState.getFirstCapturers() }
                 ranked.forEachIndexed { index, (player, score) ->
                     val capturedCount = gameState.review.allCaptures.count { it.player_id == player.id }
                     val speedBonus = gameState.getSpeedBonusCount(player.id)
                     val avgRating = gameState.getPlayerAverageRating(player.id)
+                    val breakdown = remember(
+                        gameState.gameplay.selectedCategories,
+                        gameState.review.allVotes,
+                        gameState.review.allCaptures,
+                    ) {
+                        gameState.gameplay.selectedCategories.map { category ->
+                            val catAvgRating = gameState.getCategoryAverageRating(player.id, category.id)
+                            val hasSpeed = firstCapturers[category.id] == player.id
+                            val votes = gameState.review.allVotes.filter {
+                                it.target_player_id == player.id && it.category_id == category.id
+                            }
+                            val isControversial = if (votes.size >= 2) {
+                                val mean = votes.map { it.rating.toDouble() }.average()
+                                val variance = votes.map { (it.rating - mean) * (it.rating - mean) }.average()
+                                kotlin.math.sqrt(variance) > 1.5
+                            } else false
+                            CategoryBreakdownItem(
+                                categoryName = category.name,
+                                averageRating = catAvgRating,
+                                hasSpeedBonus = hasSpeed,
+                                isControversial = isControversial,
+                            )
+                        }
+                    }
                     DarkRankCard(
                         rank = index + 1,
                         player = player,
@@ -336,6 +419,7 @@ fun ResultsScreen(gameState: GameState) {
                         speedBonus = speedBonus,
                         averageRating = avgRating,
                         photoBytes = gameState.photo.playerAvatarBytes[player.id],
+                        categoryBreakdown = breakdown,
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -368,7 +452,7 @@ fun ResultsScreen(gameState: GameState) {
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 AnimatedGradientText(
-                                    text = "Best Photo",
+                                    text = S.current.bestPhoto,
                                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                     gradientColors = GradientGold,
                                 )
@@ -438,7 +522,7 @@ fun ResultsScreen(gameState: GameState) {
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            "Alle Fotos",
+                            S.current.allPhotos,
                             style = MaterialTheme.typography.labelLarge,
                             color = ColorOnSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp),

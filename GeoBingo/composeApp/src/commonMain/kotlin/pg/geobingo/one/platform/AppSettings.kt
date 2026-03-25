@@ -20,4 +20,12 @@ object SettingsKeys {
     const val HAPTIC_ENABLED = "haptic_enabled"
     const val AD_CONSENT_GIVEN = "ad_consent_given"
     const val INTERSTITIAL_GAME_COUNT = "interstitial_game_count"
+    const val LANGUAGE = "language"
+    const val ONBOARDING_COMPLETED = "onboarding_completed"
+    const val GAMES_PLAYED = "games_played"
+    const val GAMES_WON = "games_won"
+    const val LONGEST_WIN_STREAK = "longest_win_streak"
+    const val CURRENT_WIN_STREAK = "current_win_streak"
+    const val TOTAL_STARS_EARNED = "total_stars_earned"
+    const val TOTAL_STARS_COUNT = "total_stars_count"
 }

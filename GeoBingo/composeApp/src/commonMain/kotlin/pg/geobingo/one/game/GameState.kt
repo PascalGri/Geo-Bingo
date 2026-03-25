@@ -17,7 +17,7 @@ import pg.geobingo.one.network.toHex
 import pg.geobingo.one.util.AppLogger
 
 enum class Screen {
-    HOME, HOW_TO_PLAY, SELECT_MODE, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS
+    ONBOARDING, HOME, HOW_TO_PLAY, SELECT_MODE, CREATE_GAME, JOIN_GAME, LOBBY, GAME, VOTE_TRANSITION, REVIEW, RESULTS_TRANSITION, RESULTS, HISTORY, SETTINGS, STATS
 }
 
 enum class GameMode { CLASSIC, BLIND_BINGO, WEIRD_CORE, QUICK_START }
@@ -29,6 +29,11 @@ data class HistoryPlayer(
     val colorHex: String,
 )
 
+data class HistoryCategory(
+    val id: String,
+    val name: String,
+)
+
 data class GameHistoryEntry(
     val gameCode: String,
     val playerName: String,
@@ -37,6 +42,8 @@ data class GameHistoryEntry(
     val players: List<HistoryPlayer>,
     val jokerMode: Boolean,
     val date: String = "",
+    val gameId: String = "",
+    val categories: List<HistoryCategory> = emptyList(),
 )
 
 class GameState {
@@ -235,6 +242,15 @@ class GameState {
             .maxOfOrNull { it.created_at } ?: GameConstants.INFINITY_TIME
     }
 
+    fun getTeamScore(teamNumber: Int): Int {
+        val teamPlayers = gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
+        return teamPlayers.sumOf { getPlayerScore(it.id) }
+    }
+
+    fun getTeamPlayers(teamNumber: Int): List<Player> {
+        return gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
+    }
+
     val rankedPlayers: List<Pair<Player, Int>> by derivedStateOf {
         gameplay.players.map { it to getPlayerScore(it.id) }
             .sortedWith(
@@ -258,6 +274,8 @@ class GameState {
             players = rankedPlayers.map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
             jokerMode = joker.jokerMode,
             date = now,
+            gameId = session.gameId ?: "",
+            categories = gameplay.selectedCategories.map { HistoryCategory(id = it.id, name = it.name) },
         )
         ui.gameHistory = listOf(entry) + ui.gameHistory
     }
@@ -282,6 +300,8 @@ class GameState {
         review.endVoteCount = 0
         review.allCategoriesCaptured = false
         review.finishSignalDetected = false
+        gameplay.teamAssignments = mapOf()
+        gameplay.teamModeEnabled = false
         joker.myJokerUsed = false
         joker.jokerLabels = mapOf()
         ui.consecutiveNetworkErrors = 0

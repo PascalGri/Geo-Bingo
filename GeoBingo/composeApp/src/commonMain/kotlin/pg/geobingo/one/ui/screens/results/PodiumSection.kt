@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -81,7 +82,7 @@ internal fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarByte
                     animatedScore.animateTo(score.toFloat(), tween(1500, easing = FastOutSlowInEasing))
                 }
                 Text(
-                    "${animatedScore.value.toInt()} Pkt.",
+                    "${animatedScore.value.toInt()} ${S.current.pointsAbbrev}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = player.color,
