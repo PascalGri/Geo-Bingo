@@ -2,11 +2,6 @@ package pg.geobingo.one.ui.screens
 
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -83,11 +78,7 @@ fun HomeScreen(gameState: GameState) {
                         .fillMaxWidth()
                         .staggered(0),
                 ) {
-                    AnimatedGradientBox(
-                        modifier = Modifier.fillMaxWidth().height(300.dp),
-                        gradientColors = GradientPrimary,
-                        durationMillis = 5000,
-                    ) {}
+                    // Dark base
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -95,9 +86,27 @@ fun HomeScreen(gameState: GameState) {
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.Black.copy(alpha = 0.08f),
-                                        Color.Black.copy(alpha = 0.55f),
+                                        Color(0xFF1C0030),
+                                        Color(0xFF0D0818),
+                                        ColorBackground,
                                     )
+                                )
+                            )
+                    )
+                    // Diagonal accent: rose bottom-left to purple top-right
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFFF43F5E).copy(alpha = 0.13f),
+                                        Color.Transparent,
+                                        Color(0xFFA855F7).copy(alpha = 0.09f),
+                                    ),
+                                    start = Offset(0f, 300f),
+                                    end = Offset(500f, 0f),
                                 )
                             )
                     )
@@ -164,6 +173,32 @@ fun HomeScreen(gameState: GameState) {
                             color = ColorOnSurface,
                         )
                     }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // ── DISCLAIMER ────────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(11.dp),
+                        tint = ColorOnSurfaceVariant.copy(alpha = 0.55f),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Fotografiere nur Personen mit deren Einverständnis.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOnSurfaceVariant.copy(alpha = 0.55f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 10.sp,
+                    )
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -263,31 +298,14 @@ fun HomeScreen(gameState: GameState) {
     }
 }
 
-// ── ANIMATED HERO TITLE ───────────────────────────────────────────────────────
+// ── HERO TITLE ────────────────────────────────────────────────────────────────
 
 @Composable
 private fun AnimatedHeroTitle() {
-    val transition = rememberInfiniteTransition(label = "logoGradient")
-    val offset by transition.animateFloat(
-        initialValue = -600f,
-        targetValue = 700f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "gradientOffset",
-    )
     val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFFFFD166), // gold
-            Color(0xFFFF9F6B), // orange
-            Color(0xFFFF6B9D), // pink
-            Color(0xFFD46BFF), // violet
-            Color(0xFF6BAAFF), // sky blue
-            Color(0xFFFFD166), // gold (loop)
-        ),
-        start = Offset(offset, 0f),
-        end = Offset(offset + 700f, 150f),
+        colors = GradientPrimary,
+        start = Offset(0f, 0f),
+        end = Offset(520f, 120f),
     )
     Text(
         text = "KatchIt!",
