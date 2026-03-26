@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
@@ -39,7 +40,8 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HowToPlayScreen(gameState: GameState) {
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    val nav = remember { ServiceLocator.navigation }
+    SystemBackHandler { nav.goBack() }
 
     val anim = rememberStaggeredAnimation(count = 9)
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
@@ -55,7 +57,7 @@ fun HowToPlayScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -174,7 +176,7 @@ fun HowToPlayScreen(gameState: GameState) {
 
             GradientButton(
                 text = S.current.createRound,
-                onClick = { gameState.session.currentScreen = Screen.CREATE_GAME },
+                onClick = { nav.navigateTo(Screen.CREATE_GAME) },
                 modifier = Modifier.fillMaxWidth().staggered(8),
                 gradientColors = GradientPrimary,
                 leadingIcon = {

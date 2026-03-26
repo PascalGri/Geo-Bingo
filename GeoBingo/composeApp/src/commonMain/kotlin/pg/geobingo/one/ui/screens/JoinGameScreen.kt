@@ -40,6 +40,7 @@ import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
@@ -49,6 +50,7 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JoinGameScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     var codeInput by remember { mutableStateOf("") }
     var nameInput by remember { mutableStateOf("") }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
@@ -84,7 +86,7 @@ fun JoinGameScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    SystemBackHandler { nav.goBack() }
 
     Scaffold(
         topBar = {
@@ -97,7 +99,7 @@ fun JoinGameScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = S.current.back,
@@ -275,7 +277,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (e: Exception) { AppLogger.d("Join", "Unknown game mode: ${game.game_mode}", e); GameMode.CLASSIC }
                                 gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
                                 gameState.gameplay.lobbyPlayers = players
-                                gameState.session.currentScreen = Screen.LOBBY
+                                nav.navigateTo(Screen.LOBBY)
                             }
                         } catch (e: Exception) {
                             errorMessage = "Fehler: ${e.message}"

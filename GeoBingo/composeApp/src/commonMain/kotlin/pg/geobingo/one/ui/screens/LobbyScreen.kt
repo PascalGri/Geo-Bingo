@@ -43,6 +43,7 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.ui.theme.*
@@ -54,6 +55,7 @@ import pg.geobingo.one.ui.theme.rememberFeedback
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LobbyScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
     val gameId = gameState.session.gameId ?: return
@@ -79,7 +81,7 @@ fun LobbyScreen(gameState: GameState) {
             lobbyTimeoutSeconds--
         }
         try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
-        gameState.resetGame()
+        gameState.resetGame(); nav.resetTo(Screen.HOME)
     }
 
     // Initial player load
@@ -131,12 +133,12 @@ fun LobbyScreen(gameState: GameState) {
                                 }
                             } catch (e: Exception) { AppLogger.w("Lobby", "Team load failed", e) }
                             feedback.gameStart()
-                            gameState.session.currentScreen = Screen.GAME
+                            nav.replaceCurrent(Screen.GAME)
                         }
                     }
                     "closed" -> {
                         gameState.ui.pendingToast = S.current.hostClosedLobby
-                        gameState.resetGame()
+                        gameState.resetGame(); nav.resetTo(Screen.HOME)
                     }
                 }
             }
@@ -176,7 +178,7 @@ fun LobbyScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.resetGame() }
+    SystemBackHandler { gameState.resetGame(); nav.resetTo(Screen.HOME) }
 
     Scaffold(
         topBar = {
@@ -189,7 +191,7 @@ fun LobbyScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.resetGame() }) {
+                    IconButton(onClick = { gameState.resetGame(); nav.resetTo(Screen.HOME) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.leave, tint = ColorPrimary)
                     }
                 },
@@ -244,7 +246,7 @@ fun LobbyScreen(gameState: GameState) {
                                         gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                             .takeIf { it >= 0 } ?: 0
                                         feedback.gameStart()
-                                        gameState.session.currentScreen = Screen.GAME
+                                        nav.replaceCurrent(Screen.GAME)
                                     } catch (e: Exception) {
                                         isStarting = false
                                     }

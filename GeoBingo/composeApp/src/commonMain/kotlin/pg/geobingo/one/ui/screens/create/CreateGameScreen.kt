@@ -41,12 +41,14 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.components.SelfiePicker
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateGameScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val gameMode = gameState.session.gameMode
 
     var hostNameInput by remember { mutableStateOf("") }
@@ -100,7 +102,7 @@ fun CreateGameScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.session.currentScreen = Screen.SELECT_MODE }
+    SystemBackHandler { nav.goBack() }
 
     val topBarTitle = when (gameMode) {
         GameMode.CLASSIC -> S.current.modeClassic
@@ -126,7 +128,7 @@ fun CreateGameScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.SELECT_MODE }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -197,7 +199,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
                                         gameState.gameplay.lobbyPlayers = listOf(hostDto)
                                         gameState.gameplay.teamModeEnabled = teamModeEnabled
-                                        gameState.session.currentScreen = Screen.LOBBY
+                                        nav.navigateTo(Screen.LOBBY)
                                     } catch (e: Exception) {
                                         // Cleanup: mark orphaned game as closed
                                         AppLogger.e("Create", "Game setup failed, cleaning up game ${game.id}", e)

@@ -33,6 +33,7 @@ import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.i18n.S
@@ -46,6 +47,7 @@ internal fun formatRating(value: Double): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val scope = rememberCoroutineScope()
     val ranked = remember(gameState.gameplay.players, gameState.review.allVotes, gameState.review.allCaptures) {
         gameState.rankedPlayers
@@ -153,7 +155,7 @@ fun ResultsScreen(gameState: GameState) {
         }
     }
 
-    SystemBackHandler { gameState.resetGame() }
+    SystemBackHandler { gameState.resetGame(); nav.resetTo(Screen.HOME) }
 
     Scaffold(
         topBar = {
@@ -199,6 +201,7 @@ fun ResultsScreen(gameState: GameState) {
                                             val newPlayer = GameRepository.addPlayer(newGame.id, name, colorHex)
                                             GameRepository.addCategories(newGame.id, gameState.gameplay.selectedCategories)
                                             gameState.resetForRematch(newGame.id, newCode, newPlayer.id)
+                                            nav.resetTo(Screen.LOBBY)
                                         } catch (e: Exception) {
                                             AppLogger.e("Results", "Rematch creation failed", e)
                                             rematchLoading = false
@@ -213,7 +216,7 @@ fun ResultsScreen(gameState: GameState) {
                             TextButton(onClick = {
                                 showRematchDialog = false
                                 gameState.resetGame()
-                                gameState.session.currentScreen = Screen.SELECT_MODE
+                                nav.resetTo(Screen.SELECT_MODE)
                             }) {
                                 Text(S.current.newCategories, color = modeColor)
                             }
@@ -299,17 +302,18 @@ fun ResultsScreen(gameState: GameState) {
                     GradientButton(
                         text = S.current.newGame,
                         onClick = {
+                            val goHome = { gameState.resetGame(); nav.resetTo(Screen.HOME) }
                             // Interstitial Ad max 1x pro 3 Spiele
                             if (AdManager.isAdSupported) {
                                 val count = AppSettings.getInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, 0) + 1
                                 AppSettings.setInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, count)
                                 if (count % 3 == 0) {
-                                    AdManager.showInterstitialAd { gameState.resetGame() }
+                                    AdManager.showInterstitialAd { goHome() }
                                 } else {
-                                    gameState.resetGame()
+                                    goHome()
                                 }
                             } else {
-                                gameState.resetGame()
+                                goHome()
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),

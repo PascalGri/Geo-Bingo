@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
@@ -66,13 +67,14 @@ private val slides = listOf(
 
 @Composable
 fun OnboardingScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
     val isLastPage by remember { derivedStateOf { pagerState.currentPage == slides.lastIndex } }
 
     fun completeOnboarding() {
         AppSettings.setBoolean(SettingsKeys.ONBOARDING_COMPLETED, true)
-        gameState.session.currentScreen = Screen.HOME
+        nav.resetTo(Screen.HOME)
     }
 
     Scaffold(containerColor = ColorBackground) { _ ->

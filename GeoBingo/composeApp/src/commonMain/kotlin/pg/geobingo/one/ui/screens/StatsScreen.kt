@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
@@ -27,7 +28,8 @@ import pg.geobingo.one.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(gameState: GameState) {
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    val nav = remember { ServiceLocator.navigation }
+    SystemBackHandler { nav.goBack() }
 
     val gamesPlayed = remember { AppSettings.getInt(SettingsKeys.GAMES_PLAYED) }
     val gamesWon = remember { AppSettings.getInt(SettingsKeys.GAMES_WON) }
@@ -55,7 +57,7 @@ fun StatsScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },

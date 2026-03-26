@@ -33,12 +33,14 @@ import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSelectScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val anim = rememberStaggeredAnimation(count = 5)
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
@@ -46,7 +48,7 @@ fun ModeSelectScreen(gameState: GameState) {
     var quickStartDuration by remember { mutableStateOf(15) }
     var quickStartDifficulty by remember { mutableStateOf("medium") }
 
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    SystemBackHandler { nav.goBack() }
 
     Scaffold(
         topBar = {
@@ -59,7 +61,7 @@ fun ModeSelectScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -103,7 +105,7 @@ fun ModeSelectScreen(gameState: GameState) {
                     gameState.session.quickStartDurationMinutes = quickStartDuration
                     gameState.session.quickStartDifficulty = quickStartDifficulty
                     gameState.gameplay.gameDurationMinutes = quickStartDuration
-                    gameState.session.currentScreen = Screen.CREATE_GAME
+                    nav.navigateTo(Screen.CREATE_GAME)
                 },
                 modifier = Modifier.staggered(1),
             )
@@ -118,7 +120,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 modifier = Modifier.staggered(2),
                 onClick = {
                     gameState.session.gameMode = GameMode.CLASSIC
-                    gameState.session.currentScreen = Screen.CREATE_GAME
+                    nav.navigateTo(Screen.CREATE_GAME)
                 },
             )
 
@@ -132,7 +134,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 modifier = Modifier.staggered(3),
                 onClick = {
                     gameState.session.gameMode = GameMode.BLIND_BINGO
-                    gameState.session.currentScreen = Screen.CREATE_GAME
+                    nav.navigateTo(Screen.CREATE_GAME)
                 },
             )
 
@@ -146,7 +148,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 modifier = Modifier.staggered(4),
                 onClick = {
                     gameState.session.gameMode = GameMode.WEIRD_CORE
-                    gameState.session.currentScreen = Screen.CREATE_GAME
+                    nav.navigateTo(Screen.CREATE_GAME)
                 },
             )
 

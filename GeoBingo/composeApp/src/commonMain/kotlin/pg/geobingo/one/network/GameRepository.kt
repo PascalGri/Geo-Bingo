@@ -12,9 +12,9 @@ import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.util.AppLogger
 import kotlin.random.Random
-import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.readRawBytes
+import pg.geobingo.one.di.ServiceLocator
 
 @Serializable
 data class GameDto(
@@ -146,9 +146,9 @@ object VoteKeys {
     fun stepKey(categoryId: String, playerId: String) = "${categoryId}__${playerId}"
 }
 
-private val httpClient = HttpClient()
-
 object GameRepository {
+    /** Uses the shared HttpClient from ServiceLocator for proper lifecycle management. */
+    private val httpClient get() = ServiceLocator.httpClient
 
     suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false, gameMode: String = "CLASSIC"): GameDto =
         supabase.from("games").insert(
@@ -165,37 +165,65 @@ object GameRepository {
             .decodeList<JokerLabelDto>()
             .associate { it.player_id to it.label }
 
-    // ── Team assignments (stored as joker_labels with player_id = "__team__<playerId>") ──
+    // ── Team assignments ────────────────────────────────────────────────
+    // Uses dedicated team_assignments table. Falls back to joker_labels
+    // with "__team__" prefix for backward compatibility with existing games.
+
+    @Serializable
+    private data class TeamAssignmentDto(
+        val game_id: String = "",
+        val player_id: String = "",
+        val team_number: Int = 1,
+    )
 
     suspend fun saveTeamAssignments(gameId: String, assignments: Map<String, Int>) {
-        val dtos = assignments.map { (playerId, team) ->
-            JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
+        if (assignments.isEmpty()) return
+        // Try dedicated table first, fall back to joker_labels
+        try {
+            val dtos = assignments.map { (playerId, team) ->
+                TeamAssignmentDto(game_id = gameId, player_id = playerId, team_number = team)
+            }
+            supabase.from("team_assignments").insert(dtos)
+            return
+        } catch (e: Exception) {
+            AppLogger.d("Repo", "team_assignments table not available, using fallback", e)
         }
-        if (dtos.isNotEmpty()) {
-            // Upsert one by one to handle existing entries
-            dtos.forEach { dto ->
+        // Fallback: store in joker_labels with prefix
+        assignments.forEach { (playerId, team) ->
+            val dto = JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
+            try {
+                supabase.from("joker_labels").insert(dto)
+            } catch (e: Exception) {
                 try {
-                    supabase.from("joker_labels").insert(dto)
-                } catch (e: Exception) {
-                    // If duplicate, update instead
-                    try {
-                        supabase.from("joker_labels").update({ set("label", dto.label) }) {
-                            filter { eq("game_id", dto.game_id); eq("player_id", dto.player_id) }
-                        }
-                    } catch (e2: Exception) {
-                        AppLogger.w("Repo", "Team assignment save failed for ${dto.player_id}", e2)
+                    supabase.from("joker_labels").update({ set("label", dto.label) }) {
+                        filter { eq("game_id", dto.game_id); eq("player_id", dto.player_id) }
                     }
+                } catch (e2: Exception) {
+                    AppLogger.w("Repo", "Team assignment save failed for $playerId", e2)
                 }
             }
         }
     }
 
-    suspend fun getTeamAssignments(gameId: String): Map<String, Int> =
-        supabase.from("joker_labels")
+    suspend fun getTeamAssignments(gameId: String): Map<String, Int> {
+        // Try dedicated table first
+        try {
+            val result = supabase.from("team_assignments")
+                .select { filter { eq("game_id", gameId) } }
+                .decodeList<TeamAssignmentDto>()
+            if (result.isNotEmpty()) {
+                return result.associate { it.player_id to it.team_number }
+            }
+        } catch (e: Exception) {
+            AppLogger.d("Repo", "team_assignments table not available, using fallback", e)
+        }
+        // Fallback: read from joker_labels
+        return supabase.from("joker_labels")
             .select { filter { eq("game_id", gameId) } }
             .decodeList<JokerLabelDto>()
             .filter { it.player_id.startsWith("__team__") }
             .associate { it.player_id.removePrefix("__team__") to (it.label.toIntOrNull() ?: 1) }
+    }
 
     suspend fun addPlayer(gameId: String, name: String, color: String): PlayerDto =
         supabase.from("players").insert(

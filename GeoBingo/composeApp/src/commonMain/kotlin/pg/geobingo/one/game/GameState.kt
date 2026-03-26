@@ -56,9 +56,9 @@ class GameState {
     val ui = UiState()
 
     // ── Mutex for thread-safe state mutations ────────────────────────────
-    val stateMutex = Mutex()
+    private val stateMutex = Mutex()
 
-    // ── Feature managers ─────────────────────────────────────────────────
+    // ── Feature managers (single source of truth for logic) ──────────────
     val scoring = ScoringManager(gameplay, review)
     val history = HistoryManager(session, gameplay, ui, scoring)
 
@@ -99,8 +99,16 @@ class GameState {
         }
     }
 
-    // ── Convenience accessors (keep common read patterns short) ─────────
+    // ── Convenience accessors (delegate to ScoringManager) ──────────────
     val reviewPlayer: Player? get() = gameplay.players.getOrNull(review.reviewPlayerIndex)
+
+    fun getFirstCapturers(): Map<String, String> = scoring.getFirstCapturers()
+    fun getSpeedBonusCount(playerId: String): Int = scoring.getSpeedBonusCount(playerId)
+    fun getCategoryAverageRating(playerId: String, categoryId: String): Double? = scoring.getCategoryAverageRating(playerId, categoryId)
+    fun getPlayerAverageRating(playerId: String): Double? = scoring.getPlayerAverageRating(playerId)
+    fun getPlayerScore(playerId: String): Int = scoring.getPlayerScore(playerId, review.votes)
+    fun getPlayerCaptures(playerId: String): List<Category> = scoring.getPlayerCaptures(playerId)
+    fun getLastCaptureTime(playerId: String): String = scoring.getLastCaptureTime(playerId)
 
     // ── Game lifecycle ──────────────────────────────────────────────────
     fun startGame() {
@@ -117,7 +125,8 @@ class GameState {
         gameplay.isGameRunning = false
     }
 
-    // ── Captures (synchronized to prevent race conditions) ──────────────
+    // ── Captures (thread-safe via mutex) ─────────────────────────────────
+
     fun toggleCapture(playerId: String, categoryId: String) {
         val updated = gameplay.captures.toMutableMap()
         val current = (updated[playerId] ?: emptySet()).toMutableSet()
@@ -126,7 +135,20 @@ class GameState {
         gameplay.captures = updated
     }
 
-    /** Thread-safe capture update from concurrent sources (realtime, polling). */
+    /**
+     * Thread-safe capture update from concurrent sources (realtime, polling).
+     * Uses mutex to prevent race conditions between coroutines.
+     */
+    suspend fun updateCapturesSafe(playerId: String, categoryId: String) {
+        stateMutex.withLock {
+            val current = gameplay.captures[playerId] ?: emptySet()
+            if (categoryId !in current) {
+                gameplay.captures = gameplay.captures + (playerId to current + categoryId)
+            }
+        }
+    }
+
+    /** Non-suspending version for use from main thread where races are unlikely. */
     fun updateCaptures(playerId: String, categoryId: String) {
         val current = gameplay.captures[playerId] ?: emptySet()
         if (categoryId !in current) {
@@ -134,7 +156,22 @@ class GameState {
         }
     }
 
-    /** Thread-safe bulk capture update from polling. */
+    /**
+     * Thread-safe bulk capture update from polling.
+     * Uses mutex to prevent race conditions.
+     */
+    suspend fun mergeCapturesSafe(allCaptures: Map<String, Set<String>>) {
+        stateMutex.withLock {
+            val merged = gameplay.captures.toMutableMap()
+            allCaptures.forEach { (pid, cats) ->
+                val existing = merged[pid] ?: emptySet()
+                merged[pid] = existing + cats
+            }
+            gameplay.captures = merged
+        }
+    }
+
+    /** Non-suspending version for backward compatibility. */
     fun mergeCaptures(allCaptures: Map<String, Set<String>>) {
         val merged = gameplay.captures.toMutableMap()
         allCaptures.forEach { (pid, cats) ->
@@ -176,72 +213,10 @@ class GameState {
         review.votes = updated
     }
 
-    fun getVoteResult(playerId: String, categoryId: String): Boolean? {
-        val key = "$playerId-$categoryId"
-        val v = review.votes[key] ?: return null
-        if (v.isEmpty()) return null
-        return v.count { it } > v.size / 2
-    }
+    fun getVoteResult(playerId: String, categoryId: String): Boolean? =
+        scoring.getVoteResult(playerId, categoryId, review.votes)
 
-    // ── Scoring ─────────────────────────────────────────────────────────
-    fun getFirstCapturers(): Map<String, String> {
-        if (review.allCaptures.isEmpty()) return emptyMap()
-        return gameplay.selectedCategories.mapNotNull { category ->
-            val first = review.allCaptures
-                .filter { it.category_id == category.id && it.created_at.isNotEmpty() }
-                .minByOrNull { it.created_at }
-            if (first != null) category.id to first.player_id else null
-        }.toMap()
-    }
-
-    fun getSpeedBonusCount(playerId: String): Int {
-        val firstCapturers = getFirstCapturers()
-        return firstCapturers.values.count { it == playerId }
-    }
-
-    fun getCategoryAverageRating(playerId: String, categoryId: String): Double? {
-        val votesForThis = review.allVotes.filter { it.target_player_id == playerId && it.category_id == categoryId }
-        if (votesForThis.isEmpty()) return null
-        return votesForThis.map { it.rating }.average()
-    }
-
-    fun getPlayerAverageRating(playerId: String): Double? {
-        val ratings = gameplay.selectedCategories.mapNotNull { getCategoryAverageRating(playerId, it.id) }
-        if (ratings.isEmpty()) return null
-        return ratings.average()
-    }
-
-    fun getPlayerScore(playerId: String): Int {
-        val starScore: Int
-        if (review.allVotes.isNotEmpty()) {
-            var sum = 0.0
-            for (category in gameplay.selectedCategories) {
-                val capturesForPlayer = review.allCaptures.filter { it.player_id == playerId && it.category_id == category.id }
-                if (capturesForPlayer.isEmpty()) continue
-                val avg = getCategoryAverageRating(playerId, category.id) ?: continue
-                sum += avg
-            }
-            starScore = (sum + 0.5).toInt()
-        } else {
-            starScore = gameplay.selectedCategories.count { category ->
-                if (!isCaptured(playerId, category.id)) return@count false
-                getVoteResult(playerId, category.id) ?: true
-            }
-        }
-        return starScore + getSpeedBonusCount(playerId)
-    }
-
-    fun getPlayerCaptures(playerId: String): List<Category> {
-        val capturedIds = gameplay.captures[playerId] ?: emptySet()
-        return gameplay.selectedCategories.filter { it.id in capturedIds }
-    }
-
-    fun getLastCaptureTime(playerId: String): String {
-        return review.allCaptures
-            .filter { it.player_id == playerId && it.created_at.isNotEmpty() }
-            .maxOfOrNull { it.created_at } ?: GameConstants.INFINITY_TIME
-    }
-
+    // ── Team helpers ─────────────────────────────────────────────────────
     fun getTeamScore(teamNumber: Int): Int {
         val teamPlayers = gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
         return teamPlayers.sumOf { getPlayerScore(it.id) }
@@ -251,6 +226,7 @@ class GameState {
         return gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
     }
 
+    // ── Ranked players (derived state) ───────────────────────────────────
     val rankedPlayers: List<Pair<Player, Int>> by derivedStateOf {
         gameplay.players.map { it to getPlayerScore(it.id) }
             .sortedWith(
@@ -263,21 +239,7 @@ class GameState {
 
     // ── History ──────────────────────────────────────────────────────────
     fun saveToHistory() {
-        val myId = session.myPlayerId ?: return
-        val myPlayer = gameplay.players.find { it.id == myId } ?: return
-        val now = kotlinx.datetime.Clock.System.now().toString()
-        val entry = GameHistoryEntry(
-            gameCode = session.gameCode ?: "?",
-            playerName = myPlayer.name,
-            score = getPlayerScore(myId),
-            totalCategories = gameplay.selectedCategories.size,
-            players = rankedPlayers.map { (p, s) -> HistoryPlayer(id = p.id, name = p.name, score = s, colorHex = p.color.toHex()) },
-            jokerMode = joker.jokerMode,
-            date = now,
-            gameId = session.gameId ?: "",
-            categories = gameplay.selectedCategories.map { HistoryCategory(id = it.id, name = it.name) },
-        )
-        ui.gameHistory = listOf(entry) + ui.gameHistory
+        history.saveToHistory(joker.jokerMode, rankedPlayers)
     }
 
     // ── Reset ───────────────────────────────────────────────────────────

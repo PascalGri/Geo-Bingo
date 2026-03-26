@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameHistoryEntry
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
@@ -54,7 +55,8 @@ import pg.geobingo.one.ui.theme.Spacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(gameState: GameState) {
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    val nav = remember { ServiceLocator.navigation }
+    SystemBackHandler { nav.goBack() }
 
     // Fade-in animation for content
     val contentAlpha = remember { Animatable(0f) }
@@ -78,7 +80,7 @@ fun HistoryScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },

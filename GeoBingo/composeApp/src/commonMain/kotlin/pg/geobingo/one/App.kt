@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.Language
@@ -40,6 +41,7 @@ import pg.geobingo.one.ui.theme.KatchItTheme
 @Composable
 fun App() {
     val gameState = remember { GameState() }
+    val nav = remember { ServiceLocator.navigation }
     val isConnected by rememberConnectivityState()
 
     // Initialize language from saved preference
@@ -56,6 +58,12 @@ fun App() {
                 AdManager.preloadAds()
             }
         }
+    }
+
+    // Sync NavigationManager -> SessionState for backward compatibility
+    // (screens that still read session.currentScreen)
+    LaunchedEffect(nav.currentScreen) {
+        gameState.session.currentScreen = nav.currentScreen
     }
 
     KatchItTheme {
@@ -92,7 +100,7 @@ fun App() {
 
             Box(modifier = Modifier.weight(1f)) {
                 SyncAvatars(gameState)
-                when (gameState.session.currentScreen) {
+                when (nav.currentScreen) {
                     Screen.ONBOARDING -> OnboardingScreen(gameState)
                     Screen.HOME -> HomeScreen(gameState)
                     Screen.HOW_TO_PLAY -> HowToPlayScreen(gameState)

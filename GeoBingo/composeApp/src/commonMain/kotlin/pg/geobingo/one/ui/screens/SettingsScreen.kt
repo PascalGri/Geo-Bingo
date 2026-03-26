@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AdManager
@@ -34,7 +35,8 @@ import pg.geobingo.one.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(gameState: GameState) {
-    SystemBackHandler { gameState.session.currentScreen = Screen.HOME }
+    val nav = remember { ServiceLocator.navigation }
+    SystemBackHandler { nav.goBack() }
     val uriHandler = LocalUriHandler.current
 
     Scaffold(
@@ -48,7 +50,7 @@ fun SettingsScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { gameState.session.currentScreen = Screen.HOME }) {
+                    IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },

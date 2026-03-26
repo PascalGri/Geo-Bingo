@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
@@ -23,6 +24,7 @@ import pg.geobingo.one.ui.theme.rememberFeedback
 
 @Composable
 fun VoteTransitionScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     var countdown by remember { mutableStateOf(3) }
     val feedback = rememberFeedback(gameState)
 
@@ -33,7 +35,7 @@ fun VoteTransitionScreen(gameState: GameState) {
             countdown--
             feedback.countdownTick()
         }
-        gameState.session.currentScreen = Screen.REVIEW
+        nav.replaceCurrent(Screen.REVIEW)
     }
 
     Box(

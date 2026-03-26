@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.*
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
@@ -37,6 +38,7 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 
 @Composable
 fun HomeScreen(gameState: GameState) {
+    val nav = remember { ServiceLocator.navigation }
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(gameState.ui.pendingToast) {
         val msg = gameState.ui.pendingToast ?: return@LaunchedEffect
@@ -136,7 +138,7 @@ fun HomeScreen(gameState: GameState) {
                 ) {
                     GradientButton(
                         text = S.current.createRound,
-                        onClick = { gameState.session.currentScreen = Screen.SELECT_MODE },
+                        onClick = { nav.navigateTo(Screen.SELECT_MODE) },
                         modifier = Modifier.fillMaxWidth().graphicsLayer {
                             translationY = btnOffsets[0].value
                             alpha = btnAlphas[0].value
@@ -150,7 +152,7 @@ fun HomeScreen(gameState: GameState) {
                     )
 
                     OutlinedButton(
-                        onClick = { gameState.session.currentScreen = Screen.JOIN_GAME },
+                        onClick = { nav.navigateTo(Screen.JOIN_GAME) },
                         modifier = Modifier.fillMaxWidth().height(62.dp).graphicsLayer {
                             translationY = btnOffsets[1].value
                             alpha = btnAlphas[1].value
@@ -179,7 +181,7 @@ fun HomeScreen(gameState: GameState) {
                 Spacer(Modifier.height(8.dp))
 
                 TextButton(
-                    onClick = { gameState.session.currentScreen = Screen.HOW_TO_PLAY },
+                    onClick = { nav.navigateTo(Screen.HOW_TO_PLAY) },
                 ) {
                     Icon(
                         Icons.Default.Info,
@@ -255,7 +257,7 @@ fun HomeScreen(gameState: GameState) {
                                 )
                             }
                             if (gameState.ui.gameHistory.size > 3) {
-                                TextButton(onClick = { gameState.session.currentScreen = Screen.HISTORY }) {
+                                TextButton(onClick = { nav.navigateTo(Screen.HISTORY) }) {
                                     Text(
                                         S.current.showAll,
                                         style = MaterialTheme.typography.labelSmall,
@@ -280,7 +282,7 @@ fun HomeScreen(gameState: GameState) {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.staggered(3),
                 ) {
-                    TextButton(onClick = { gameState.session.currentScreen = Screen.SETTINGS }) {
+                    TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = null,
@@ -294,7 +296,7 @@ fun HomeScreen(gameState: GameState) {
                             color = ColorOnSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { gameState.session.currentScreen = Screen.STATS }) {
+                    TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
                         Icon(
                             Icons.Default.BarChart,
                             contentDescription = null,
