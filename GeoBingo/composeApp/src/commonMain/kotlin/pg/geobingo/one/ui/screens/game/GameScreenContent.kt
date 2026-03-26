@@ -214,7 +214,12 @@ fun GameScreenContent(
 
                 // Player info + controls
                 if (myPlayer != null) {
-                    val myCount = gameState.gameplay.captures[myPlayer.id]?.size ?: 0
+                    val isTeamMode = gameState.gameplay.teamModeEnabled
+                    val myTeam = if (isTeamMode) gameState.getMyTeamNumber() else null
+                    val myCount = if (isTeamMode && myTeam != null)
+                        gameState.getTeamCaptures(myTeam).size
+                    else
+                        gameState.gameplay.captures[myPlayer.id]?.size ?: 0
                     val totalCats = gameState.gameplay.selectedCategories.size
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(Spacing.screenHorizontal),
@@ -240,8 +245,15 @@ fun GameScreenContent(
                             }
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                Text(myPlayer.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
-                                Text(S.current.foundCount(myCount, totalCats), style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                val displayName = if (isTeamMode && myTeam != null)
+                                    gameState.gameplay.teamNames[myTeam] ?: myPlayer.name
+                                else myPlayer.name
+                                Text(displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                                Text(
+                                    if (isTeamMode) S.current.teamFoundCount(myCount, totalCats)
+                                    else S.current.foundCount(myCount, totalCats),
+                                    style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant,
+                                )
                             }
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -321,14 +333,34 @@ fun GameScreenContent(
                                         glowColors = modeGradient,
                                     )
                                 } else {
-                                    val captured = gameState.isCaptured(myPlayer.id, category.id)
-                                    val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                                    // Team mode: check team captures; Solo: check player captures
+                                    val captured: Boolean
+                                    val photoBytes: ByteArray?
+                                    val otherCapturers: List<Player>
+
+                                    if (isTeamMode && myTeam != null) {
+                                        captured = gameState.isTeamCaptured(myTeam, category.id)
+                                        val capturer = gameState.getTeamCapturer(myTeam, category.id)
+                                        photoBytes = if (capturer != null) gameState.getPhoto(capturer.id, category.id) else null
+                                        // Show other teams' capture counts
+                                        otherCapturers = gameState.getTeamNumbers()
+                                            .filter { it != myTeam }
+                                            .flatMap { otherTeam ->
+                                                if (gameState.isTeamCaptured(otherTeam, category.id))
+                                                    listOfNotNull(gameState.getTeamCapturer(otherTeam, category.id))
+                                                else emptyList()
+                                            }
+                                    } else {
+                                        captured = gameState.isCaptured(myPlayer.id, category.id)
+                                        photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                                        otherCapturers = gameState.gameplay.players.filter { p ->
+                                            p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
+                                        }
+                                    }
+
                                     var thumbnail by remember(photoBytes) { mutableStateOf<ImageBitmap?>(null) }
                                     LaunchedEffect(photoBytes) {
                                         thumbnail = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
-                                    }
-                                    val otherCapturers = gameState.gameplay.players.filter { p ->
-                                        p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
                                     }
                                     val isUploading = gameState.photo.isUploading(category.id)
                                     val showUploadSuccess = uploadSuccessCategory == category.id

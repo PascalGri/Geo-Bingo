@@ -14,7 +14,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
-import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.viewmodel.ReviewViewModel
@@ -33,20 +32,11 @@ fun ReviewScreen(gameState: GameState) {
     val gameId = gameState.session.gameId ?: return
     val categories = vm.categories
     val myPlayerId = gameState.session.myPlayerId ?: return
-    val sortedPlayers = vm.sortedPlayers
-    val numPlayers = sortedPlayers.size
+    val entityCount = vm.reviewEntityCount
 
-    // Start observing realtime/polling
-    LaunchedEffect(gameId) {
-        vm.startObserving()
-    }
+    LaunchedEffect(gameId) { vm.startObserving() }
 
-    // Reload captures when review step changes
-    LaunchedEffect(gameState.review.reviewCategoryIndex) {
-        // Captures are reloaded inside the VM via startObserving
-    }
-
-    if (numPlayers == 0 || categories.isEmpty()) {
+    if (entityCount == 0 || categories.isEmpty()) {
         Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = modeColor)
         }
@@ -54,7 +44,7 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     val stepIndex = gameState.review.reviewCategoryIndex
-    val totalSteps = categories.size * numPlayers
+    val totalSteps = vm.totalSteps
 
     if (stepIndex >= totalSteps) {
         Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {
@@ -63,14 +53,32 @@ fun ReviewScreen(gameState: GameState) {
         return
     }
 
-    val categoryIndex = stepIndex / numPlayers
-    val targetPlayerIndex = stepIndex % numPlayers
+    val categoryIndex = stepIndex / entityCount
+    val targetIndex = stepIndex % entityCount
     val currentCategory = categories[categoryIndex]
-    val targetPlayer = sortedPlayers[targetPlayerIndex]
-    val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
+    val stepKey = vm.currentStepKey() ?: return
+    val isSelf = vm.isCurrentStepSelf()
+
+    // Determine target info for display
+    val targetDisplayName: String
+    val targetPlayerId: String? // the player whose photo to show
+    val targetPlayerForAvatar: pg.geobingo.one.data.Player?
+
+    if (vm.isTeamMode) {
+        val targetTeam = vm.sortedTeams[targetIndex]
+        val teamName = gameState.gameplay.teamNames[targetTeam] ?: S.current.teamName(targetTeam)
+        val capturer = gameState.getTeamCapturer(targetTeam, currentCategory.id)
+        targetDisplayName = teamName
+        targetPlayerId = capturer?.id
+        targetPlayerForAvatar = capturer
+    } else {
+        val targetPlayer = vm.sortedPlayers[targetIndex]
+        targetDisplayName = targetPlayer.name
+        targetPlayerId = targetPlayer.id
+        targetPlayerForAvatar = targetPlayer
+    }
 
     // Auto-skip self-voting
-    val isSelf = targetPlayer.id == myPlayerId
     LaunchedEffect(stepIndex, isSelf) {
         if (isSelf && !gameState.review.hasSubmittedCurrentCategory) {
             vm.handleSelfVoteSkip()
@@ -78,7 +86,6 @@ fun ReviewScreen(gameState: GameState) {
     }
 
     key(stepIndex) {
-        // Self-vote toast overlay
         if (vm.selfVoteToast) {
             Box(
                 modifier = Modifier.fillMaxSize().background(ColorBackground),
@@ -113,32 +120,38 @@ fun ReviewScreen(gameState: GameState) {
                 gameId = gameId,
                 stepKey = stepKey,
                 categoryName = currentCategory.name,
-                playerName = targetPlayer.name,
+                playerName = targetDisplayName,
                 categoryIndex = categoryIndex,
                 totalCategories = categories.size,
-                playerIndex = targetPlayerIndex,
-                totalPlayers = numPlayers,
+                playerIndex = targetIndex,
+                totalPlayers = entityCount,
+                requiredVotes = vm.requiredVotesForCurrentStep(),
                 isHost = gameState.session.isHost,
                 isSelf = isSelf,
+                isTeamMode = vm.isTeamMode,
                 onReadyToAdvance = { vm.submitNoPhoto() },
                 onForceAdvance = { vm.forceAdvance() },
             )
-        } else {
+        } else if (targetPlayerForAvatar != null) {
             DarkSinglePhotoVotingScreen(
                 gameId = gameId,
                 currentCategory = currentCategory,
                 categoryIndex = categoryIndex,
                 totalCategories = categories.size,
-                targetPlayer = targetPlayer,
-                targetPlayerIndex = targetPlayerIndex,
-                totalPlayers = numPlayers,
+                targetPlayer = targetPlayerForAvatar,
+                targetPlayerIndex = targetIndex,
+                totalPlayers = entityCount,
                 stepIndex = stepIndex,
-                playerAvatarBytes = gameState.photo.playerAvatarBytes[targetPlayer.id],
+                playerAvatarBytes = gameState.photo.playerAvatarBytes[targetPlayerForAvatar.id],
                 hapticEnabled = gameState.ui.hapticEnabled,
                 soundEnabled = gameState.ui.soundEnabled,
+                teamName = if (vm.isTeamMode) targetDisplayName else null,
                 onVote = { rating -> vm.submitVote(rating) },
                 onNoPhoto = { vm.submitNoPhoto() },
             )
+        } else {
+            // No capturer found for this team/category - skip
+            LaunchedEffect(stepIndex) { vm.submitNoPhoto() }
         }
     }
 }

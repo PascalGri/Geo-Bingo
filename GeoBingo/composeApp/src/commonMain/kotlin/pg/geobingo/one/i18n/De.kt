@@ -254,6 +254,9 @@ object De : StringRes {
     override val joinTeam = "Beitreten"
     override val noTeam = "Kein Team"
     override val minTwoTeamsNeeded = "Mind. 2 Teams nötig"
+    override fun teamOfTotal(current: Int, total: Int) = "Team $current/$total"
+    override fun capturedBy(name: String) = "Foto von $name"
+    override fun teamFoundCount(found: Int, total: Int) = "Team: $found/$total"
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     override val ready = "Bereit!"

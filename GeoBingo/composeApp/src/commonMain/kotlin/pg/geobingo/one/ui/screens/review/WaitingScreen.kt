@@ -18,12 +18,25 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 @Composable
-internal fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: String, playerName: String, categoryIndex: Int, totalCategories: Int, playerIndex: Int, totalPlayers: Int, isHost: Boolean, isSelf: Boolean = false, onReadyToAdvance: () -> Unit, onForceAdvance: () -> Unit) {
-    val requiredVotes = totalPlayers - 1 // target player doesn't vote on their own image
+internal fun DarkWaitingScreen(
+    gameId: String,
+    stepKey: String,
+    categoryName: String,
+    playerName: String,
+    categoryIndex: Int,
+    totalCategories: Int,
+    playerIndex: Int,
+    totalPlayers: Int,
+    requiredVotes: Int = totalPlayers - 1,
+    isHost: Boolean,
+    isSelf: Boolean = false,
+    isTeamMode: Boolean = false,
+    onReadyToAdvance: () -> Unit,
+    onForceAdvance: () -> Unit,
+) {
     var submittedCount by remember(stepKey) { mutableStateOf(0) }
     var advanceCalled by remember(stepKey) { mutableStateOf(false) }
     LaunchedEffect(stepKey) {
-        // Keep polling until the step actually changes (composable is destroyed)
         while (true) {
             try {
                 submittedCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
@@ -50,7 +63,13 @@ internal fun DarkWaitingScreen(gameId: String, stepKey: String, categoryName: St
                 color = ColorOnSurfaceVariant,
             )
             if (isHost) {
-                OutlinedButton(onClick = onForceAdvance, modifier = Modifier.padding(top = 16.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant), border = BorderStroke(1.dp, ColorOutlineVariant), shape = RoundedCornerShape(20.dp)) {
+                OutlinedButton(
+                    onClick = onForceAdvance,
+                    modifier = Modifier.padding(top = 16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurfaceVariant),
+                    border = BorderStroke(1.dp, ColorOutlineVariant),
+                    shape = RoundedCornerShape(20.dp),
+                ) {
                     Text(S.current.skipHostOption, style = MaterialTheme.typography.labelSmall)
                 }
             }

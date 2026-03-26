@@ -191,8 +191,16 @@ class GameState {
             toggleCapture(playerId, categoryId)
         }
         if (gameplay.isGameRunning && gameplay.selectedCategories.isNotEmpty() && !review.allCategoriesCaptured) {
-            if (gameplay.selectedCategories.all { photo.photoCache.contains(playerId, it.id) }) {
-                review.allCategoriesCaptured = true
+            if (gameplay.teamModeEnabled) {
+                val myTeam = gameplay.teamAssignments[playerId] ?: return
+                val teamCaptures = getTeamCaptures(myTeam)
+                if (gameplay.selectedCategories.all { it.id in teamCaptures }) {
+                    review.allCategoriesCaptured = true
+                }
+            } else {
+                if (gameplay.selectedCategories.all { photo.photoCache.contains(playerId, it.id) }) {
+                    review.allCategoriesCaptured = true
+                }
             }
         }
     }
@@ -217,14 +225,72 @@ class GameState {
         scoring.getVoteResult(playerId, categoryId, review.votes)
 
     // ── Team helpers ─────────────────────────────────────────────────────
-    fun getTeamScore(teamNumber: Int): Int {
-        val teamPlayers = gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
-        return teamPlayers.sumOf { getPlayerScore(it.id) }
+
+    fun getTeamNumbers(): List<Int> =
+        gameplay.teamAssignments.values.toSet().sorted()
+
+    fun getTeamPlayers(teamNumber: Int): List<Player> =
+        gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
+
+    /** All captures from any member of a team, merged. */
+    fun getTeamCaptures(teamNumber: Int): Set<String> {
+        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }
+        return teamPlayerIds.flatMap { gameplay.captures[it] ?: emptySet() }.toSet()
     }
 
-    fun getTeamPlayers(teamNumber: Int): List<Player> {
-        return gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
+    fun isTeamCaptured(teamNumber: Int, categoryId: String): Boolean =
+        getTeamCaptures(teamNumber).contains(categoryId)
+
+    /** Find which player on a team captured a specific category. */
+    fun getTeamCapturer(teamNumber: Int, categoryId: String): Player? {
+        val teamPlayers = getTeamPlayers(teamNumber)
+        // Prefer allCaptures (server truth) if available
+        if (review.allCaptures.isNotEmpty()) {
+            val teamPlayerIds = teamPlayers.map { it.id }.toSet()
+            val capture = review.allCaptures
+                .filter { it.category_id == categoryId && it.player_id in teamPlayerIds }
+                .minByOrNull { it.created_at }
+            if (capture != null) return teamPlayers.find { it.id == capture.player_id }
+        }
+        // Fallback to local captures
+        return teamPlayers.firstOrNull { gameplay.captures[it.id]?.contains(categoryId) == true }
     }
+
+    fun getMyTeamNumber(): Int? =
+        gameplay.teamAssignments[session.myPlayerId]
+
+    /** Team score: sum of star ratings + speed bonuses. */
+    fun getTeamScore(teamNumber: Int): Int {
+        if (review.allVotes.isNotEmpty()) {
+            var starScore = 0.0
+            for (category in gameplay.selectedCategories) {
+                val capturer = getTeamCapturer(teamNumber, category.id) ?: continue
+                val avg = getCategoryAverageRating(capturer.id, category.id) ?: continue
+                starScore += avg
+            }
+            val speedBonus = getTeamSpeedBonusCount(teamNumber)
+            return (starScore + 0.5).toInt() + speedBonus
+        }
+        // Fallback: count captured categories
+        return getTeamCaptures(teamNumber).size
+    }
+
+    /** Speed bonuses at team level. */
+    fun getTeamSpeedBonusCount(teamNumber: Int): Int {
+        val firstCapturers = getFirstCapturers()
+        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }.toSet()
+        return firstCapturers.values.count { it in teamPlayerIds }
+    }
+
+    /** Ranked teams by score. Returns (teamNumber, teamName, score). */
+    val rankedTeams: List<Triple<Int, String, Int>>
+        get() {
+            if (!gameplay.teamModeEnabled) return emptyList()
+            return getTeamNumbers().map { teamNum ->
+                val teamName = gameplay.teamNames[teamNum] ?: "Team $teamNum"
+                Triple(teamNum, teamName, getTeamScore(teamNum))
+            }.sortedByDescending { it.third }
+        }
 
     // ── Ranked players (derived state) ───────────────────────────────────
     val rankedPlayers: List<Pair<Player, Int>> by derivedStateOf {

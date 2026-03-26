@@ -20,8 +20,8 @@ import pg.geobingo.one.network.withRetry
 import pg.geobingo.one.util.AppLogger
 
 /**
- * Contains all review-phase business logic previously embedded in ReviewScreen composable.
- * Manages review stepping, vote submissions, auto-skip, and fallback polling.
+ * Contains all review-phase business logic.
+ * Supports both individual mode (player x category) and team mode (team x category).
  */
 class ReviewViewModel(
     val gameState: GameState,
@@ -35,17 +35,28 @@ class ReviewViewModel(
     private var realtimeVoteJob: Job? = null
     private var pollingJob: Job? = null
 
+    val isTeamMode: Boolean get() = gameState.gameplay.teamModeEnabled
+
     val sortedPlayers: List<Player>
         get() = gameState.gameplay.players.sortedBy { it.id }
 
+    val sortedTeams: List<Int>
+        get() = gameState.getTeamNumbers()
+
     val categories: List<Category>
         get() = gameState.gameplay.selectedCategories
+
+    /** Number of entities being reviewed (players or teams). */
+    val reviewEntityCount: Int
+        get() = if (isTeamMode) sortedTeams.size else sortedPlayers.size
+
+    val totalSteps: Int
+        get() = categories.size * reviewEntityCount
 
     // ── Lifecycle ────────────────────────────────────────────────────────
 
     fun startObserving() {
         val gameId = gameState.session.gameId ?: return
-
         loadJokerCategories(gameId)
         loadCaptures(gameId)
         startRealtimeGameUpdates(gameId)
@@ -60,32 +71,81 @@ class ReviewViewModel(
         super.onCleared()
     }
 
+    // ── Current step info ────────────────────────────────────────────────
+
+    /** Get the step key for the current review step. */
+    fun currentStepKey(): String? {
+        val stepIndex = gameState.review.reviewCategoryIndex
+        val entityCount = reviewEntityCount
+        val categoryIndex = stepIndex / entityCount
+        val targetIndex = stepIndex % entityCount
+        if (categoryIndex >= categories.size || targetIndex >= entityCount) return null
+
+        val currentCategory = categories[categoryIndex]
+        return if (isTeamMode) {
+            VoteKeys.stepKey(currentCategory.id, "team_${sortedTeams[targetIndex]}")
+        } else {
+            VoteKeys.stepKey(currentCategory.id, sortedPlayers[targetIndex].id)
+        }
+    }
+
+    /** Is the current step about my own team/player? */
+    fun isCurrentStepSelf(): Boolean {
+        val stepIndex = gameState.review.reviewCategoryIndex
+        val entityCount = reviewEntityCount
+        val targetIndex = stepIndex % entityCount
+        return if (isTeamMode) {
+            val myTeam = gameState.getMyTeamNumber() ?: return false
+            targetIndex < sortedTeams.size && sortedTeams[targetIndex] == myTeam
+        } else {
+            targetIndex < sortedPlayers.size && sortedPlayers[targetIndex].id == gameState.session.myPlayerId
+        }
+    }
+
+    /** Number of votes required for current step to advance. */
+    fun requiredVotesForCurrentStep(): Int {
+        val stepIndex = gameState.review.reviewCategoryIndex
+        val entityCount = reviewEntityCount
+        val targetIndex = stepIndex % entityCount
+        return if (isTeamMode) {
+            val targetTeam = sortedTeams.getOrNull(targetIndex) ?: return 0
+            // All players NOT on the target team must vote
+            gameState.gameplay.players.count { gameState.gameplay.teamAssignments[it.id] != targetTeam }
+        } else {
+            sortedPlayers.size - 1
+        }
+    }
+
     // ── Vote submission ──────────────────────────────────────────────────
 
     fun submitVote(rating: Int) {
         val gameId = gameState.session.gameId ?: return
         val myPlayerId = gameState.session.myPlayerId ?: return
         val stepIndex = gameState.review.reviewCategoryIndex
-        val numPlayers = sortedPlayers.size
-        val categoryIndex = stepIndex / numPlayers
-        val targetPlayerIndex = stepIndex % numPlayers
+        val entityCount = reviewEntityCount
+        val categoryIndex = stepIndex / entityCount
+        val targetIndex = stepIndex % entityCount
 
-        if (categoryIndex >= categories.size || targetPlayerIndex >= sortedPlayers.size) return
+        if (categoryIndex >= categories.size || targetIndex >= entityCount) return
 
         val currentCategory = categories[categoryIndex]
-        val targetPlayer = sortedPlayers[targetPlayerIndex]
-        val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
 
         gameState.review.hasSubmittedCurrentCategory = true
 
         viewModelScope.launch {
             try {
-                withRetry {
-                    GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, rating)
+                if (isTeamMode) {
+                    val targetTeam = sortedTeams[targetIndex]
+                    val capturer = gameState.getTeamCapturer(targetTeam, currentCategory.id)
+                    val targetPlayerId = capturer?.id ?: return@launch
+                    val stepKey = VoteKeys.stepKey(currentCategory.id, "team_$targetTeam")
+                    withRetry { GameRepository.submitStepVote(gameId, myPlayerId, targetPlayerId, currentCategory.id, stepKey, rating) }
+                } else {
+                    val targetPlayer = sortedPlayers[targetIndex]
+                    val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
+                    withRetry { GameRepository.submitStepVote(gameId, myPlayerId, targetPlayer.id, currentCategory.id, stepKey, rating) }
                 }
-            } catch (e: Exception) {
-                AppLogger.e("ReviewVM", "Vote submit failed", e)
-            }
+            } catch (e: Exception) { AppLogger.e("ReviewVM", "Vote submit failed", e) }
             advanceStep()
         }
     }
@@ -93,23 +153,12 @@ class ReviewViewModel(
     fun submitNoPhoto() {
         val gameId = gameState.session.gameId ?: return
         val myPlayerId = gameState.session.myPlayerId ?: return
-        val stepIndex = gameState.review.reviewCategoryIndex
-        val numPlayers = sortedPlayers.size
-        val categoryIndex = stepIndex / numPlayers
-        val targetPlayerIndex = stepIndex % numPlayers
-
-        if (categoryIndex >= categories.size || targetPlayerIndex >= sortedPlayers.size) return
-
-        val currentCategory = categories[categoryIndex]
-        val targetPlayer = sortedPlayers[targetPlayerIndex]
-        val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
+        val stepKey = currentStepKey() ?: return
 
         gameState.review.hasSubmittedCurrentCategory = true
 
         viewModelScope.launch {
-            try {
-                withRetry { GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey) }
-            } catch (e: Exception) {
+            try { withRetry { GameRepository.submitStepSubmission(gameId, myPlayerId, stepKey) } } catch (e: Exception) {
                 AppLogger.e("ReviewVM", "Step submission failed", e)
             }
             advanceStep()
@@ -133,7 +182,6 @@ class ReviewViewModel(
     fun forceAdvance() {
         val gameId = gameState.session.gameId ?: return
         val stepIndex = gameState.review.reviewCategoryIndex
-        val totalSteps = categories.size * sortedPlayers.size
 
         viewModelScope.launch {
             try {
@@ -149,17 +197,8 @@ class ReviewViewModel(
     private suspend fun advanceStep() {
         val gameId = gameState.session.gameId ?: return
         val stepIndex = gameState.review.reviewCategoryIndex
-        val numPlayers = sortedPlayers.size
-        val categoryIndex = stepIndex / numPlayers
-        val targetPlayerIndex = stepIndex % numPlayers
-        val totalSteps = categories.size * numPlayers
-
-        if (categoryIndex >= categories.size || targetPlayerIndex >= sortedPlayers.size) return
-
-        val currentCategory = categories[categoryIndex]
-        val targetPlayer = sortedPlayers[targetPlayerIndex]
-        val stepKey = VoteKeys.stepKey(currentCategory.id, targetPlayer.id)
-        val requiredVotes = numPlayers - 1
+        val stepKey = currentStepKey() ?: return
+        val requiredVotes = requiredVotesForCurrentStep()
 
         try {
             val submissionCount = GameRepository.getVoteSubmissionCount(gameId, stepKey)
@@ -240,8 +279,6 @@ class ReviewViewModel(
 
     private fun startRealtimeVoteSubmissions(gameId: String) {
         val realtime = gameState.realtime ?: return
-        val numPlayers = sortedPlayers.size
-
         realtimeVoteJob = viewModelScope.launch {
             realtime.voteSubmissionInserts.collect { _ ->
                 if (gameState.review.hasSubmittedCurrentCategory) {

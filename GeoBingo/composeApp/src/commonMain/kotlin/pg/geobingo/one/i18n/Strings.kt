@@ -278,6 +278,9 @@ interface StringRes {
     val joinTeam: String
     val noTeam: String
     val minTwoTeamsNeeded: String
+    fun teamOfTotal(current: Int, total: Int): String
+    fun capturedBy(name: String): String
+    fun teamFoundCount(found: Int, total: Int): String
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     val ready: String

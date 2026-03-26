@@ -55,6 +55,7 @@ internal fun DarkSinglePhotoVotingScreen(
     playerAvatarBytes: ByteArray? = null,
     hapticEnabled: Boolean = true,
     soundEnabled: Boolean = true,
+    teamName: String? = null,
     onVote: (Int) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
@@ -136,7 +137,9 @@ internal fun DarkSinglePhotoVotingScreen(
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             gradientColors = GradientPrimary,
                         )
-                        Text("${S.current.categoryOfTotal(categoryIndex + 1, totalCategories)} • ${S.current.playerOfTotal(targetPlayerIndex + 1, totalPlayers)}", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                        val entityLabel = if (teamName != null) S.current.teamOfTotal(targetPlayerIndex + 1, totalPlayers)
+                            else S.current.playerOfTotal(targetPlayerIndex + 1, totalPlayers)
+                        Text("${S.current.categoryOfTotal(categoryIndex + 1, totalCategories)} • $entityLabel", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -154,7 +157,14 @@ internal fun DarkSinglePhotoVotingScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PlayerAvatarView(player = targetPlayer, size = 36.dp, fontSize = 14.sp, photoBytes = playerAvatarBytes)
                 Spacer(Modifier.width(8.dp))
-                Text(targetPlayer.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                if (teamName != null) {
+                    Column {
+                        Text(teamName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                        Text(S.current.capturedBy(targetPlayer.name), style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                    }
+                } else {
+                    Text(targetPlayer.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                }
             }
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
