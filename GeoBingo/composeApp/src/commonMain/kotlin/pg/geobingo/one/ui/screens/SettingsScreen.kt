@@ -197,7 +197,7 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(ColorSurfaceContainer)
+                .background(ColorSurface)
                 .padding(horizontal = Spacing.md, vertical = Spacing.xxs),
             content = content,
         )

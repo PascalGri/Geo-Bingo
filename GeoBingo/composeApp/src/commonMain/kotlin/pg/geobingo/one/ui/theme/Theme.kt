@@ -4,7 +4,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -127,11 +126,6 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = ColorOnSurface,
     surfaceVariant = ColorSurfaceVariant,
     onSurfaceVariant = ColorOnSurfaceVariant,
-    surfaceContainerLowest = ColorSurfaceContainerLowest,
-    surfaceContainerLow = ColorSurfaceContainerLow,
-    surfaceContainer = ColorSurfaceContainer,
-    surfaceContainerHigh = ColorSurfaceContainerHigh,
-    surfaceContainerHighest = ColorSurfaceContainerHighest,
     outline = ColorOutline,
     outlineVariant = ColorOutlineVariant,
     scrim = Color(0xFF000000),
@@ -279,15 +273,9 @@ object AppTextStyles {
 val LocalReduceMotion = compositionLocalOf { false }
 
 @Composable
-fun KatchItTheme(
-    reduceMotion: Boolean = false,
-    content: @Composable () -> Unit,
-) {
-    CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
-        MaterialTheme(
-            colorScheme = DarkColorScheme,
-            typography = KatchItTypography,
-            content = content,
-        )
-    }
+fun KatchItTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = DarkColorScheme,
+        content = content,
+    )
 }
