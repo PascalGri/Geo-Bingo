@@ -306,6 +306,59 @@ fun LobbyScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        // Create Team Dialog (must be outside LazyColumn)
+        if (gameState.gameplay.teamModeEnabled && showCreateTeamDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreateTeamDialog = false; newTeamNameInput = "" },
+                containerColor = ColorSurface,
+                title = {
+                    Text(S.current.createTeam, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                },
+                text = {
+                    OutlinedTextField(
+                        value = newTeamNameInput,
+                        onValueChange = { if (it.length <= 20) newTeamNameInput = it },
+                        placeholder = { Text(S.current.teamNamePlaceholder, color = ColorOnSurfaceVariant) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = modeGradient.first(),
+                            unfocusedBorderColor = ColorOutline,
+                            focusedTextColor = ColorOnSurface,
+                            unfocusedTextColor = ColorOnSurface,
+                            cursorColor = modeGradient.first(),
+                        ),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val name = newTeamNameInput.trim()
+                            if (name.isNotEmpty()) {
+                                val teamNum = gameState.gameplay.nextTeamNumber
+                                gameState.gameplay.nextTeamNumber = teamNum + 1
+                                gameState.gameplay.teamNames = gameState.gameplay.teamNames + (teamNum to name)
+                                val myId = gameState.session.myPlayerId
+                                if (myId != null) {
+                                    gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
+                                }
+                                newTeamNameInput = ""
+                                showCreateTeamDialog = false
+                            }
+                        },
+                        enabled = newTeamNameInput.trim().isNotEmpty(),
+                    ) {
+                        Text(S.current.confirm, color = modeGradient.first())
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreateTeamDialog = false; newTeamNameInput = "" }) {
+                        Text(S.current.cancel, color = ColorOnSurfaceVariant)
+                    }
+                },
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -450,60 +503,6 @@ fun LobbyScreen(gameState: GameState) {
 
             // ── Team Assignment Section ──────────────────────────────────
             if (gameState.gameplay.teamModeEnabled) {
-                // Create Team Dialog
-                if (showCreateTeamDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showCreateTeamDialog = false; newTeamNameInput = "" },
-                        containerColor = ColorSurface,
-                        title = {
-                            Text(S.current.createTeam, fontWeight = FontWeight.Bold, color = ColorOnSurface)
-                        },
-                        text = {
-                            OutlinedTextField(
-                                value = newTeamNameInput,
-                                onValueChange = { if (it.length <= 20) newTeamNameInput = it },
-                                placeholder = { Text(S.current.teamNamePlaceholder, color = ColorOnSurfaceVariant) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = modeGradient.first(),
-                                    unfocusedBorderColor = ColorOutline,
-                                    focusedTextColor = ColorOnSurface,
-                                    unfocusedTextColor = ColorOnSurface,
-                                    cursorColor = modeGradient.first(),
-                                ),
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    val name = newTeamNameInput.trim()
-                                    if (name.isNotEmpty()) {
-                                        val teamNum = gameState.gameplay.nextTeamNumber
-                                        gameState.gameplay.nextTeamNumber = teamNum + 1
-                                        gameState.gameplay.teamNames = gameState.gameplay.teamNames + (teamNum to name)
-                                        // Auto-assign creator to this team
-                                        val myId = gameState.session.myPlayerId
-                                        if (myId != null) {
-                                            gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
-                                        }
-                                        newTeamNameInput = ""
-                                        showCreateTeamDialog = false
-                                    }
-                                },
-                                enabled = newTeamNameInput.trim().isNotEmpty(),
-                            ) {
-                                Text(S.current.confirm, color = modeGradient.first())
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showCreateTeamDialog = false; newTeamNameInput = "" }) {
-                                Text(S.current.cancel, color = ColorOnSurfaceVariant)
-                            }
-                        },
-                    )
-                }
-
                 item {
                     Spacer(Modifier.height(8.dp))
                     AnimatedGradientText(
