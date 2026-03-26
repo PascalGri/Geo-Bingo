@@ -1,9 +1,15 @@
 package pg.geobingo.one.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import org.jetbrains.compose.resources.Font
+import katchit.composeapp.generated.resources.Res
+import katchit.composeapp.generated.resources.Nunito_ExtraBold
 
 // === Neon Night Color Palette (Rose → Fuchsia → Purple) ===
 val ColorPrimary             = Color(0xFFD946EF) // Fuchsia 500
@@ -105,8 +111,22 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun KatchItTheme(content: @Composable () -> Unit) {
+    val nunitoFamily = FontFamily(Font(Res.font.Nunito_ExtraBold, FontWeight.ExtraBold))
+    val defaultTypography = MaterialTheme.typography
+    val typography = Typography(
+        displayLarge = defaultTypography.displayLarge.copy(fontFamily = nunitoFamily),
+        displayMedium = defaultTypography.displayMedium.copy(fontFamily = nunitoFamily),
+        displaySmall = defaultTypography.displaySmall.copy(fontFamily = nunitoFamily),
+        headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = nunitoFamily),
+        headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = nunitoFamily),
+        headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = nunitoFamily),
+        titleLarge = defaultTypography.titleLarge.copy(fontFamily = nunitoFamily),
+        titleMedium = defaultTypography.titleMedium.copy(fontFamily = nunitoFamily),
+        titleSmall = defaultTypography.titleSmall.copy(fontFamily = nunitoFamily),
+    )
     MaterialTheme(
         colorScheme = DarkColorScheme,
+        typography = typography,
         content = content
     )
 }
