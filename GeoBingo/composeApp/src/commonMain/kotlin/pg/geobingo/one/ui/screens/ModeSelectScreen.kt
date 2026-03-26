@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
-import pg.geobingo.one.data.quickStartCategoryPreview
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
@@ -45,7 +44,6 @@ fun ModeSelectScreen(gameState: GameState) {
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
-    var quickStartDuration by remember { mutableStateOf(15) }
     var quickStartDifficulty by remember { mutableStateOf("medium") }
 
     SystemBackHandler { nav.goBack() }
@@ -93,18 +91,16 @@ fun ModeSelectScreen(gameState: GameState) {
             QuickStartCard(
                 expanded = quickStartExpanded,
                 outdoor = quickStartOutdoor,
-                duration = quickStartDuration,
                 difficulty = quickStartDifficulty,
                 onToggleExpand = { quickStartExpanded = !quickStartExpanded },
                 onSelectOutdoor = { quickStartOutdoor = it },
-                onSelectDuration = { quickStartDuration = it },
                 onSelectDifficulty = { quickStartDifficulty = it },
                 onConfirm = {
                     gameState.session.gameMode = GameMode.QUICK_START
                     gameState.session.quickStartOutdoor = quickStartOutdoor
-                    gameState.session.quickStartDurationMinutes = quickStartDuration
+                    gameState.session.quickStartDurationMinutes = 15
                     gameState.session.quickStartDifficulty = quickStartDifficulty
-                    gameState.gameplay.gameDurationMinutes = quickStartDuration
+                    gameState.gameplay.gameDurationMinutes = 15
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
                 modifier = Modifier.staggered(1),
@@ -157,16 +153,13 @@ fun ModeSelectScreen(gameState: GameState) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickStartCard(
     expanded: Boolean,
     outdoor: Boolean,
-    duration: Int,
     difficulty: String,
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
-    onSelectDuration: (Int) -> Unit,
     onSelectDifficulty: (String) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
@@ -328,52 +321,6 @@ private fun QuickStartCard(
                     }
                 }
 
-                // ── Duration selection ──────────────────────────────────────
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    S.current.gameDuration,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val durationBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    listOf(
-                        10 to S.current.duration10min,
-                        15 to S.current.duration15min,
-                        20 to S.current.duration20min,
-                    ).forEach { (minutes, label) ->
-                        val selected = duration == minutes
-                        Box(
-                            modifier = durationBtnModifier
-                                .background(
-                                    if (selected) Brush.linearGradient(gradientColors)
-                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (selected) Color.Transparent else ColorOutline,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
-                                .clickable { onSelectDuration(minutes) }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (selected) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
                 // ── Difficulty selection ────────────────────────────────────
                 Spacer(Modifier.height(14.dp))
 
@@ -408,42 +355,6 @@ private fun QuickStartCard(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (selected) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                // ── Category preview ────────────────────────────────────────
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    S.current.previewCategories,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-
-                val previewNames = remember(outdoor, difficulty) {
-                    quickStartCategoryPreview(outdoor, difficulty)
-                }
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    previewNames.forEach { name ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ColorSurfaceVariant)
-                                .border(1.dp, ColorOutline, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        ) {
-                            Text(
-                                name,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = ColorOnSurfaceVariant,
-                                fontWeight = FontWeight.Medium,
                             )
                         }
                     }
