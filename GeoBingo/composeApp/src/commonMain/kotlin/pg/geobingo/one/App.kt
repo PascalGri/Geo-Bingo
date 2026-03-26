@@ -3,22 +3,12 @@ package pg.geobingo.one
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
@@ -37,6 +27,7 @@ import pg.geobingo.one.ui.screens.game.GameScreen
 import pg.geobingo.one.ui.screens.results.ResultsScreen
 import pg.geobingo.one.ui.screens.review.ReviewScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
+import pg.geobingo.one.ui.theme.OfflineBanner
 
 @Composable
 fun App() {
@@ -48,7 +39,7 @@ fun App() {
     LaunchedEffect(Unit) {
         val savedLang = AppSettings.getString(SettingsKeys.LANGUAGE, "de")
         val lang = Language.entries.find { it.code == savedLang } ?: Language.DE
-        S.setLanguage(lang)
+        S.switchLanguage(lang)
     }
 
     // Consent einmalig beim App-Start anfordern, danach Ads vorladen
@@ -74,28 +65,7 @@ fun App() {
                 enter = expandVertically(),
                 exit = shrinkVertically(),
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFB71C1C))
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        Icons.Default.WifiOff,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        S.current.noInternet,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                OfflineBanner(message = S.current.noInternet)
             }
 
             Box(modifier = Modifier.weight(1f)) {

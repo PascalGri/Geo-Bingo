@@ -15,7 +15,7 @@ object S {
     var language: Language by mutableStateOf(Language.DE)
         private set
 
-    fun setLanguage(lang: Language) {
+    fun switchLanguage(lang: Language) {
         language = lang
         current = when (lang) {
             Language.DE -> De

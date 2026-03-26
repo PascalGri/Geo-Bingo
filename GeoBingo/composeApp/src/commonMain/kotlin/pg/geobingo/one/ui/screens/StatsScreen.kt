@@ -67,7 +67,6 @@ fun StatsScreen(gameState: GameState) {
         containerColor = ColorBackground,
     ) { padding ->
         if (gamesPlayed == 0) {
-            // Empty state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -75,23 +74,10 @@ fun StatsScreen(gameState: GameState) {
                     .staggered(0),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        Icons.Default.BarChart,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = ColorOnSurfaceVariant,
-                    )
-                    Text(
-                        S.current.noStatsYet,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = ColorOnSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                EmptyState(
+                    icon = Icons.Default.BarChart,
+                    title = S.current.noStatsYet,
+                )
             }
         } else {
             Column(

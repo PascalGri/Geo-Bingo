@@ -410,10 +410,7 @@ fun LobbyScreen(gameState: GameState) {
                         val code = gameState.session.gameCode ?: "------"
                         AnimatedGradientText(
                             text = code,
-                            style = MaterialTheme.typography.displayMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 8.sp,
-                            ),
+                            style = AppTextStyles.gameCode,
                             gradientColors = modeGradient,
                             durationMillis = 2000,
                             modifier = Modifier.clickable {

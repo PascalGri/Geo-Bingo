@@ -87,8 +87,7 @@ fun VoteTransitionScreen(gameState: GameState) {
                 ) {
                     Text(
                         text = "$countdown",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = AppTextStyles.countdown,
                         color = Color.White,
                     )
                 }

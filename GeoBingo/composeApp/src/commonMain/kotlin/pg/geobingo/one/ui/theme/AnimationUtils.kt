@@ -174,12 +174,30 @@ fun ConfettiEffect(
 }
 
 // ─────────────────────────────────────────────
-//  Spacing constants
+//  Spacing constants (4dp grid)
 // ─────────────────────────────────────────────
 
 object Spacing {
-    val screenHorizontal = 20.dp
-    val cardPadding = 16.dp
-    val sectionGap = 12.dp
-    val elementGap = 8.dp
+    /** 4dp — Tight spacing (icon gaps, inline elements) */
+    val xxs = 4.dp
+    /** 8dp — Element gap (between related items) */
+    val xs = 8.dp
+    /** 12dp — Section gap (between groups) */
+    val sm = 12.dp
+    /** 16dp — Card padding (internal padding) */
+    val md = 16.dp
+    /** 20dp — Screen horizontal padding */
+    val lg = 20.dp
+    /** 24dp — Large gap (between major sections) */
+    val xl = 24.dp
+    /** 32dp — Extra large gap (hero sections) */
+    val xxl = 32.dp
+    /** 48dp — Maximum spacing (screen top/bottom) */
+    val xxxl = 48.dp
+
+    // Semantic aliases (backward-compatible)
+    val screenHorizontal = lg
+    val cardPadding = md
+    val sectionGap = sm
+    val elementGap = xs
 }

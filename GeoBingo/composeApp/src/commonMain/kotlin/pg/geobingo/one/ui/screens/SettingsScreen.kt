@@ -31,6 +31,7 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.ui.theme.semanticHeading
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,7 +120,7 @@ fun SettingsScreen(gameState: GameState) {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                S.setLanguage(lang)
+                                                S.switchLanguage(lang)
                                                 AppSettings.setString(SettingsKeys.LANGUAGE, lang.code)
                                                 showLangDialog = false
                                             }
@@ -187,17 +188,17 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
     Column {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
+            style = AppTextStyles.sectionHeader,
             color = ColorOnSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+                .semanticHeading(title),
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(ColorSurface)
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .background(ColorSurfaceContainer)
+                .padding(horizontal = Spacing.md, vertical = Spacing.xxs),
             content = content,
         )
     }

@@ -94,24 +94,11 @@ fun HistoryScreen(gameState: GameState) {
                 modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { translationY = contentOffset.value; alpha = contentAlpha.value },
                 contentAlignment = Alignment.Center,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(Icons.Default.History, null, modifier = Modifier.size(48.dp), tint = ColorOnSurfaceVariant)
-                    Text(
-                        S.current.noGamesYet,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = ColorOnSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        S.current.playedGamesAppearHere,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                EmptyState(
+                    icon = Icons.Default.History,
+                    title = S.current.noGamesYet,
+                    subtitle = S.current.playedGamesAppearHere,
+                )
             }
         } else {
             LazyColumn(
