@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
@@ -90,25 +92,38 @@ fun OnboardingScreen(gameState: GameState) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, start = 4.dp, end = 4.dp),
+                    .zIndex(10f)
+                    .padding(top = 8.dp, start = 8.dp, end = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (pagerState.currentPage > 0) {
-                    IconButton(onClick = {
-                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                    }) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = S.current.back,
                             tint = ColorOnSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                 } else {
                     Spacer(Modifier.size(48.dp))
                 }
                 if (!isLastPage) {
-                    TextButton(onClick = { completeOnboarding() }) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { completeOnboarding() }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    ) {
                         Text(
                             text = S.current.onboardingSkip,
                             style = MaterialTheme.typography.labelLarge,
