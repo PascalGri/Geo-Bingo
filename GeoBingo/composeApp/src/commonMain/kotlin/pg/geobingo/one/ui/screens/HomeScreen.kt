@@ -184,31 +184,23 @@ fun HomeScreen(gameState: GameState) {
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenHorizontal)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(ColorSurfaceVariant.copy(alpha = 0.4f))
                         .clickable { nav.navigateTo(Screen.HOW_TO_PLAY) }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 4.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = ColorPrimary.copy(alpha = 0.7f),
-                    )
                     Text(
                         S.current.howToPlay,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = ColorOnSurface,
-                        modifier = Modifier.weight(1f),
+                        color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
                     )
+                    Spacer(Modifier.width(4.dp))
                     Icon(
                         Icons.Default.ChevronRight,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = ColorOnSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                        tint = ColorOnSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }
 
