@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +34,9 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.*
 import pg.geobingo.one.i18n.S
+import org.jetbrains.compose.resources.Font
+import katchit.composeapp.generated.resources.Res
+import katchit.composeapp.generated.resources.Nunito_ExtraBold
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -346,12 +350,14 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
+    val nunitoFamily = FontFamily(Font(Res.font.Nunito_ExtraBold))
     AnimatedGradientText(
         text = "KatchIt!",
         style = MaterialTheme.typography.displaySmall.copy(
+            fontFamily = nunitoFamily,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 58.sp,
-            letterSpacing = (-2).sp,
+            letterSpacing = (-1.5).sp,
             shadow = Shadow(
                 color = Color(0xFFD946EF).copy(alpha = 0.6f),
                 blurRadius = 50f,
