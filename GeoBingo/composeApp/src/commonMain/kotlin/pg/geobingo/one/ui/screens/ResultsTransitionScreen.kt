@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import pg.geobingo.one.di.ServiceLocator
+import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
@@ -28,6 +29,13 @@ fun ResultsTransitionScreen(gameState: GameState) {
     var countdown by remember { mutableStateOf(3) }
     var revealText by remember { mutableStateOf("Wer hat gewonnen?") }
     val feedback = rememberFeedback(gameState)
+
+    val modeGradient = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE  -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
+    }
 
     LaunchedEffect(Unit) {
         feedback.countdownTick()
@@ -61,7 +69,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
                 ),
-                gradientColors = GradientPrimary,
+                gradientColors = modeGradient,
             )
 
             Text(
@@ -77,7 +85,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(16.dp)),
-                gradientColors = GradientPrimary,
+                gradientColors = modeGradient,
                 durationMillis = 600,
             ) {
                 Box(

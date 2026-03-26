@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -31,6 +32,7 @@ internal fun DarkWaitingScreen(
     isHost: Boolean,
     isSelf: Boolean = false,
     isTeamMode: Boolean = false,
+    modeGradient: List<Color> = GradientPrimary,
     onReadyToAdvance: () -> Unit,
     onForceAdvance: () -> Unit,
 ) {
@@ -54,7 +56,7 @@ internal fun DarkWaitingScreen(
             AnimatedGradientText(
                 text = if (isSelf) S.current.yourPhotoBeingRated else S.current.voting,
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                gradientColors = GradientPrimary,
+                gradientColors = modeGradient,
             )
             Text(
                 if (isSelf) S.current.othersAreVoting

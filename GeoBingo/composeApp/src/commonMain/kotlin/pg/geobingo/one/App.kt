@@ -108,6 +108,7 @@ fun App() {
                     Screen.CREATE_GAME -> CreateGameScreen(gameState)
                     Screen.JOIN_GAME -> JoinGameScreen(gameState)
                     Screen.LOBBY -> LobbyScreen(gameState)
+                    Screen.GAME_START_TRANSITION -> GameStartTransitionScreen(gameState)
                     Screen.GAME -> GameScreen(gameState)
                     Screen.VOTE_TRANSITION -> VoteTransitionScreen(gameState)
                     Screen.REVIEW -> ReviewScreen(gameState)

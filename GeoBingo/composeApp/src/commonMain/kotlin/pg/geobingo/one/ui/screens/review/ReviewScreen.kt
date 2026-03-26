@@ -23,12 +23,13 @@ fun ReviewScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val vm = viewModel { ReviewViewModel(gameState, nav) }
 
-    val modeColor = when (gameState.session.gameMode) {
-        GameMode.CLASSIC     -> GradientPrimary.first()
-        GameMode.BLIND_BINGO -> GradientCool.first()
-        GameMode.WEIRD_CORE  -> GradientWeird.first()
-        GameMode.QUICK_START -> GradientQuickStart.first()
+    val modeGradient = when (gameState.session.gameMode) {
+        GameMode.CLASSIC     -> GradientPrimary
+        GameMode.BLIND_BINGO -> GradientCool
+        GameMode.WEIRD_CORE  -> GradientWeird
+        GameMode.QUICK_START -> GradientQuickStart
     }
+    val modeColor = modeGradient.first()
     val gameId = gameState.session.gameId ?: return
     val categories = vm.categories
     val myPlayerId = gameState.session.myPlayerId ?: return
@@ -129,6 +130,7 @@ fun ReviewScreen(gameState: GameState) {
                 isHost = gameState.session.isHost,
                 isSelf = isSelf,
                 isTeamMode = vm.isTeamMode,
+                modeGradient = modeGradient,
                 onReadyToAdvance = { vm.submitNoPhoto() },
                 onForceAdvance = { vm.forceAdvance() },
             )
@@ -146,6 +148,7 @@ fun ReviewScreen(gameState: GameState) {
                 hapticEnabled = gameState.ui.hapticEnabled,
                 soundEnabled = gameState.ui.soundEnabled,
                 teamName = if (vm.isTeamMode) targetDisplayName else null,
+                modeGradient = modeGradient,
                 onVote = { rating -> vm.submitVote(rating) },
                 onNoPhoto = { vm.submitNoPhoto() },
             )

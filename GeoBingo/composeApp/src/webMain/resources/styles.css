@@ -117,7 +117,7 @@ body {
     z-index: 100;
 }
 
-/* Desktop: groessere Slots */
+/* Desktop: größere Slots */
 @media (min-width: 768px) {
     .ad-slot-top {
         min-height: 90px;

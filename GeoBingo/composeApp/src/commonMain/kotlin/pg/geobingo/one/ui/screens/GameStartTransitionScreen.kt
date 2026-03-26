@@ -24,9 +24,10 @@ import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.rememberFeedback
 
 @Composable
-fun VoteTransitionScreen(gameState: GameState) {
+fun GameStartTransitionScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var countdown by remember { mutableStateOf(3) }
+    var revealText by remember { mutableStateOf(S.current.getReady) }
     val feedback = rememberFeedback(gameState)
 
     val modeGradient = when (gameState.session.gameMode) {
@@ -37,13 +38,18 @@ fun VoteTransitionScreen(gameState: GameState) {
     }
 
     LaunchedEffect(Unit) {
-        feedback.gameEnd()
-        repeat(3) {
-            delay(1000L)
-            countdown--
-            feedback.countdownTick()
-        }
-        nav.replaceCurrent(Screen.REVIEW)
+        feedback.countdownTick()
+        delay(1000L)
+        countdown = 2
+        feedback.countdownTick()
+        delay(1000L)
+        countdown = 1
+        revealText = S.current.gameStartsNow
+        feedback.countdownTick()
+        delay(1000L)
+        countdown = 0
+        feedback.gameStart()
+        nav.replaceCurrent(Screen.GAME)
     }
 
     Box(
@@ -57,19 +63,12 @@ fun VoteTransitionScreen(gameState: GameState) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             AnimatedGradientText(
-                text = S.current.voting,
+                text = revealText,
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
                 ),
                 gradientColors = modeGradient,
-            )
-
-            Text(
-                text = S.current.reviewInProgress,
-                style = MaterialTheme.typography.bodyLarge,
-                color = ColorOnSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -86,7 +85,7 @@ fun VoteTransitionScreen(gameState: GameState) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "$countdown",
+                        text = if (countdown > 0) "$countdown" else "!",
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,

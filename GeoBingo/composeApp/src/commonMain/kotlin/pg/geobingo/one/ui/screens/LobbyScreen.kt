@@ -134,7 +134,7 @@ fun LobbyScreen(gameState: GameState) {
                                 }
                             } catch (e: Exception) { AppLogger.w("Lobby", "Team load failed", e) }
                             feedback.gameStart()
-                            nav.replaceCurrent(Screen.GAME)
+                            nav.replaceCurrent(Screen.GAME_START_TRANSITION)
                         }
                     }
                     "closed" -> {
@@ -248,7 +248,7 @@ fun LobbyScreen(gameState: GameState) {
                                         gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                             .takeIf { it >= 0 } ?: 0
                                         feedback.gameStart()
-                                        nav.replaceCurrent(Screen.GAME)
+                                        nav.replaceCurrent(Screen.GAME_START_TRANSITION)
                                     } catch (e: Exception) {
                                         isStarting = false
                                     }

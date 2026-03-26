@@ -56,6 +56,7 @@ internal fun DarkSinglePhotoVotingScreen(
     hapticEnabled: Boolean = true,
     soundEnabled: Boolean = true,
     teamName: String? = null,
+    modeGradient: List<Color> = GradientPrimary,
     onVote: (Int) -> Unit, onNoPhoto: () -> Unit
 ) {
     var photo by remember(stepIndex) { mutableStateOf<ImageBitmap?>(null) }
@@ -135,7 +136,7 @@ internal fun DarkSinglePhotoVotingScreen(
                         AnimatedGradientText(
                             text = S.current.voting,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            gradientColors = GradientPrimary,
+                            gradientColors = modeGradient,
                         )
                         val entityLabel = if (teamName != null) S.current.teamOfTotal(targetPlayerIndex + 1, totalPlayers)
                             else S.current.playerOfTotal(targetPlayerIndex + 1, totalPlayers)
@@ -148,9 +149,9 @@ internal fun DarkSinglePhotoVotingScreen(
         containerColor = ColorBackground,
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.screenHorizontal).graphicsLayer { alpha = stepAlpha.value; translationX = stepSlideX.value }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = GradientPrimary, backgroundColor = ColorPrimaryContainer) {
+            GradientBorderCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, borderColors = modeGradient, backgroundColor = ColorPrimaryContainer) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = GradientPrimary)
+                    AnimatedGradientText(text = currentCategory.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), gradientColors = modeGradient)
                     Text(S.current.howWellDoesItFit, style = MaterialTheme.typography.bodySmall, color = ColorOnPrimaryContainer.copy(alpha = 0.7f))
                 }
             }
@@ -216,14 +217,14 @@ internal fun DarkSinglePhotoVotingScreen(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                GradientPrimary.first().copy(alpha = 0.4f),
+                                modeGradient.first().copy(alpha = 0.4f),
                             ),
                             shape = RoundedCornerShape(20.dp),
                         ) {
                             Text(
                                 label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = GradientPrimary.first(),
+                                color = modeGradient.first(),
                             )
                         }
                     }
@@ -341,7 +342,7 @@ internal fun DarkSinglePhotoVotingScreen(
                         },
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         enabled = selectedRating > 0 && !submitted,
-                        gradientColors = GradientPrimary,
+                        gradientColors = modeGradient,
                         leadingIcon = { Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(18.dp)) },
                     )
                 }

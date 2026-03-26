@@ -275,4 +275,6 @@ object De : StringRes {
     // ── Transition Screens ──────────────────────────────────────────────
     override val reviewInProgress = "Überprüfung läuft..."
     override val calculatingResults = "Ergebnisse werden berechnet..."
+    override val getReady = "Macht euch bereit!"
+    override val gameStartsNow = "Los geht's!"
 }

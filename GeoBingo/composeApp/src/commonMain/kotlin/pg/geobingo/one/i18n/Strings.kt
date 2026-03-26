@@ -299,4 +299,6 @@ interface StringRes {
     // ── Transition Screens ──────────────────────────────────────────────
     val reviewInProgress: String
     val calculatingResults: String
+    val getReady: String
+    val gameStartsNow: String
 }
