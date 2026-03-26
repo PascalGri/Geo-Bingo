@@ -17,10 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
@@ -345,16 +347,46 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
-    AnimatedGradientText(
-        text = "KatchIt!",
-        style = MaterialTheme.typography.displaySmall.copy(
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 58.sp,
-            letterSpacing = (-2).sp,
-        ),
-        gradientColors = GradientPrimary,
-        durationMillis = 3000,
+    val titleStyle = MaterialTheme.typography.displaySmall.copy(
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 58.sp,
+        letterSpacing = (-2).sp,
     )
+    Box(contentAlignment = Alignment.Center) {
+        // Glow layer: blurred copy of the text behind
+        AnimatedGradientText(
+            text = "KatchIt!",
+            style = titleStyle.copy(
+                shadow = Shadow(
+                    color = Color(0xFFD946EF).copy(alpha = 0.7f),
+                    blurRadius = 40f,
+                ),
+            ),
+            gradientColors = GradientPrimary,
+            durationMillis = 3000,
+            modifier = Modifier.blur(24.dp),
+        )
+        // Second glow: tighter, more saturated
+        AnimatedGradientText(
+            text = "KatchIt!",
+            style = titleStyle.copy(
+                shadow = Shadow(
+                    color = Color(0xFFF43F5E).copy(alpha = 0.5f),
+                    blurRadius = 20f,
+                ),
+            ),
+            gradientColors = GradientPrimary,
+            durationMillis = 3000,
+            modifier = Modifier.blur(10.dp),
+        )
+        // Sharp foreground text
+        AnimatedGradientText(
+            text = "KatchIt!",
+            style = titleStyle,
+            gradientColors = GradientPrimary,
+            durationMillis = 3000,
+        )
+    }
 }
 
 // ── HERO TAGLINE (Fotografiere · Bewerte · Gewinne) ───────────────────────────
