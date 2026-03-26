@@ -33,9 +33,6 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.*
 import pg.geobingo.one.i18n.S
-import org.jetbrains.compose.resources.Font
-import katchit.composeapp.generated.resources.Res
-import katchit.composeapp.generated.resources.Nunito_ExtraBold
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -349,11 +346,7 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
-    val nunitoFamily = androidx.compose.ui.text.font.FontFamily(
-        Font(Res.font.Nunito_ExtraBold)
-    )
     val titleStyle = MaterialTheme.typography.displaySmall.copy(
-        fontFamily = nunitoFamily,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 58.sp,
         letterSpacing = (-1.5).sp,
