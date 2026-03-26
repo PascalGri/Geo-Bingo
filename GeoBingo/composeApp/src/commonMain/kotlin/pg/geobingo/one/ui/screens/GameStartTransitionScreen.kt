@@ -86,7 +86,8 @@ fun GameStartTransitionScreen(gameState: GameState) {
                 ) {
                     Text(
                         text = if (countdown > 0) "$countdown" else "!",
-                        style = AppTextStyles.countdown,
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
                 }

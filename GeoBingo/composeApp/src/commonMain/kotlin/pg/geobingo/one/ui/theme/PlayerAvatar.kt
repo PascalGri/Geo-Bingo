@@ -18,8 +18,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
@@ -44,14 +42,13 @@ fun PlayerAvatarView(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(if (imageBitmap == null) player.color else Color.Transparent)
-            .semantics { contentDescription = "Avatar von ${player.name}" },
+            .background(if (imageBitmap == null) player.color else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
         if (imageBitmap != null) {
             Image(
                 bitmap = imageBitmap!!,
-                contentDescription = "Foto von ${player.name}",
+                contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
@@ -85,14 +82,13 @@ fun PlayerAvatarViewRaw(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(if (imageBitmap == null) color else Color.Transparent)
-            .semantics { contentDescription = "Avatar von $name" },
+            .background(if (imageBitmap == null) color else Color.Transparent),
         contentAlignment = Alignment.Center,
     ) {
         if (imageBitmap != null) {
             Image(
                 bitmap = imageBitmap!!,
-                contentDescription = "Foto von $name",
+                contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )

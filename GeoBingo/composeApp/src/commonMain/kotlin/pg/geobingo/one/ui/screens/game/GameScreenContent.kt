@@ -138,15 +138,21 @@ fun GameScreenContent(
                             if (isLow) {
                                 AnimatedGradientText(
                                     text = gameState.formatTime(gameState.gameplay.timeRemainingSeconds),
-                                    style = AppTextStyles.timer.copy(letterSpacing = 3.sp),
+                                    style = MaterialTheme.typography.displaySmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 3.sp,
+                                        fontSize = 40.sp,
+                                    ),
                                     gradientColors = GradientHot,
                                     durationMillis = 600,
                                 )
                             } else {
                                 Text(
                                     text = gameState.formatTime(gameState.gameplay.timeRemainingSeconds),
-                                    style = AppTextStyles.timer.copy(letterSpacing = 3.sp),
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = timerColor,
+                                    letterSpacing = 3.sp,
                                 )
                             }
                         }

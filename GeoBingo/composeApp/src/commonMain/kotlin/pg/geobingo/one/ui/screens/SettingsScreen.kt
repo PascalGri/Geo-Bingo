@@ -31,7 +31,6 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
-import pg.geobingo.one.ui.theme.semanticHeading
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,17 +187,17 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
     Column {
         Text(
             text = title,
-            style = AppTextStyles.sectionHeader,
+            style = MaterialTheme.typography.labelMedium,
             color = ColorOnSurfaceVariant,
-            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
-                .semanticHeading(title),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(ColorSurface)
-                .padding(horizontal = Spacing.md, vertical = Spacing.xxs),
+                .padding(horizontal = 16.dp, vertical = 4.dp),
             content = content,
         )
     }

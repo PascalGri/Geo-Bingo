@@ -36,8 +36,6 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
-import pg.geobingo.one.ui.theme.semanticHeading
-import pg.geobingo.one.ui.theme.accessibilityLabel
 
 @Composable
 fun HomeScreen(gameState: GameState) {
@@ -70,39 +68,7 @@ fun HomeScreen(gameState: GameState) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = ColorBackground,
     ) { _ ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            // ── FULL-SCREEN GRADIENT BACKGROUND ──────────────────────────
-            // Dark base
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF1C0030),
-                                Color(0xFF0D0818),
-                                ColorBackground,
-                            )
-                        )
-                    )
-            )
-            // Diagonal accent: rose bottom-left to purple top-right
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFFF43F5E).copy(alpha = 0.13f),
-                                Color.Transparent,
-                                Color(0xFFA855F7).copy(alpha = 0.09f),
-                            ),
-                            start = Offset(0f, Float.MAX_VALUE),
-                            end = Offset(Float.MAX_VALUE, 0f),
-                        )
-                    )
-            )
-
+        Box(modifier = Modifier.fillMaxSize().background(ColorBackground)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -111,21 +77,109 @@ fun HomeScreen(gameState: GameState) {
             ) {
 
                 // ── HERO ──────────────────────────────────────────────────────
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .staggered(0)
-                        .padding(horizontal = 24.dp)
-                        .padding(top = 80.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                        .staggered(0),
                 ) {
-                    AnimatedHeroTitle()
-                    Spacer(Modifier.height(10.dp))
-                    HeroTagline()
+                    // Dark base
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color(0xFF1C0030),
+                                        Color(0xFF0D0818),
+                                        ColorBackground,
+                                    )
+                                )
+                            )
+                    )
+                    // Diagonal accent: rose bottom-left to purple top-right
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFFF43F5E).copy(alpha = 0.13f),
+                                        Color.Transparent,
+                                        Color(0xFFA855F7).copy(alpha = 0.09f),
+                                    ),
+                                    start = Offset(0f, 300f),
+                                    end = Offset(500f, 0f),
+                                )
+                            )
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(horizontal = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        AnimatedHeroTitle()
+                        Spacer(Modifier.height(10.dp))
+                        HeroTagline()
+                    }
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+                // ── CTA BUTTONS ───────────────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    GradientButton(
+                        text = S.current.createRound,
+                        onClick = { nav.navigateTo(Screen.SELECT_MODE) },
+                        modifier = Modifier.fillMaxWidth().graphicsLayer {
+                            translationY = btnOffsets[0].value
+                            alpha = btnAlphas[0].value
+                        },
+                        gradientColors = GradientPrimary,
+                        height = 62.dp,
+                        fontSize = 17.sp,
+                        leadingIcon = {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                        },
+                    )
+
+                    OutlinedButton(
+                        onClick = { nav.navigateTo(Screen.JOIN_GAME) },
+                        modifier = Modifier.fillMaxWidth().height(62.dp).graphicsLayer {
+                            translationY = btnOffsets[1].value
+                            alpha = btnAlphas[1].value
+                        },
+                        shape = RoundedCornerShape(31.dp),
+                        border = BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.55f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Login,
+                            null,
+                            modifier = Modifier.size(20.dp),
+                            tint = ColorPrimary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            S.current.joinRound,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 17.sp,
+                            color = ColorOnSurface,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
 
                 // ── HOW TO PLAY ──────────────────────────────────────────────
                 Row(
@@ -168,8 +222,9 @@ fun HomeScreen(gameState: GameState) {
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorOnSurfaceVariant.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center,
+                    fontSize = 10.sp,
                     modifier = Modifier
-                        .padding(horizontal = Spacing.screenHorizontal + Spacing.xs)
+                        .padding(horizontal = Spacing.screenHorizontal + 8.dp)
                         .fillMaxWidth(),
                 )
 
@@ -223,59 +278,8 @@ fun HomeScreen(gameState: GameState) {
                     Spacer(Modifier.height(24.dp))
                 }
 
-                // Push buttons + footer to bottom when content is short
+                // Push footer to bottom when content is short
                 Spacer(Modifier.weight(1f))
-
-                // ── CTA BUTTONS ───────────────────────────────────────────────
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.screenHorizontal)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    GradientButton(
-                        text = S.current.createRound,
-                        onClick = { nav.navigateTo(Screen.SELECT_MODE) },
-                        modifier = Modifier.fillMaxWidth().graphicsLayer {
-                            translationY = btnOffsets[0].value
-                            alpha = btnAlphas[0].value
-                        },
-                        gradientColors = GradientPrimary,
-                        height = 62.dp,
-                        fontSize = 17.sp,
-                        leadingIcon = {
-                            Icon(Icons.Default.Add, contentDescription = S.current.createRound, modifier = Modifier.size(22.dp), tint = Color.White)
-                        },
-                    )
-
-                    OutlinedButton(
-                        onClick = { nav.navigateTo(Screen.JOIN_GAME) },
-                        modifier = Modifier.fillMaxWidth().height(62.dp).graphicsLayer {
-                            translationY = btnOffsets[1].value
-                            alpha = btnAlphas[1].value
-                        },
-                        shape = RoundedCornerShape(31.dp),
-                        border = BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.55f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Login,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = ColorPrimary,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            S.current.joinRound,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 17.sp,
-                            color = ColorOnSurface,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
 
                 // ── FOOTER ────────────────────────────────────────────────────
                 Row(
@@ -344,7 +348,10 @@ fun HomeScreen(gameState: GameState) {
 private fun AnimatedHeroTitle() {
     AnimatedGradientText(
         text = "KatchIt!",
-        style = AppTextStyles.heroTitle.copy(
+        style = MaterialTheme.typography.displaySmall.copy(
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 58.sp,
+            letterSpacing = (-2).sp,
             shadow = Shadow(
                 color = Color(0xFFD946EF).copy(alpha = 0.6f),
                 blurRadius = 50f,
@@ -352,7 +359,6 @@ private fun AnimatedHeroTitle() {
         ),
         gradientColors = GradientPrimary,
         durationMillis = 3000,
-        modifier = Modifier.semanticHeading("KatchIt! - Das Multiplayer-Fotospiel"),
     )
 }
 
