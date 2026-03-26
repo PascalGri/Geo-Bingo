@@ -368,9 +368,79 @@ fun ResultsScreen(gameState: GameState) {
                 }
             }
 
+            // Team results (if team mode)
+            if (gameState.gameplay.teamModeEnabled && gameState.gameplay.teamAssignments.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.padding(16.dp).staggered(2),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AnimatedGradientText(
+                        text = S.current.teamScore,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        gradientColors = modeGradient,
+                    )
+                    val team1Score = gameState.getTeamScore(1)
+                    val team2Score = gameState.getTeamScore(2)
+                    val team1Players = gameState.getTeamPlayers(1)
+                    val team2Players = gameState.getTeamPlayers(2)
+                    val winningTeam = if (team1Score > team2Score) 1 else if (team2Score > team1Score) 2 else 0
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Team 1 card
+                        GradientBorderCard(
+                            modifier = Modifier.weight(1f),
+                            cornerRadius = 14.dp,
+                            borderColors = if (winningTeam == 1) GradientGold else listOf(modeGradient.first(), modeGradient.first()),
+                            backgroundColor = ColorSurface,
+                            borderWidth = if (winningTeam == 1) 2.dp else 1.dp,
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                if (winningTeam == 1) {
+                                    Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(20.dp), tint = Color(0xFFFBBF24))
+                                }
+                                Text(S.current.teamName(1), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = modeGradient.first())
+                                Text("$team1Score ${S.current.pointsAbbrev}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                                team1Players.forEach { p ->
+                                    Text(p.name, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                }
+                            }
+                        }
+                        // Team 2 card
+                        GradientBorderCard(
+                            modifier = Modifier.weight(1f),
+                            cornerRadius = 14.dp,
+                            borderColors = if (winningTeam == 2) GradientGold else listOf(modeGradient.last(), modeGradient.last()),
+                            backgroundColor = ColorSurface,
+                            borderWidth = if (winningTeam == 2) 2.dp else 1.dp,
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                if (winningTeam == 2) {
+                                    Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(20.dp), tint = Color(0xFFFBBF24))
+                                }
+                                Text(S.current.teamName(2), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = modeGradient.last())
+                                Text("$team2Score ${S.current.pointsAbbrev}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                                team2Players.forEach { p ->
+                                    Text(p.name, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Full ranking
             Column(
-                modifier = Modifier.padding(16.dp).staggered(2),
+                modifier = Modifier.padding(16.dp).staggered(if (gameState.gameplay.teamModeEnabled) 3 else 2),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(

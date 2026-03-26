@@ -165,6 +165,38 @@ object GameRepository {
             .decodeList<JokerLabelDto>()
             .associate { it.player_id to it.label }
 
+    // ── Team assignments (stored as joker_labels with player_id = "__team__<playerId>") ──
+
+    suspend fun saveTeamAssignments(gameId: String, assignments: Map<String, Int>) {
+        val dtos = assignments.map { (playerId, team) ->
+            JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
+        }
+        if (dtos.isNotEmpty()) {
+            // Upsert one by one to handle existing entries
+            dtos.forEach { dto ->
+                try {
+                    supabase.from("joker_labels").insert(dto)
+                } catch (e: Exception) {
+                    // If duplicate, update instead
+                    try {
+                        supabase.from("joker_labels").update({ set("label", dto.label) }) {
+                            filter { eq("game_id", dto.game_id); eq("player_id", dto.player_id) }
+                        }
+                    } catch (e2: Exception) {
+                        AppLogger.w("Repo", "Team assignment save failed for ${dto.player_id}", e2)
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun getTeamAssignments(gameId: String): Map<String, Int> =
+        supabase.from("joker_labels")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList<JokerLabelDto>()
+            .filter { it.player_id.startsWith("__team__") }
+            .associate { it.player_id.removePrefix("__team__") to (it.label.toIntOrNull() ?: 1) }
+
     suspend fun addPlayer(gameId: String, name: String, color: String): PlayerDto =
         supabase.from("players").insert(
             PlayerInsertDto(game_id = gameId, name = name, color = color)

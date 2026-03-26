@@ -122,6 +122,14 @@ fun LobbyScreen(gameState: GameState) {
                             gameState.gameplay.isGameRunning = true
                             gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                 .takeIf { it >= 0 } ?: 0
+                            // Load team assignments from server (guest)
+                            try {
+                                val teams = GameRepository.getTeamAssignments(gameId)
+                                if (teams.isNotEmpty()) {
+                                    gameState.gameplay.teamModeEnabled = true
+                                    gameState.gameplay.teamAssignments = teams
+                                }
+                            } catch (e: Exception) { AppLogger.w("Lobby", "Team load failed", e) }
                             feedback.gameStart()
                             gameState.session.currentScreen = Screen.GAME
                         }
@@ -223,6 +231,10 @@ fun LobbyScreen(gameState: GameState) {
                                 scope.launch {
                                     isStarting = true
                                     try {
+                                        // Save team assignments before starting
+                                        if (gameState.gameplay.teamModeEnabled && gameState.gameplay.teamAssignments.isNotEmpty()) {
+                                            try { GameRepository.saveTeamAssignments(gameId, gameState.gameplay.teamAssignments) } catch (e: Exception) { AppLogger.w("Lobby", "Team save failed", e) }
+                                        }
                                         GameRepository.startGame(gameId)
                                         val playerDtos = GameRepository.getPlayers(gameId)
                                         gameState.gameplay.players = playerDtos.map { it.toPlayer() }

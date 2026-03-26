@@ -204,6 +204,7 @@ fun GameScreenContent(
                                     totalCategories = gameState.gameplay.selectedCategories.size,
                                     photoBytes = gameState.photo.playerAvatarBytes[player.id],
                                     accentColor = modeColor,
+                                    teamNumber = if (gameState.gameplay.teamModeEnabled) gameState.gameplay.teamAssignments[player.id] else null,
                                     onClick = {},
                                 )
                             }
@@ -424,7 +425,7 @@ internal fun BlindBingoLockedCard(
 }
 
 @Composable
-internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, accentColor: Color = ColorPrimary, onClick: () -> Unit) {
+internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, accentColor: Color = ColorPrimary, teamNumber: Int? = null, onClick: () -> Unit) {
     val bg = if (isActive)
         Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
     else
@@ -439,6 +440,18 @@ internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int,
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (teamNumber != null) {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (teamNumber == 1) accentColor.copy(alpha = 0.7f) else ColorOnSurfaceVariant.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("$teamNumber", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                Spacer(Modifier.width(4.dp))
+            }
             PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(6.dp))
             Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
