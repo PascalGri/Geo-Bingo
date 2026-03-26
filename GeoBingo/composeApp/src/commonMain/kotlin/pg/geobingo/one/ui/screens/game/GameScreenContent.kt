@@ -101,6 +101,8 @@ fun GameScreenContent(
     )
 
     val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
+    val isTeamMode = gameState.gameplay.teamModeEnabled
+    val myTeam = if (isTeamMode) gameState.getMyTeamNumber() else null
 
     Scaffold(containerColor = ColorBackground) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { alpha = contentAlpha.value }) {
@@ -214,8 +216,6 @@ fun GameScreenContent(
 
                 // Player info + controls
                 if (myPlayer != null) {
-                    val isTeamMode = gameState.gameplay.teamModeEnabled
-                    val myTeam = if (isTeamMode) gameState.getMyTeamNumber() else null
                     val myCount = if (isTeamMode && myTeam != null)
                         gameState.getTeamCaptures(myTeam).size
                     else
