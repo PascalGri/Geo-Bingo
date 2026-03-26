@@ -178,9 +178,9 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // ── HOW TO PLAY + DISCLAIMER (compact row) ───────────────────
+                // ── HOW TO PLAY ──────────────────────────────────────────────
                 Row(
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenHorizontal)
@@ -198,20 +198,13 @@ fun HomeScreen(gameState: GameState) {
                         modifier = Modifier.size(18.dp),
                         tint = ColorPrimary.copy(alpha = 0.7f),
                     )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            S.current.howToPlay,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = ColorOnSurface,
-                        )
-                        Text(
-                            S.current.photoConsentDisclaimer,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                        )
-                    }
+                    Text(
+                        S.current.howToPlay,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorOnSurface,
+                        modifier = Modifier.weight(1f),
+                    )
                     Icon(
                         Icons.Default.ChevronRight,
                         contentDescription = null,
@@ -220,7 +213,21 @@ fun HomeScreen(gameState: GameState) {
                     )
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(12.dp))
+
+                // ── DISCLAIMER ───────────────────────────────────────────────
+                Text(
+                    S.current.photoConsentDisclaimer,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal + 8.dp)
+                        .fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(16.dp))
 
                 // ── HISTORY ───────────────────────────────────────────────────
                 if (gameState.ui.gameHistory.isNotEmpty()) {
