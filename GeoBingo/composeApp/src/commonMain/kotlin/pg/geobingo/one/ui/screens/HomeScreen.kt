@@ -117,6 +117,32 @@ fun HomeScreen(gameState: GameState) {
                             color = ColorOnSurface,
                         )
                     }
+
+                    // ── FOOTER ────────────────────────────────────────────────
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        ) {
+                        val uriHandler = LocalUriHandler.current
+                        TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
+                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                            Spacer(Modifier.width(4.dp))
+                            Text(S.current.settings, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                        }
+                        TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
+                            Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                            Spacer(Modifier.width(4.dp))
+                            Text(S.current.statsTitle, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
+                            Text(S.current.impressum, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
+                        }
+                        TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
+                            Text(S.current.privacy, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
+                        }
+                    }
                 }
             }
         },
@@ -266,60 +292,6 @@ fun HomeScreen(gameState: GameState) {
                         }
                     }
                     Spacer(Modifier.height(24.dp))
-                }
-
-                // Push footer to bottom when content is short
-                Spacer(Modifier.weight(1f))
-
-                // ── FOOTER ────────────────────────────────────────────────────
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.staggered(3),
-                ) {
-                    TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = ColorOnSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            S.current.settings,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                    TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
-                        Icon(
-                            Icons.Default.BarChart,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = ColorOnSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            S.current.statsTitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                    val uriHandler = LocalUriHandler.current
-                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
-                        Text(
-                            S.current.impressum,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ColorOutline,
-                        )
-                    }
-                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
-                        Text(
-                            S.current.privacy,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ColorOutline,
-                        )
-                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
