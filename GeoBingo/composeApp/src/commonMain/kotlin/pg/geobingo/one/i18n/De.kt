@@ -29,7 +29,7 @@ object De : StringRes {
     override val heroTagCapture = "Fotografiere"
     override val heroTagRate = "Bewerte"
     override val heroTagWin = "Gewinne"
-    override val photoConsentDisclaimer = "Fotografiere nur Personen mit deren Einverständnis."
+    override val photoConsentDisclaimer = "Bitte fotografiere Personen nur mit deren Einverständnis und respektiere die Privatsphäre anderer."
     override val recentGames = "Letzte Spiele"
     override val showAll = "Alle anzeigen"
     override val settings = "Einstellungen"
