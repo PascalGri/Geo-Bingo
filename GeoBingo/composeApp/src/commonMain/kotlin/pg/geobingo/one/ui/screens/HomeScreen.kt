@@ -341,20 +341,15 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
-    val gradientBrush = Brush.linearGradient(
-        colors = GradientPrimary,
-        start = Offset(0f, 0f),
-        end = Offset(520f, 120f),
-    )
-    Text(
+    AnimatedGradientText(
         text = "KatchIt!",
         style = MaterialTheme.typography.displaySmall.copy(
             fontWeight = FontWeight.ExtraBold,
             fontSize = 58.sp,
             letterSpacing = (-2).sp,
-            brush = gradientBrush,
         ),
-        textAlign = TextAlign.Center,
+        gradientColors = GradientPrimary,
+        durationMillis = 3000,
     )
 }
 
