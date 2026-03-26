@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.GridView
@@ -77,25 +78,47 @@ fun OnboardingScreen(gameState: GameState) {
         nav.resetTo(Screen.HOME)
     }
 
-    Scaffold(containerColor = ColorBackground) { _ ->
+    Scaffold(containerColor = ColorBackground) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .background(ColorBackground),
         ) {
-            // ── Skip button (top-right, hidden on last page) ─────────────
-            if (!isLastPage) {
-                TextButton(
-                    onClick = { completeOnboarding() },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 16.dp, end = 8.dp),
-                ) {
-                    Text(
-                        text = S.current.onboardingSkip,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = ColorOnSurfaceVariant,
-                    )
+            // ── Top bar: back arrow (left) + skip button (right) ─────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, start = 4.dp, end = 4.dp)
+                    .align(Alignment.TopCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Back arrow (hidden on first page)
+                if (pagerState.currentPage > 0) {
+                    IconButton(onClick = {
+                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = S.current.back,
+                            tint = ColorOnSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.size(48.dp))
+                }
+                // Skip button (hidden on last page)
+                if (!isLastPage) {
+                    TextButton(onClick = { completeOnboarding() }) {
+                        Text(
+                            text = S.current.onboardingSkip,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.size(48.dp))
                 }
             }
 
