@@ -79,22 +79,21 @@ fun OnboardingScreen(gameState: GameState) {
     }
 
     Scaffold(containerColor = ColorBackground) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(ColorBackground),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // ── Top bar: back arrow (left) + skip button (right) ─────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, start = 4.dp, end = 4.dp)
-                    .align(Alignment.TopCenter),
+                    .padding(top = 8.dp, start = 4.dp, end = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Back arrow (hidden on first page)
                 if (pagerState.currentPage > 0) {
                     IconButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
@@ -108,7 +107,6 @@ fun OnboardingScreen(gameState: GameState) {
                 } else {
                     Spacer(Modifier.size(48.dp))
                 }
-                // Skip button (hidden on last page)
                 if (!isLastPage) {
                     TextButton(onClick = { completeOnboarding() }) {
                         Text(
@@ -123,12 +121,7 @@ fun OnboardingScreen(gameState: GameState) {
             }
 
             // ── Pager + bottom controls ──────────────────────────────────
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Pager takes up most of the space
-                HorizontalPager(
+            HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,50 +130,49 @@ fun OnboardingScreen(gameState: GameState) {
                     OnboardingPage(slide = slides[page])
                 }
 
-                // ── Page indicator dots ──────────────────────────────────
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 24.dp),
-                ) {
-                    repeat(slides.size) { index ->
-                        val isActive = pagerState.currentPage == index
-                        val color by animateColorAsState(
-                            targetValue = if (isActive) ColorPrimary else ColorOutlineVariant,
-                            animationSpec = tween(300),
-                            label = "dotColor",
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(if (isActive) 10.dp else 8.dp)
-                                .clip(CircleShape)
-                                .background(color),
-                        )
-                    }
+            // ── Page indicator dots ──────────────────────────────────
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 24.dp),
+            ) {
+                repeat(slides.size) { index ->
+                    val isActive = pagerState.currentPage == index
+                    val color by animateColorAsState(
+                        targetValue = if (isActive) ColorPrimary else ColorOutlineVariant,
+                        animationSpec = tween(300),
+                        label = "dotColor",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(if (isActive) 10.dp else 8.dp)
+                            .clip(CircleShape)
+                            .background(color),
+                    )
                 }
-
-                // ── Action button ────────────────────────────────────────
-                GradientButton(
-                    text = if (isLastPage) S.current.onboardingStart else S.current.onboardingNext,
-                    onClick = {
-                        if (isLastPage) {
-                            completeOnboarding()
-                        } else {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screenHorizontal),
-                    gradientColors = GradientPrimary,
-                    height = 56.dp,
-                    fontSize = 17.sp,
-                )
-
-                Spacer(Modifier.height(48.dp))
             }
+
+            // ── Action button ────────────────────────────────────────
+            GradientButton(
+                text = if (isLastPage) S.current.onboardingStart else S.current.onboardingNext,
+                onClick = {
+                    if (isLastPage) {
+                        completeOnboarding()
+                    } else {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screenHorizontal),
+                gradientColors = GradientPrimary,
+                height = 56.dp,
+                fontSize = 17.sp,
+            )
+
+            Spacer(Modifier.height(48.dp))
         }
     }
 }

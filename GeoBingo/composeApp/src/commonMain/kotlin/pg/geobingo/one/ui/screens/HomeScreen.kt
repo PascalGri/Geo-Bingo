@@ -178,52 +178,49 @@ fun HomeScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(20.dp))
 
-                TextButton(
-                    onClick = { nav.navigateTo(Screen.HOW_TO_PLAY) },
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = ColorOnSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        S.current.howToPlay,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                    )
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // ── DISCLAIMER ────────────────────────────────────────────────
+                // ── HOW TO PLAY + DISCLAIMER (compact row) ───────────────────
                 Row(
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenHorizontal)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ColorSurfaceVariant.copy(alpha = 0.4f))
+                        .clickable { nav.navigateTo(Screen.HOW_TO_PLAY) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        modifier = Modifier.size(11.dp),
-                        tint = ColorOnSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.size(18.dp),
+                        tint = ColorPrimary.copy(alpha = 0.7f),
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        S.current.photoConsentDisclaimer,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorOnSurfaceVariant.copy(alpha = 0.55f),
-                        textAlign = TextAlign.Center,
-                        fontSize = 10.sp,
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            S.current.howToPlay,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorOnSurface,
+                        )
+                        Text(
+                            S.current.photoConsentDisclaimer,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = ColorOnSurfaceVariant,
                     )
                 }
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
 
                 // ── HISTORY ───────────────────────────────────────────────────
                 if (gameState.ui.gameHistory.isNotEmpty()) {
