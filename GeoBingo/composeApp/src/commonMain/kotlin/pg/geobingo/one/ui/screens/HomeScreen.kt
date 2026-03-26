@@ -346,14 +346,12 @@ fun HomeScreen(gameState: GameState) {
 
 @Composable
 private fun AnimatedHeroTitle() {
-    val titleStyle = MaterialTheme.typography.displaySmall.copy(
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 58.sp,
-        letterSpacing = (-1.5).sp,
-    )
     AnimatedGradientText(
         text = "KatchIt!",
-        style = titleStyle.copy(
+        style = MaterialTheme.typography.displaySmall.copy(
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 58.sp,
+            letterSpacing = (-2).sp,
             shadow = Shadow(
                 color = Color(0xFFD946EF).copy(alpha = 0.6f),
                 blurRadius = 50f,
