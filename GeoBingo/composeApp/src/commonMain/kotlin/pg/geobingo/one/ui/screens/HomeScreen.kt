@@ -67,73 +67,13 @@ fun HomeScreen(gameState: GameState) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = ColorBackground,
-    ) { _ ->
-        Box(modifier = Modifier.fillMaxSize().background(ColorBackground)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-
-                // ── HERO ──────────────────────────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .staggered(0),
-                ) {
-                    // Dark base
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF1C0030),
-                                        Color(0xFF0D0818),
-                                        ColorBackground,
-                                    )
-                                )
-                            )
-                    )
-                    // Diagonal accent: rose bottom-left to purple top-right
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFFF43F5E).copy(alpha = 0.13f),
-                                        Color.Transparent,
-                                        Color(0xFFA855F7).copy(alpha = 0.09f),
-                                    ),
-                                    start = Offset(0f, 300f),
-                                    end = Offset(500f, 0f),
-                                )
-                            )
-                    )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        AnimatedHeroTitle()
-                        Spacer(Modifier.height(10.dp))
-                        HeroTagline()
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                // ── CTA BUTTONS ───────────────────────────────────────────────
+        bottomBar = {
+            // ── CTA BUTTONS (fixed at bottom) ────────────────────────────
+            Surface(color = Color.Transparent) {
                 Column(
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenHorizontal)
+                        .padding(bottom = 24.dp, top = 8.dp)
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -177,6 +117,64 @@ fun HomeScreen(gameState: GameState) {
                             color = ColorOnSurface,
                         )
                     }
+                }
+            }
+        },
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            // ── FULL-SCREEN BACKGROUND GRADIENT ──────────────────────────
+            // Dark base
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF1C0030),
+                                Color(0xFF0D0818),
+                                ColorBackground,
+                            )
+                        )
+                    )
+            )
+            // Diagonal accent: rose bottom-left to purple top-right
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFFF43F5E).copy(alpha = 0.13f),
+                                Color.Transparent,
+                                Color(0xFFA855F7).copy(alpha = 0.09f),
+                            ),
+                            start = Offset(0f, 600f),
+                            end = Offset(500f, 0f),
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+
+                // ── HERO ──────────────────────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 80.dp, bottom = 24.dp)
+                        .padding(horizontal = 24.dp)
+                        .staggered(0),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    AnimatedHeroTitle()
+                    Spacer(Modifier.height(10.dp))
+                    HeroTagline()
                 }
 
                 Spacer(Modifier.height(12.dp))
