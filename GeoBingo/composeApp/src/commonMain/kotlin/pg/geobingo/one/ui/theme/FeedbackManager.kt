@@ -6,13 +6,17 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.platform.PlatformHaptics
 
 class FeedbackManager(
     private val gameState: GameState,
     private val haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
 ) {
     private fun hapticTick() {
-        if (gameState.ui.hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (gameState.ui.hapticEnabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            PlatformHaptics.vibrate()
+        }
     }
 
     fun tap() {

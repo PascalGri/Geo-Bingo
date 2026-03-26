@@ -1,11 +1,20 @@
 package pg.geobingo.one.platform
 
 actual object SoundPlayer {
+    /**
+     * Plays a tone using a shared AudioContext (reused across calls).
+     * Mobile browsers require AudioContext to be created/resumed after a user gesture.
+     * By reusing the context, we avoid the iOS Safari limit of ~6 contexts.
+     */
     private fun playTone(freq: Double, duration: Int, type: String = "sine", volume: Double = 0.25) {
         try {
             js("""
                 (function() {
-                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (!window._katchAudioCtx) {
+                        window._katchAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    var ctx = window._katchAudioCtx;
+                    if (ctx.state === 'suspended') { ctx.resume(); }
                     var osc = ctx.createOscillator();
                     var gain = ctx.createGain();
                     osc.connect(gain);
