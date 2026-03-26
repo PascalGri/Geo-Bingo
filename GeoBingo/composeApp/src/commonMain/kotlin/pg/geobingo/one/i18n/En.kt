@@ -249,6 +249,11 @@ object En : StringRes {
     override fun teamName(number: Int) = "Team $number"
     override val teamScore = "Team score"
     override val selectTeams = "Select teams"
+    override val createTeam = "Create team"
+    override val teamNamePlaceholder = "Enter team name"
+    override val joinTeam = "Join"
+    override val noTeam = "No team"
+    override val minTwoTeamsNeeded = "At least 2 teams needed"
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     override val ready = "Ready!"

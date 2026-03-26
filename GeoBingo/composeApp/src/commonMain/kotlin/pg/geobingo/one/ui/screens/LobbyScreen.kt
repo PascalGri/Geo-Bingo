@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -96,16 +97,16 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // Auto-assign teams when lobby players change
-    LaunchedEffect(gameState.gameplay.lobbyPlayers.size) {
-        if (gameState.gameplay.teamModeEnabled && gameState.session.isHost) {
-            val assignments = mutableMapOf<String, Int>()
-            gameState.gameplay.lobbyPlayers.forEachIndexed { i, p ->
-                assignments[p.id] = if (i % 2 == 0) 1 else 2
-            }
-            gameState.gameplay.teamAssignments = assignments
-        }
-    }
+    // Team mode state
+    var showCreateTeamDialog by remember { mutableStateOf(false) }
+    var newTeamNameInput by remember { mutableStateOf("") }
+
+    // Count distinct teams that have players
+    val activeTeamCount = if (gameState.gameplay.teamModeEnabled) {
+        gameState.gameplay.teamAssignments.values.toSet().size
+    } else 0
+
+    val canStartTeamMode = !gameState.gameplay.teamModeEnabled || activeTeamCount >= 2
 
     // Sync: game status changes (handles both realtime + polling)
     LaunchedEffect(gameId) {
@@ -224,10 +225,11 @@ fun LobbyScreen(gameState: GameState) {
                             )
                         }
                         GradientButton(
-                            text = if (gameState.gameplay.lobbyPlayers.size < 2)
-                                S.current.minPlayersNeeded(2)
-                            else
-                                S.current.startGame(gameState.gameplay.lobbyPlayers.size),
+                            text = when {
+                                gameState.gameplay.lobbyPlayers.size < 2 -> S.current.minPlayersNeeded(2)
+                                gameState.gameplay.teamModeEnabled && activeTeamCount < 2 -> S.current.minTwoTeamsNeeded
+                                else -> S.current.startGame(gameState.gameplay.lobbyPlayers.size)
+                            },
                             gradientColors = modeGradient,
                             onClick = {
                                 scope.launch {
@@ -252,7 +254,7 @@ fun LobbyScreen(gameState: GameState) {
                                     }
                                 }
                             },
-                            enabled = gameState.gameplay.lobbyPlayers.size >= 2 && !isStarting,
+                            enabled = gameState.gameplay.lobbyPlayers.size >= 2 && canStartTeamMode && !isStarting,
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Box(contentAlignment = Alignment.Center) {
@@ -448,141 +450,216 @@ fun LobbyScreen(gameState: GameState) {
 
             // ── Team Assignment Section ──────────────────────────────────
             if (gameState.gameplay.teamModeEnabled) {
+                // Create Team Dialog
+                if (showCreateTeamDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showCreateTeamDialog = false; newTeamNameInput = "" },
+                        containerColor = ColorSurface,
+                        title = {
+                            Text(S.current.createTeam, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                        },
+                        text = {
+                            OutlinedTextField(
+                                value = newTeamNameInput,
+                                onValueChange = { if (it.length <= 20) newTeamNameInput = it },
+                                placeholder = { Text(S.current.teamNamePlaceholder, color = ColorOnSurfaceVariant) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = modeGradient.first(),
+                                    unfocusedBorderColor = ColorOutline,
+                                    focusedTextColor = ColorOnSurface,
+                                    unfocusedTextColor = ColorOnSurface,
+                                    cursorColor = modeGradient.first(),
+                                ),
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val name = newTeamNameInput.trim()
+                                    if (name.isNotEmpty()) {
+                                        val teamNum = gameState.gameplay.nextTeamNumber
+                                        gameState.gameplay.nextTeamNumber = teamNum + 1
+                                        gameState.gameplay.teamNames = gameState.gameplay.teamNames + (teamNum to name)
+                                        // Auto-assign creator to this team
+                                        val myId = gameState.session.myPlayerId
+                                        if (myId != null) {
+                                            gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
+                                        }
+                                        newTeamNameInput = ""
+                                        showCreateTeamDialog = false
+                                    }
+                                },
+                                enabled = newTeamNameInput.trim().isNotEmpty(),
+                            ) {
+                                Text(S.current.confirm, color = modeGradient.first())
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCreateTeamDialog = false; newTeamNameInput = "" }) {
+                                Text(S.current.cancel, color = ColorOnSurfaceVariant)
+                            }
+                        },
+                    )
+                }
+
                 item {
                     Spacer(Modifier.height(8.dp))
-                    GradientBorderCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        cornerRadius = 16.dp,
-                        borderColors = modeGradient,
-                        backgroundColor = ColorSurface,
-                        borderWidth = 1.dp,
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            AnimatedGradientText(
-                                text = S.current.selectTeams,
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                gradientColors = modeGradient,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                // Team 1
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(Brush.linearGradient(listOf(modeGradient.first().copy(alpha = 0.2f), modeGradient.first().copy(alpha = 0.05f))))
-                                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center,
+                    AnimatedGradientText(
+                        text = S.current.selectTeams,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = modeGradient,
+                    )
+                }
+
+                // Show each team
+                val teamNumbers = gameState.gameplay.teamNames.keys.sorted()
+                val teamColors = listOf(
+                    modeGradient.first(),
+                    modeGradient.last(),
+                    Color(0xFF22D3EE), // cyan
+                    Color(0xFFFB923C), // orange
+                    Color(0xFF84CC16), // lime
+                    Color(0xFFFF6B6B), // coral
+                )
+
+                teamNumbers.forEachIndexed { idx, teamNum ->
+                    item(key = "team_$teamNum") {
+                        val teamColor = teamColors[idx % teamColors.size]
+                        val teamName = gameState.gameplay.teamNames[teamNum] ?: S.current.teamName(teamNum)
+                        val teamPlayers = gameState.gameplay.lobbyPlayers.filter {
+                            gameState.gameplay.teamAssignments[it.id] == teamNum
+                        }
+                        val myId = gameState.session.myPlayerId
+                        val isMyTeam = gameState.gameplay.teamAssignments[myId] == teamNum
+
+                        GradientBorderCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = 14.dp,
+                            borderColors = listOf(teamColor, teamColor.copy(alpha = 0.5f)),
+                            backgroundColor = ColorSurface,
+                            borderWidth = if (isMyTeam) 2.dp else 1.dp,
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(teamColor),
+                                        )
                                         Text(
-                                            S.current.teamName(1),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = modeGradient.first(),
+                                            teamName,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = teamColor,
+                                        )
+                                        Text(
+                                            "(${teamPlayers.size})",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = ColorOnSurfaceVariant,
                                         )
                                     }
-                                    Spacer(Modifier.height(8.dp))
-                                    gameState.gameplay.lobbyPlayers.filter {
-                                        gameState.gameplay.teamAssignments[it.id] == 1
-                                    }.forEach { player ->
-                                        val isClickable = gameState.session.isHost
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = modeGradient.first().copy(alpha = 0.08f),
+                                    if (!isMyTeam && myId != null) {
+                                        Box(
                                             modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 3.dp)
-                                                .then(
-                                                    if (isClickable) Modifier.clickable {
-                                                        val updated = gameState.gameplay.teamAssignments.toMutableMap()
-                                                        updated[player.id] = 2
-                                                        gameState.gameplay.teamAssignments = updated
-                                                    } else Modifier
-                                                ),
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(teamColor.copy(alpha = 0.15f))
+                                                .clickable {
+                                                    gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
+                                                }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp),
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(modeGradient.first()),
-                                                )
-                                                Spacer(Modifier.width(8.dp))
-                                                Text(
-                                                    player.name,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = ColorOnSurface,
-                                                )
-                                            }
+                                            Text(
+                                                S.current.joinTeam,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = teamColor,
+                                            )
                                         }
                                     }
                                 }
-                                // Team 2
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(Brush.linearGradient(listOf(modeGradient.last().copy(alpha = 0.2f), modeGradient.last().copy(alpha = 0.05f))))
-                                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            S.current.teamName(2),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = modeGradient.last(),
-                                        )
-                                    }
+                                if (teamPlayers.isNotEmpty()) {
                                     Spacer(Modifier.height(8.dp))
-                                    gameState.gameplay.lobbyPlayers.filter {
-                                        gameState.gameplay.teamAssignments[it.id] == 2
-                                    }.forEach { player ->
-                                        val isClickable = gameState.session.isHost
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = modeGradient.last().copy(alpha = 0.08f),
+                                    teamPlayers.forEach { player ->
+                                        Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 3.dp)
-                                                .then(
-                                                    if (isClickable) Modifier.clickable {
-                                                        val updated = gameState.gameplay.teamAssignments.toMutableMap()
-                                                        updated[player.id] = 1
-                                                        gameState.gameplay.teamAssignments = updated
-                                                    } else Modifier
-                                                ),
+                                                .padding(vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(modeGradient.last()),
-                                                )
-                                                Spacer(Modifier.width(8.dp))
+                                            PlayerAvatarViewRaw(
+                                                name = player.name,
+                                                color = parseHexColor(player.color),
+                                                avatar = player.avatar,
+                                                size = 24.dp,
+                                                fontSize = 10.sp,
+                                                photoBytes = gameState.photo.playerAvatarBytes[player.id],
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                player.name,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Medium,
+                                                color = ColorOnSurface,
+                                            )
+                                            if (player.id == myId) {
+                                                Spacer(Modifier.width(4.dp))
                                                 Text(
-                                                    player.name,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = ColorOnSurface,
+                                                    "(${S.current.you})",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = ColorPrimary,
                                                 )
                                             }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // Create Team button
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(modeGradient.first().copy(alpha = 0.1f))
+                            .border(
+                                width = 1.dp,
+                                color = modeGradient.first().copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { showCreateTeamDialog = true }
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = modeGradient.first(),
+                            )
+                            Text(
+                                S.current.createTeam,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = modeGradient.first(),
+                            )
                         }
                     }
                 }

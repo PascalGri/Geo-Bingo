@@ -273,6 +273,11 @@ interface StringRes {
     fun teamName(number: Int): String
     val teamScore: String
     val selectTeams: String
+    val createTeam: String
+    val teamNamePlaceholder: String
+    val joinTeam: String
+    val noTeam: String
+    val minTwoTeamsNeeded: String
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     val ready: String

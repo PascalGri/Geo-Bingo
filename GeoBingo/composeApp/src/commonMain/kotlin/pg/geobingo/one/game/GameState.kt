@@ -263,7 +263,9 @@ class GameState {
         review.allCategoriesCaptured = false
         review.finishSignalDetected = false
         gameplay.teamAssignments = mapOf()
+        gameplay.teamNames = mapOf()
         gameplay.teamModeEnabled = false
+        gameplay.nextTeamNumber = 1
         joker.myJokerUsed = false
         joker.jokerLabels = mapOf()
         ui.consecutiveNetworkErrors = 0

@@ -17,8 +17,10 @@ class GamePlayState {
     var isGameRunning by mutableStateOf(false)
     var currentPlayerIndex by mutableStateOf(0)
     var captures by mutableStateOf(mapOf<String, Set<String>>())
-    var teamAssignments by mutableStateOf(mapOf<String, Int>()) // playerId → teamNumber (1 or 2)
+    var teamAssignments by mutableStateOf(mapOf<String, Int>()) // playerId → teamNumber
+    var teamNames by mutableStateOf(mapOf<Int, String>()) // teamNumber → custom name
     var teamModeEnabled by mutableStateOf(false)
+    var nextTeamNumber by mutableStateOf(1)
 
     val currentPlayer: Player? get() = players.getOrNull(currentPlayerIndex)
 }
