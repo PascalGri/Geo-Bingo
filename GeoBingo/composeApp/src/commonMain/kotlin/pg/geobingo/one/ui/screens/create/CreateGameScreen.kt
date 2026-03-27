@@ -138,6 +138,7 @@ fun CreateGameScreen(gameState: GameState) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
+                actions = { StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(Screen.SHOP) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

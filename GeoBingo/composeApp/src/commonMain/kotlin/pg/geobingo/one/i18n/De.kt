@@ -350,4 +350,21 @@ object De : StringRes {
     override fun skipCardsPackage(cards: Int, price: String) = "$cards Karten - $price"
     override val interstitialDisabledNote = "Werbung nach Runden deaktiviert"
     override val starsEarned = "Stars erhalten!"
+
+    // ── Account ───────────────────────────────────────────────────
+    override val account = "Account"
+    override val signIn = "Anmelden"
+    override val signUp = "Registrieren"
+    override val signOut = "Abmelden"
+    override val emailPlaceholder = "E-Mail"
+    override val passwordPlaceholder = "Passwort"
+    override val accountCreated = "Account erstellt!"
+    override val signedIn = "Angemeldet"
+    override val signedOut = "Abgemeldet"
+    override val syncData = "Daten synchronisieren"
+    override val syncDataDesc = "Speichere Stars, Statistiken und Einstellungen in der Cloud"
+    override val notLoggedIn = "Nicht angemeldet"
+    override val loggedInAs = "Angemeldet als"
+    override val authError = "Anmeldung fehlgeschlagen"
+    override val passwordTooShort = "Passwort muss mind. 6 Zeichen haben"
 }

@@ -81,6 +81,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(compose.materialIconsExtended)
             implementation(libs.ktor.client.core)
+            implementation(libs.supabase.auth)
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.realtime)
             implementation(libs.supabase.storage)

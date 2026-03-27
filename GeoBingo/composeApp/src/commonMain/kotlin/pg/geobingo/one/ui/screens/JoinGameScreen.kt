@@ -108,6 +108,7 @@ fun JoinGameScreen(gameState: GameState) {
                         )
                     }
                 },
+                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SHOP) }) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = ColorSurface,
                 ),

@@ -62,7 +62,7 @@ class StarsState {
         if (lastLoginDate == today) return false
         lastLoginDate = today
         AppSettings.setString(SettingsKeys.LAST_LOGIN_DATE, today)
-        add(15)
+        add(5)
         return true
     }
 
@@ -98,6 +98,12 @@ class StarsState {
     fun updateNoAdsPurchased(purchased: Boolean) {
         noAdsPurchased = purchased
         AppSettings.setBoolean(SettingsKeys.NO_ADS_PURCHASED, purchased)
+    }
+
+    fun reload() {
+        starCount = AppSettings.getInt(SettingsKeys.STAR_COUNT, 0)
+        skipCardsCount = AppSettings.getInt(SettingsKeys.SKIP_CARDS_COUNT, 0)
+        noAdsPurchased = AppSettings.getBoolean(SettingsKeys.NO_ADS_PURCHASED, false)
     }
 
     private fun resetAdsIfNewDay() {

@@ -374,4 +374,21 @@ interface StringRes {
     fun skipCardsPackage(cards: Int, price: String): String
     val interstitialDisabledNote: String
     val starsEarned: String
+
+    // ── Account ───────────────────────────────────────────────────
+    val account: String
+    val signIn: String
+    val signUp: String
+    val signOut: String
+    val emailPlaceholder: String
+    val passwordPlaceholder: String
+    val accountCreated: String
+    val signedIn: String
+    val signedOut: String
+    val syncData: String
+    val syncDataDesc: String
+    val notLoggedIn: String
+    val loggedInAs: String
+    val authError: String
+    val passwordTooShort: String
 }

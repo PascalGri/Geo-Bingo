@@ -61,6 +61,7 @@ fun StatsScreen(gameState: GameState) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
+                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SHOP) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

@@ -77,7 +77,7 @@ fun App() {
         gameState.stars.resetDailyChallengeIfNewDay()
         val bonusGranted = gameState.stars.checkDailyLoginBonus()
         if (bonusGranted) {
-            gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +15 ${S.current.stars}"
+            gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +5 ${S.current.stars}"
         }
     }
 

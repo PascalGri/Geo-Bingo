@@ -63,6 +63,22 @@ fun SoloResultsScreen(gameState: GameState) {
         }
     }
 
+    // Daily challenge check for solo mode
+    LaunchedEffect(Unit) {
+        if (!gameState.stars.dailyChallengeCompleted) {
+            val challenge = pg.geobingo.one.game.state.DailyChallengeManager.getTodayChallenge()
+            val done = when (challenge.type) {
+                pg.geobingo.one.game.state.ChallengeType.WIN_ROUND -> true // completing solo = "win"
+                pg.geobingo.one.game.state.ChallengeType.CAPTURE_CATEGORIES -> solo.capturedCategories.size >= 3
+                pg.geobingo.one.game.state.ChallengeType.PLAY_MODE -> false // solo doesn't count for mode challenges
+            }
+            if (done) {
+                gameState.stars.completeDailyChallenge(challenge.reward)
+                gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+            }
+        }
+    }
+
     SystemBackHandler {
         solo.reset()
         nav.resetTo(Screen.HOME)
@@ -87,6 +103,7 @@ fun SoloResultsScreen(gameState: GameState) {
                         gradientColors = GradientPrimary,
                     )
                 },
+                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SHOP) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

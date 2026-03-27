@@ -105,6 +105,8 @@ fun ResultsScreen(gameState: GameState) {
         ActiveSession.clear() // Game is over, no rejoin needed
         Analytics.track(Analytics.GAME_COMPLETED, mapOf("mode" to gameState.session.gameMode.name, "players" to gameState.gameplay.players.size.toString()))
         gameState.saveToHistory()
+        // Participation reward: +2 Stars for completing a round
+        gameState.stars.add(2)
         // Update persistent stats
         val myId = gameState.session.myPlayerId
         if (myId != null) {
@@ -129,6 +131,25 @@ fun ResultsScreen(gameState: GameState) {
                 val totalCount = AppSettings.getInt(SettingsKeys.TOTAL_STARS_COUNT, 0) + 10
                 AppSettings.setInt(SettingsKeys.TOTAL_STARS_EARNED, totalStars)
                 AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, totalCount)
+            }
+
+            // ── Daily Challenge Completion ────────────────────────────
+            if (!gameState.stars.dailyChallengeCompleted) {
+                val challenge = pg.geobingo.one.game.state.DailyChallengeManager.getTodayChallenge()
+                val challengeCompleted = when (challenge.type) {
+                    pg.geobingo.one.game.state.ChallengeType.WIN_ROUND -> isWinner
+                    pg.geobingo.one.game.state.ChallengeType.PLAY_MODE -> {
+                        gameState.session.gameMode.name == challenge.targetMode
+                    }
+                    pg.geobingo.one.game.state.ChallengeType.CAPTURE_CATEGORIES -> {
+                        val myCaptureCount = gameState.review.allCaptures.count { it.player_id == myId }
+                        myCaptureCount >= 3
+                    }
+                }
+                if (challengeCompleted) {
+                    gameState.stars.completeDailyChallenge(challenge.reward)
+                    gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                }
             }
         }
         // Save game metadata locally
@@ -157,6 +178,11 @@ fun ResultsScreen(gameState: GameState) {
                 GameRepository.cleanupStoragePhotos(gid, gameState.gameplay.players.map { it.id })
             } catch (e: Exception) { AppLogger.w("Results", "Storage cleanup failed", e) }
         }
+        // Auto-sync to cloud if logged in
+        val userId = pg.geobingo.one.network.AccountManager.currentUserId
+        if (userId != null) {
+            try { pg.geobingo.one.network.AccountManager.syncLocalToCloud(userId) } catch (_: Exception) {}
+        }
     }
 
     SystemBackHandler { gameState.resetGame(); nav.resetTo(Screen.HOME) }
@@ -171,6 +197,7 @@ fun ResultsScreen(gameState: GameState) {
                         gradientColors = modeGradient,
                     )
                 },
+                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(Screen.SHOP) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

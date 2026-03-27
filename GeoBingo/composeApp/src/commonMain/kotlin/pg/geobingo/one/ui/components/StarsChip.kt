@@ -13,11 +13,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import pg.geobingo.one.ui.theme.ColorOnSurfaceVariant
-import pg.geobingo.one.ui.theme.ColorWarning
+
+private val StarGradient = Brush.linearGradient(
+    colors = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B), Color(0xFFD97706)),
+    start = Offset(0f, 0f),
+    end = Offset(30f, 30f),
+)
 
 @Composable
 fun StarsChip(
@@ -28,22 +35,22 @@ fun StarsChip(
     val base = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
 
     Row(
-        modifier = base.padding(vertical = 2.dp),
+        modifier = base.padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Icon(
             Icons.Default.Star,
             contentDescription = null,
-            modifier = Modifier.size(13.dp),
-            tint = ColorWarning,
+            modifier = Modifier.size(14.dp),
+            tint = Color(0xFFFBBF24),
         )
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp,
-            color = ColorOnSurfaceVariant,
+            fontSize = 13.sp,
+            color = Color.White,
         )
     }
 }
