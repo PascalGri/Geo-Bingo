@@ -85,6 +85,7 @@ object AccountManager {
         try {
             val profile = UserProfile(
                 id = userId,
+                display_name = AppSettings.getString("last_player_name", ""),
                 star_count = AppSettings.getInt(SettingsKeys.STAR_COUNT, 0),
                 skip_cards_count = AppSettings.getInt(SettingsKeys.SKIP_CARDS_COUNT, 0),
                 no_ads_purchased = AppSettings.getBoolean(SettingsKeys.NO_ADS_PURCHASED, false),
@@ -126,6 +127,11 @@ object AccountManager {
             AppSettings.setInt(SettingsKeys.GAMES_WON, maxOf(localWon, profile.games_won))
             val localStreak = AppSettings.getInt(SettingsKeys.LONGEST_WIN_STREAK, 0)
             AppSettings.setInt(SettingsKeys.LONGEST_WIN_STREAK, maxOf(localStreak, profile.longest_win_streak))
+
+            // Display name: use cloud value if local is empty
+            if (profile.display_name.isNotBlank()) {
+                AppSettings.setString("last_player_name", profile.display_name)
+            }
 
             // Preferences: use cloud values
             AppSettings.setBoolean(SettingsKeys.SOUND_ENABLED, profile.sound_enabled)

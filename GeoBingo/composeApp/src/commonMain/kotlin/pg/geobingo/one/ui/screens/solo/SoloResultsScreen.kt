@@ -103,7 +103,7 @@ fun SoloResultsScreen(gameState: GameState) {
                         gradientColors = GradientPrimary,
                     )
                 },
-                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SHOP) }) },
+                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

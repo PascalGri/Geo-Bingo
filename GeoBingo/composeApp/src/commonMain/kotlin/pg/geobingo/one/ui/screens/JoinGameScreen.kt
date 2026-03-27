@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,7 +55,7 @@ fun JoinGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var codeInput by remember { mutableStateOf("") }
     var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -108,7 +109,7 @@ fun JoinGameScreen(gameState: GameState) {
                         )
                     }
                 },
-                actions = { pg.geobingo.one.ui.components.StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SHOP) }) },
+                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = ColorSurface,
                 ),
@@ -194,46 +195,62 @@ fun JoinGameScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Name input
-            OutlinedTextField(
-                value = nameInput,
-                onValueChange = { if (it.length <= 20) nameInput = it },
-                label = { Text(S.current.nameAndAvatar, color = ColorOnSurfaceVariant) },
-                placeholder = { Text(S.current.namePlaceholder, color = ColorOutline) },
-                modifier = Modifier.fillMaxWidth().staggered(4),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ColorPrimary,
-                    unfocusedBorderColor = ColorOutline,
-                    focusedTextColor = ColorOnSurface,
-                    unfocusedTextColor = ColorOnSurface,
-                    focusedLabelColor = ColorPrimary,
-                    cursorColor = ColorPrimary,
-                    focusedContainerColor = ColorSurface,
-                    unfocusedContainerColor = ColorSurface,
-                ),
-                leadingIcon = {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary)
-                },
-            )
-            if (nameInput.trim().split(" ").size >= 2) {
-                Text(
-                    S.current.namePrivacyHint,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+            // Compact profile card
+            var editingProfile by remember { mutableStateOf(nameInput.isBlank()) }
+            if (editingProfile || nameInput.isBlank()) {
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { if (it.length <= 20) nameInput = it },
+                    label = { Text(S.current.nameAndAvatar, color = ColorOnSurfaceVariant) },
+                    placeholder = { Text(S.current.namePlaceholder, color = ColorOutline) },
+                    modifier = Modifier.fillMaxWidth().staggered(4),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorPrimary,
+                        unfocusedBorderColor = ColorOutline,
+                        focusedTextColor = ColorOnSurface,
+                        unfocusedTextColor = ColorOnSurface,
+                        focusedLabelColor = ColorPrimary,
+                        cursorColor = ColorPrimary,
+                        focusedContainerColor = ColorSurface,
+                        unfocusedContainerColor = ColorSurface,
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary) },
                 )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Box(modifier = Modifier.staggered(5)) {
-                SelfiePicker(
-                    avatarBytes = selectedAvatarBytes,
-                    onTakePhoto = { photoCapturer.launch() },
-                    onClear = { selectedAvatarBytes = null },
-                )
+                if (nameInput.trim().isNotEmpty()) {
+                    TextButton(onClick = {
+                        AppSettings.setString("last_player_name", nameInput.trim())
+                        editingProfile = false
+                    }) {
+                        Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().staggered(4)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ColorSurface)
+                        .clickable { editingProfile = true }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    pg.geobingo.one.ui.theme.PlayerAvatarViewRaw(
+                        name = nameInput,
+                        color = ColorPrimary,
+                        size = 36.dp,
+                        photoBytes = selectedAvatarBytes,
+                    )
+                    Text(
+                        nameInput,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ColorOnSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
+                }
             }
 
             Spacer(Modifier.weight(1f))

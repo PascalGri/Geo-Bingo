@@ -60,7 +60,7 @@ fun SettingsScreen(gameState: GameState) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
-                actions = { StarsChip(count = gameState.stars.starCount, onClick = { nav.navigateTo(Screen.SHOP) }) },
+                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },
