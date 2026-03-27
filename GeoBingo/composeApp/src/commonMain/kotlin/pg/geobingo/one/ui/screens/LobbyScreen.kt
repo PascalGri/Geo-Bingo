@@ -42,6 +42,7 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
+import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.parseHexColor
 import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.di.ServiceLocator
@@ -118,6 +119,15 @@ fun LobbyScreen(gameState: GameState) {
                 when (game.status) {
                     "running" -> {
                         if (gameState.session.currentScreen == Screen.LOBBY) {
+                            // Re-validate game mode and duration from server (defensive)
+                            gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (_: Exception) { gameState.session.gameMode }
+                            gameState.gameplay.gameDurationMinutes = game.duration_s / 60
+                            gameState.joker.jokerMode = game.joker_mode
+                            // Refresh categories from server in case host changed them
+                            try {
+                                val cats = GameRepository.getCategories(gameId)
+                                if (cats.isNotEmpty()) gameState.gameplay.selectedCategories = cats.map { it.toCategory() }
+                            } catch (e: Exception) { AppLogger.w("Lobby", "Category refresh failed", e) }
                             val playerDtos = GameRepository.getPlayers(gameId)
                             gameState.gameplay.players = playerDtos.map { it.toPlayer() }
                             gameState.gameplay.captures = playerDtos.associate { it.id to emptySet() }
