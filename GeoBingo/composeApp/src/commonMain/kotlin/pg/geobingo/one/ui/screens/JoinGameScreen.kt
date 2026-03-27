@@ -187,12 +187,7 @@ fun JoinGameScreen(gameState: GameState) {
                 leadingIcon = {
                     Icon(Icons.Default.Tag, contentDescription = null, tint = ColorPrimary)
                 },
-                textStyle = LocalTextStyle.current.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    letterSpacing = 4.sp,
-                    color = ColorOnSurface,
-                ),
+                textStyle = AppTextStyles.codeInput.copy(color = ColorOnSurface),
             )
 
             Spacer(Modifier.height(16.dp))

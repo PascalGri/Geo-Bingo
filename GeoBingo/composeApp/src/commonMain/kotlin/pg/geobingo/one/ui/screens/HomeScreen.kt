@@ -310,10 +310,7 @@ fun HomeScreen(gameState: GameState) {
 private fun AnimatedHeroTitle() {
     AnimatedGradientText(
         text = "KatchIt!",
-        style = MaterialTheme.typography.displaySmall.copy(
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 58.sp,
-            letterSpacing = (-2).sp,
+        style = AppTextStyles.heroTitle.copy(
             shadow = Shadow(
                 color = Color(0xFFD946EF).copy(alpha = 0.6f),
                 blurRadius = 50f,

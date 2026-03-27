@@ -57,6 +57,12 @@ fun AnimatedGradientText(
     gradientColors: List<Color> = GradientPrimary,
     durationMillis: Int = 5000,
 ) {
+    val reduceMotion = LocalReduceMotion.current
+    if (reduceMotion) {
+        val brush = Brush.linearGradient(colors = gradientColors, start = Offset(0f, 0f), end = Offset(500f, 300f))
+        Text(text = text, style = style.copy(brush = brush), modifier = modifier)
+        return
+    }
     val transition = rememberInfiniteTransition(label = "gradText")
     val offset by transition.animateFloat(
         initialValue = 0f,
@@ -152,6 +158,11 @@ fun AnimatedGradientBox(
     durationMillis: Int = 8000,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val reduceMotion = LocalReduceMotion.current
+    if (reduceMotion) {
+        Box(modifier = modifier.background(Brush.linearGradient(gradientColors)), content = content)
+        return
+    }
     val transition = rememberInfiniteTransition(label = "boxGradient")
     val offset by transition.animateFloat(
         initialValue = 0f,
