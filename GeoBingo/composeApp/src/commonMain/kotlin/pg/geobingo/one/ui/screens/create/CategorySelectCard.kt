@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ internal fun DarkCategorySelectCard(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onReroll: (() -> Unit)? = null,
 ) {
     var showInfo by remember { mutableStateOf(false) }
 
@@ -79,8 +81,17 @@ internal fun DarkCategorySelectCard(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showInfo = false }) {
-                    Text("Schließen")
+                Row {
+                    if (onReroll != null) {
+                        TextButton(onClick = { showInfo = false; onReroll() }) {
+                            Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Tauschen")
+                        }
+                    }
+                    TextButton(onClick = { showInfo = false }) {
+                        Text("Schliessen")
+                    }
                 }
             },
         )

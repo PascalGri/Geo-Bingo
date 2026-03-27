@@ -463,6 +463,7 @@ fun CreateGameScreen(gameState: GameState) {
                                 else
                                     selectedPresetIds + category.id
                             },
+                            onReroll = { showRerollDialog = category.id },
                         )
                     }
                 }

@@ -121,7 +121,7 @@ fun App() {
                     Screen.SOLO_GAME -> SoloGameScreen(gameState)
                     Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
-                    Screen.SHOP -> HomeScreen(gameState) // TODO: ShopScreen
+                    Screen.SHOP -> ShopScreen(gameState)
                 }
             }
         }
