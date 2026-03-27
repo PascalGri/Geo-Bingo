@@ -272,6 +272,13 @@ object En : StringRes {
     override val emptyNoPhotoRetryHint = "No photo submitted. Try again."
     override val emptyAllCaughtCelebration = "All categories complete! Well done!"
 
+    // ── Rejoin ─────────────────────────────────────────────────────────
+    override val rejoinTitle = "Active round found"
+    override val rejoinBody = "You were still in a round. Do you want to return?"
+    override val rejoinButton = "Return to round"
+    override val rejoinDismiss = "No, leave"
+    override val rejoining = "Reconnecting..."
+
     // ── Ad Rewards ─────────────────────────────────────────────────────
     override val adRewardReceived = "Bonus received! +2 stars"
 

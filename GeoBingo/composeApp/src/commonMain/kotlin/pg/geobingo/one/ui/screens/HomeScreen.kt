@@ -42,11 +42,87 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @Composable
 fun HomeScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
+    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(gameState.ui.pendingToast) {
         val msg = gameState.ui.pendingToast ?: return@LaunchedEffect
         gameState.ui.pendingToast = null
         snackbarHostState.showSnackbar(msg)
+    }
+
+    // ── Rejoin check ─────────────────────────────────────────────────
+    var showRejoinDialog by remember { mutableStateOf(false) }
+    var rejoinLoading by remember { mutableStateOf(false) }
+    val rejoinCode = remember { ActiveSession.getGameCode() }
+    val rejoinName = remember { ActiveSession.getPlayerName() }
+
+    LaunchedEffect(Unit) {
+        if (ActiveSession.exists()) {
+            showRejoinDialog = true
+        }
+    }
+
+    if (showRejoinDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            containerColor = ColorSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Refresh, null, tint = ColorPrimary, modifier = Modifier.size(22.dp))
+                    Text(S.current.rejoinTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(S.current.rejoinBody, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
+                    if (rejoinCode.isNotBlank()) {
+                        Text("${S.current.roundCode}: $rejoinCode", style = MaterialTheme.typography.labelMedium, color = ColorOnSurface, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (rejoinName.isNotBlank()) {
+                        Text(rejoinName, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (!rejoinLoading) {
+                            rejoinLoading = true
+                            scope.launch {
+                                val target = ActiveSession.rejoin(gameState)
+                                if (target != null) {
+                                    nav.resetTo(target)
+                                } else {
+                                    showRejoinDialog = false
+                                    rejoinLoading = false
+                                    gameState.ui.pendingToast = S.current.error
+                                }
+                            }
+                        }
+                    },
+                    enabled = !rejoinLoading,
+                ) {
+                    if (rejoinLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
+                        Spacer(Modifier.width(8.dp))
+                        Text(S.current.rejoining, color = ColorPrimary)
+                    } else {
+                        Text(S.current.rejoinButton, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        ActiveSession.clear()
+                        showRejoinDialog = false
+                    },
+                    enabled = !rejoinLoading,
+                ) {
+                    Text(S.current.rejoinDismiss, color = ColorOnSurfaceVariant)
+                }
+            },
+        )
     }
 
     val anim = rememberStaggeredAnimation(count = 5)

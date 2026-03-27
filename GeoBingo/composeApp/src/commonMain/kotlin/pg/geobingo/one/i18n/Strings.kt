@@ -296,6 +296,13 @@ interface StringRes {
     val emptyNoPhotoRetryHint: String
     val emptyAllCaughtCelebration: String
 
+    // ── Rejoin ─────────────────────────────────────────────────────────
+    val rejoinTitle: String
+    val rejoinBody: String
+    val rejoinButton: String
+    val rejoinDismiss: String
+    val rejoining: String
+
     // ── Ad Rewards ─────────────────────────────────────────────────────
     val adRewardReceived: String
 

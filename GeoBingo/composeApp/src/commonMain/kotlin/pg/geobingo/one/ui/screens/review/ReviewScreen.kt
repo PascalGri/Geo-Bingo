@@ -35,7 +35,10 @@ fun ReviewScreen(gameState: GameState) {
     val myPlayerId = gameState.session.myPlayerId ?: return
     val entityCount = vm.reviewEntityCount
 
-    LaunchedEffect(gameId) { vm.startObserving() }
+    LaunchedEffect(gameId) {
+        pg.geobingo.one.game.ActiveSession.save(gameState)
+        vm.startObserving()
+    }
 
     if (entityCount == 0 || categories.isEmpty()) {
         Box(Modifier.fillMaxSize().background(ColorBackground), contentAlignment = Alignment.Center) {

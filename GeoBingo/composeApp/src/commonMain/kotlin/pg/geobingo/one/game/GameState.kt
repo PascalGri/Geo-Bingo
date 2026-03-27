@@ -339,6 +339,7 @@ class GameState {
     }
 
     fun resetGame() {
+        ActiveSession.clear()
         cleanupRealtime()
         clearGameplayState()
         gameplay.selectedCategories = listOf()
@@ -353,6 +354,7 @@ class GameState {
     }
 
     fun resetForRematch(newGameId: String, newGameCode: String, newPlayerId: String) {
+        ActiveSession.clear()
         cleanupRealtime()
         clearGameplayState()
         session.gameId = newGameId

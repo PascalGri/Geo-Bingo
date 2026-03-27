@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
+import pg.geobingo.one.game.ActiveSession
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
 import pg.geobingo.one.util.AppLogger
@@ -101,6 +102,7 @@ fun ResultsScreen(gameState: GameState) {
 
     // Save to history once on entry, then cleanup server storage
     LaunchedEffect(Unit) {
+        ActiveSession.clear() // Game is over, no rejoin needed
         Analytics.track(Analytics.GAME_COMPLETED, mapOf("mode" to gameState.session.gameMode.name, "players" to gameState.gameplay.players.size.toString()))
         gameState.saveToHistory()
         // Update persistent stats

@@ -46,6 +46,8 @@ fun GameScreen(gameState: GameState) {
         gameState.session.gameId?.let {
             gameState.ensureSyncManager(it, this)
         }
+        // Persist session for rejoin on accidental close
+        pg.geobingo.one.game.ActiveSession.save(gameState)
         vm.startObserving()
     }
 

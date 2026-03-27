@@ -272,6 +272,13 @@ object De : StringRes {
     override val emptyNoPhotoRetryHint = "Kein Foto eingereicht. Versuche es nochmal."
     override val emptyAllCaughtCelebration = "Alle Kategorien geschafft! Gut gemacht!"
 
+    // ── Rejoin ─────────────────────────────────────────────────────────
+    override val rejoinTitle = "Laufende Runde gefunden"
+    override val rejoinBody = "Du warst noch in einer Runde. Moechtest du zurueckkehren?"
+    override val rejoinButton = "Zurueck zur Runde"
+    override val rejoinDismiss = "Nein, verlassen"
+    override val rejoining = "Verbinde..."
+
     // ── Ad Rewards ─────────────────────────────────────────────────────
     override val adRewardReceived = "Bonus erhalten! +2 Sterne"
 
