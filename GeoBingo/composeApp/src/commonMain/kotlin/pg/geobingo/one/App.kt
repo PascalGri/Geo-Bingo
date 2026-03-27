@@ -17,6 +17,7 @@ import pg.geobingo.one.i18n.Language
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.rememberConnectivityState
@@ -53,6 +54,30 @@ fun App() {
             ConsentManager.requestConsent {
                 AdManager.preloadAds()
             }
+        }
+    }
+
+    // Initialize billing + restore purchases
+    LaunchedEffect(Unit) {
+        if (BillingManager.isBillingSupported) {
+            BillingManager.initialize()
+            BillingManager.restorePurchases(
+                onRestored = { products ->
+                    if ("pg.geobingo.one.no_ads" in products) {
+                        gameState.stars.updateNoAdsPurchased(true)
+                    }
+                },
+                onError = {},
+            )
+        }
+    }
+
+    // Daily login bonus + daily challenge reset
+    LaunchedEffect(Unit) {
+        gameState.stars.resetDailyChallengeIfNewDay()
+        val bonusGranted = gameState.stars.checkDailyLoginBonus()
+        if (bonusGranted) {
+            gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +15 ${S.current.stars}"
         }
     }
 
@@ -96,6 +121,7 @@ fun App() {
                     Screen.SOLO_GAME -> SoloGameScreen(gameState)
                     Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
+                    Screen.SHOP -> HomeScreen(gameState) // TODO: ShopScreen
                 }
             }
         }

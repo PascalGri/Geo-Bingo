@@ -89,6 +89,32 @@ fun ReviewScreen(gameState: GameState) {
         }
     }
 
+    Column(modifier = Modifier.fillMaxSize()) {
+    // Progress bar
+    val progress = if (totalSteps > 0) (stepIndex + 1).toFloat() / totalSteps else 0f
+    LinearProgressIndicator(
+        progress = { progress.coerceIn(0f, 1f) },
+        modifier = Modifier.fillMaxWidth().height(4.dp),
+        color = modeColor,
+        trackColor = ColorSurfaceVariant,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            S.current.categoryOfTotal(categoryIndex + 1, categories.size),
+            style = MaterialTheme.typography.labelSmall,
+            color = ColorOnSurfaceVariant,
+        )
+        Text(
+            S.current.playerOfTotal(targetIndex + 1, entityCount),
+            style = MaterialTheme.typography.labelSmall,
+            color = ColorOnSurfaceVariant,
+        )
+    }
+
+    Box(modifier = Modifier.weight(1f)) {
     key(stepIndex) {
         if (vm.selfVoteToast) {
             Box(
@@ -160,4 +186,6 @@ fun ReviewScreen(gameState: GameState) {
             LaunchedEffect(stepIndex) { vm.submitNoPhoto() }
         }
     }
+    } // end Box
+    } // end Column
 }

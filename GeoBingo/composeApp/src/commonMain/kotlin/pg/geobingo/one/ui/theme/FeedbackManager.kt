@@ -52,6 +52,26 @@ class FeedbackManager(
         hapticTick()
         if (gameState.ui.soundEnabled) SoundPlayer.playSuccess()
     }
+
+    fun timerWarning() {
+        hapticTick()
+        if (gameState.ui.soundEnabled) SoundPlayer.playTimerWarning()
+    }
+
+    fun error() {
+        hapticTick()
+        if (gameState.ui.soundEnabled) SoundPlayer.playError()
+    }
+
+    fun resultsReveal() {
+        hapticTick()
+        if (gameState.ui.soundEnabled) SoundPlayer.playResultsReveal()
+    }
+
+    fun speedBonus() {
+        hapticTick()
+        if (gameState.ui.soundEnabled) SoundPlayer.playSpeedBonus()
+    }
 }
 
 @Composable

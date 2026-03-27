@@ -464,7 +464,7 @@ fun LobbyScreen(gameState: GameState) {
                             }
                             FilledTonalButton(
                                 onClick = {
-                                    shareManager.shareText(code)
+                                    shareManager.shareText("${S.current.joinRound}: KatchIt!\nhttps://katchit.app/join/$code")
                                 },
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                                 colors = ButtonDefaults.filledTonalButtonColors(

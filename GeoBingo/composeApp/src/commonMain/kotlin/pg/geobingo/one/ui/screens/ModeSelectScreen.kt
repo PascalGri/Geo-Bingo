@@ -32,9 +32,13 @@ import pg.geobingo.one.data.CATEGORY_TEMPLATES_SHUFFLED
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.ui.theme.*
 
@@ -47,6 +51,9 @@ fun ModeSelectScreen(gameState: GameState) {
     var quickStartExpanded by remember { mutableStateOf(false) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
     var quickStartDifficulty by remember { mutableStateOf("medium") }
+    var showUnlockDialog by remember { mutableStateOf(false) }
+    var extremeUnlockLoading by remember { mutableStateOf(false) }
+    var extremeVideosWatched by remember { mutableStateOf(0) }
 
     SystemBackHandler { nav.goBack() }
 
@@ -153,6 +160,94 @@ fun ModeSelectScreen(gameState: GameState) {
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
             )
+
+            // Extreme Mode (locked)
+            LockedModeCard(
+                title = S.current.extremeMode,
+                subtitle = S.current.extremeModeSubtitle,
+                description = S.current.extremeModeDesc,
+                icon = Icons.Default.Whatshot,
+                gradientColors = GradientHot,
+                isUnlocked = AppSettings.getBoolean(SettingsKeys.EXTREME_MODE_UNLOCKED, false),
+                modifier = Modifier.staggered(4),
+                onClickLocked = { showUnlockDialog = true },
+                onClickUnlocked = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "EXTREME"))
+                    gameState.session.gameMode = GameMode.CLASSIC
+                    gameState.gameplay.gameDurationMinutes = 10
+                    AppSettings.setBoolean(SettingsKeys.EXTREME_MODE_UNLOCKED, false)
+                    nav.navigateTo(Screen.CREATE_GAME)
+                },
+            )
+
+            // Unlock Extreme Mode Dialog
+            if (showUnlockDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUnlockDialog = false; extremeVideosWatched = 0 },
+                    containerColor = ColorSurface,
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Lock, null, tint = GradientHot.first(), modifier = Modifier.size(22.dp))
+                            Text(S.current.extremeMode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                        }
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Option A: 20 Stars
+                            TextButton(
+                                onClick = {
+                                    if (gameState.stars.spend(20)) {
+                                        AppSettings.setBoolean(SettingsKeys.EXTREME_MODE_UNLOCKED, true)
+                                        showUnlockDialog = false
+                                    }
+                                },
+                                enabled = gameState.stars.starCount >= 20,
+                            ) {
+                                Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp), tint = ColorWarning)
+                                Spacer(Modifier.width(8.dp))
+                                Text(S.current.unlockWithStars(20), color = if (gameState.stars.starCount >= 20) ColorWarning else ColorOnSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.weight(1f))
+                                StarsChip(count = gameState.stars.starCount)
+                            }
+                            // Option B: 2 Videos
+                            if (AdManager.isAdSupported) {
+                                TextButton(
+                                    onClick = {
+                                        extremeUnlockLoading = true
+                                        AdManager.showRewardedAd(
+                                            onReward = {
+                                                extremeVideosWatched++
+                                                if (extremeVideosWatched >= 2) {
+                                                    AppSettings.setBoolean(SettingsKeys.EXTREME_MODE_UNLOCKED, true)
+                                                    showUnlockDialog = false
+                                                    extremeVideosWatched = 0
+                                                }
+                                                extremeUnlockLoading = false
+                                            },
+                                            onDismiss = { extremeUnlockLoading = false },
+                                        )
+                                    },
+                                    enabled = !extremeUnlockLoading,
+                                ) {
+                                    Icon(Icons.Default.PlayCircle, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "${S.current.unlockWithVideos} (${extremeVideosWatched}/2)",
+                                        color = ColorPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { showUnlockDialog = false; extremeVideosWatched = 0 }) {
+                            Text(S.current.cancel, color = ColorOnSurfaceVariant)
+                        }
+                    },
+                )
+            }
 
             // Solo Challenge
             HorizontalDivider(
@@ -503,6 +598,90 @@ private fun ModeCard(
                 contentDescription = null,
                 modifier = Modifier.size(20.dp).padding(top = 2.dp),
                 tint = ColorOnSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LockedModeCard(
+    title: String,
+    subtitle: String,
+    description: String,
+    icon: ImageVector,
+    gradientColors: List<Color>,
+    isUnlocked: Boolean,
+    modifier: Modifier = Modifier,
+    onClickLocked: () -> Unit,
+    onClickUnlocked: () -> Unit,
+) {
+    val accentColor = gradientColors.first()
+    val scope = rememberCoroutineScope()
+    val pressScale = remember { Animatable(1f) }
+
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = pressScale.value; scaleY = pressScale.value }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        scope.launch { pressScale.animateTo(0.97f, tween(80)) }
+                        tryAwaitRelease()
+                        scope.launch { pressScale.animateTo(1f, tween(120)) }
+                    },
+                    onTap = { if (isUnlocked) onClickUnlocked() else onClickLocked() },
+                )
+            },
+        cornerRadius = 18.dp,
+        borderColors = if (isUnlocked) gradientColors else listOf(ColorOutline, ColorOutlineVariant),
+        backgroundColor = ColorSurface,
+        borderWidth = 1.5.dp,
+        glassmorphism = false,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = if (isUnlocked) gradientColors else listOf(ColorOutline, ColorOutlineVariant),
+                            start = Offset(0f, 0f),
+                            end = Offset(200f, 200f),
+                        )
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isUnlocked) icon else Icons.Default.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = Color.White,
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+                Text(
+                    if (isUnlocked) subtitle else S.current.locked,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isUnlocked) accentColor else ColorOnSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant, lineHeight = 17.sp)
+            }
+
+            Icon(
+                if (isUnlocked) Icons.Default.ChevronRight else Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp).padding(top = 2.dp),
+                tint = if (isUnlocked) ColorOnSurfaceVariant else ColorOutline,
             )
         }
     }

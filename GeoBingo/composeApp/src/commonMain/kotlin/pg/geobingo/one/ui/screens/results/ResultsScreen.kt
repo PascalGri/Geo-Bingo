@@ -312,12 +312,9 @@ fun ResultsScreen(gameState: GameState) {
                                     AdManager.showRewardedAd(
                                         onReward = {
                             Analytics.track(Analytics.AD_WATCHED)
-                            // Reward: +2 bonus stars to persistent stats
-                            val totalStars = AppSettings.getInt(SettingsKeys.TOTAL_STARS_EARNED, 0) + 20
-                            val totalCount = AppSettings.getInt(SettingsKeys.TOTAL_STARS_COUNT, 0) + 10
-                            AppSettings.setInt(SettingsKeys.TOTAL_STARS_EARNED, totalStars)
-                            AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, totalCount)
-                            gameState.ui.pendingToast = S.current.adRewardReceived
+                            gameState.stars.add(10)
+                            gameState.stars.recordAdWatched()
+                            gameState.ui.pendingToast = S.current.starsEarned
                         },
                                         onDismiss = { rewardedAdLoading = false }
                                     )
@@ -343,15 +340,9 @@ fun ResultsScreen(gameState: GameState) {
                         text = S.current.newGame,
                         onClick = {
                             val goHome = { gameState.resetGame(); nav.resetTo(Screen.HOME) }
-                            // Interstitial Ad max 1x pro 3 Spiele
-                            if (AdManager.isAdSupported) {
-                                val count = AppSettings.getInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, 0) + 1
-                                AppSettings.setInt(SettingsKeys.INTERSTITIAL_GAME_COUNT, count)
-                                if (count % 3 == 0) {
-                                    AdManager.showInterstitialAd { goHome() }
-                                } else {
-                                    goHome()
-                                }
+                            // Interstitial nach jeder Runde (ausser bei No-Ads Kauf)
+                            if (AdManager.isAdSupported && !gameState.stars.noAdsPurchased) {
+                                AdManager.showInterstitialAd { goHome() }
                             } else {
                                 goHome()
                             }

@@ -24,6 +24,7 @@ import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.i18n.Language
@@ -89,11 +90,61 @@ fun SettingsScreen(gameState: GameState) {
             // Advertising section — nur auf iOS/Android sichtbar
             if (AdManager.isAdSupported) {
                 SettingsSection(title = S.current.advertising) {
+                    // Remove Ads IAP
+                    if (gameState.stars.noAdsPurchased) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorSuccess, modifier = Modifier.size(22.dp))
+                            Text(S.current.adsRemoved, style = MaterialTheme.typography.bodyMedium, color = ColorSuccess, fontWeight = FontWeight.Medium)
+                        }
+                    } else {
+                        var purchaseLoading by remember { mutableStateOf(false) }
+                        SettingsClickRow(
+                            icon = Icons.Default.RemoveCircle,
+                            title = S.current.removeAds,
+                            subtitle = "${S.current.removeAdsPrice} - ${S.current.removeAdsDesc}",
+                            onClick = {
+                                if (!purchaseLoading) {
+                                    purchaseLoading = true
+                                    BillingManager.purchaseProduct(
+                                        productId = "pg.geobingo.one.no_ads",
+                                        onSuccess = {
+                                            gameState.stars.updateNoAdsPurchased(true)
+                                            purchaseLoading = false
+                                        },
+                                        onError = {
+                                            purchaseLoading = false
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    }
+                    HorizontalDivider(color = ColorOutlineVariant)
                     SettingsClickRow(
                         icon = Icons.Default.Campaign,
                         title = S.current.adSettings,
                         subtitle = S.current.adSettingsDesc,
                         onClick = { ConsentManager.showPrivacyOptionsForm {} },
+                    )
+                    HorizontalDivider(color = ColorOutlineVariant)
+                    // Restore Purchases
+                    SettingsClickRow(
+                        icon = Icons.Default.Refresh,
+                        title = S.current.restorePurchases,
+                        onClick = {
+                            BillingManager.restorePurchases(
+                                onRestored = { products ->
+                                    if ("pg.geobingo.one.no_ads" in products) {
+                                        gameState.stars.updateNoAdsPurchased(true)
+                                    }
+                                },
+                                onError = {},
+                            )
+                        },
                     )
                 }
             }
@@ -173,7 +224,7 @@ fun SettingsScreen(gameState: GameState) {
 
             // Version
             Text(
-                "KatchIt! v1.0",
+                "KatchIt! v1.1",
                 style = MaterialTheme.typography.bodySmall,
                 color = ColorOutline,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),

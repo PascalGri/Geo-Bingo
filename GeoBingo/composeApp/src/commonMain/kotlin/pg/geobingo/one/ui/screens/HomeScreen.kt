@@ -34,7 +34,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.*
+import pg.geobingo.one.game.state.ChallengeType
+import pg.geobingo.one.game.state.DailyChallengeManager
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.ui.components.EarnStarsDialog
+import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -141,6 +146,25 @@ fun HomeScreen(gameState: GameState) {
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     var selectedHistoryEntry by remember { mutableStateOf<GameHistoryEntry?>(null) }
+    var showEarnStarsDialog by remember { mutableStateOf(false) }
+    val dailyChallenge = remember { DailyChallengeManager.getTodayChallenge() }
+
+    if (showEarnStarsDialog) {
+        EarnStarsDialog(
+            starsState = gameState.stars,
+            onWatchAd = {
+                AdManager.showRewardedAd(
+                    onReward = {
+                        gameState.stars.add(10)
+                        gameState.stars.recordAdWatched()
+                        gameState.ui.pendingToast = S.current.starsEarned
+                    },
+                    onDismiss = { showEarnStarsDialog = false },
+                )
+            },
+            onDismiss = { showEarnStarsDialog = false },
+        )
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -280,7 +304,71 @@ fun HomeScreen(gameState: GameState) {
                     HeroTagline()
                 }
 
-                Spacer(Modifier.height(12.dp))
+                // ── STARS BAR ────────────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .staggered(1)
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StarsChip(
+                        count = gameState.stars.starCount,
+                        onClick = { nav.navigateTo(Screen.SHOP) },
+                    )
+                    Spacer(Modifier.weight(1f))
+                    if (AdManager.isAdSupported && gameState.stars.canWatchAd) {
+                        TextButton(onClick = { showEarnStarsDialog = true }) {
+                            Icon(Icons.Default.PlayCircle, null, modifier = Modifier.size(14.dp), tint = ColorWarning)
+                            Spacer(Modifier.width(4.dp))
+                            Text(S.current.earnStars, style = MaterialTheme.typography.labelSmall, color = ColorWarning)
+                        }
+                    }
+                    IconButton(onClick = { nav.navigateTo(Screen.SHOP) }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = S.current.shop, modifier = Modifier.size(18.dp), tint = ColorPrimary)
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // ── DAILY CHALLENGE ──────────────────────────────────────────
+                if (!gameState.stars.dailyChallengeCompleted) {
+                    val challengeText = when (dailyChallenge.type) {
+                        ChallengeType.WIN_ROUND -> S.current.challengeWinRound
+                        ChallengeType.PLAY_MODE -> "${S.current.challengePlayMode} ${dailyChallenge.targetMode ?: ""}"
+                        ChallengeType.CAPTURE_CATEGORIES -> S.current.challengeCaptureCategories
+                    }
+                    Card(
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.screenHorizontal)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = ColorSurface),
+                        border = BorderStroke(1.dp, ColorWarning.copy(alpha = 0.3f)),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(Icons.Default.Today, null, tint = ColorWarning, modifier = Modifier.size(20.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(S.current.dailyChallenge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                                Text(challengeText, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                            }
+                            Text(
+                                S.current.dailyChallengeReward(dailyChallenge.reward),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ColorWarning,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                Spacer(Modifier.height(4.dp))
 
                 // ── HOW TO PLAY ──────────────────────────────────────────────
                 Row(

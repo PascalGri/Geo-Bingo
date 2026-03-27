@@ -37,10 +37,14 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.ui.components.RerollDialog
 import pg.geobingo.one.ui.components.SelfiePicker
+import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
@@ -51,7 +55,7 @@ fun CreateGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val gameMode = gameState.session.gameMode
 
-    var hostNameInput by remember { mutableStateOf("") }
+    var hostNameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) selectedAvatarBytes = bytes
@@ -79,6 +83,8 @@ fun CreateGameScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
 
     val shuffleAlpha = remember { Animatable(1f) }
+    var showRerollDialog by remember { mutableStateOf<String?>(null) } // category id to reroll
+    var showNewSuggestionsDialog by remember { mutableStateOf(false) }
 
     val totalCategories = customCategories.size + selectedPresetIds.size
     val canStart = hostNameInput.trim().isNotEmpty() && (gameMode == GameMode.QUICK_START || totalCategories >= 2)
@@ -154,6 +160,7 @@ fun CreateGameScreen(gameState: GameState) {
                         },
                         onClick = {
                             scope.launch {
+                                if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_CREATE_GAME, pg.geobingo.one.util.RateLimiter.GAME_CREATE_COOLDOWN_MS)) return@launch
                                 isLoading = true
                                 errorMessage = null
                                 try {
@@ -171,6 +178,7 @@ fun CreateGameScreen(gameState: GameState) {
                                     try {
                                         // Step 2: Add host player
                                         val hostColor = PLAYER_COLORS[0].toHex()
+                                        AppSettings.setString("last_player_name", hostNameInput.trim())
                                         val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
 
                                         // Step 3: Upload avatar (optional, non-critical)
@@ -275,6 +283,15 @@ fun CreateGameScreen(gameState: GameState) {
                     ),
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
                 )
+                // Privacy hint for names that look like real full names
+                if (hostNameInput.trim().split(" ").size >= 2) {
+                    Text(
+                        S.current.namePrivacyHint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 SelfiePicker(
                     avatarBytes = selectedAvatarBytes,
@@ -452,36 +469,128 @@ fun CreateGameScreen(gameState: GameState) {
 
                 Spacer(Modifier.height(10.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(shuffleGradient))
-                        .clickable {
-                            scope.launch {
-                                shuffleAlpha.animateTo(0f, tween(150))
-                                val selectedOnes = presetPool.filter { it.id in selectedPresetIds }
-                                val unselectedPool = presetPool.filter { it.id !in selectedPresetIds }.shuffled()
-                                val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
-                                visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
-                                shuffleAlpha.animateTo(1f, tween(250))
-                            }
-                        }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
+                // "New suggestions" button (costs 10 Stars or Ad)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Brush.linearGradient(shuffleGradient))
+                            .clickable { showNewSuggestionsDialog = true }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(16.dp), tint = Color.White)
-                        Text(
-                            S.current.otherSuggestions,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Text(
+                                S.current.newSuggestions,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
                     }
+                }
+
+                // Reroll single category dialog
+                showRerollDialog?.let { categoryId ->
+                    RerollDialog(
+                        title = S.current.rerollCategory,
+                        starsCost = 5,
+                        starsState = gameState.stars,
+                        onPayStars = {
+                            if (gameState.stars.spend(5)) {
+                                val replacement = presetPool.filter { it.id !in selectedPresetIds && it.id !in visiblePresets.map { p -> p.id } }.shuffled().firstOrNull()
+                                if (replacement != null) {
+                                    visiblePresets = visiblePresets.map { if (it.id == categoryId) replacement else it }
+                                    selectedPresetIds = selectedPresetIds - categoryId
+                                }
+                                showRerollDialog = null
+                            }
+                        },
+                        onWatchAd = {
+                            AdManager.showRewardedAd(
+                                onReward = {
+                                    val replacement = presetPool.filter { it.id !in selectedPresetIds && it.id !in visiblePresets.map { p -> p.id } }.shuffled().firstOrNull()
+                                    if (replacement != null) {
+                                        visiblePresets = visiblePresets.map { if (it.id == categoryId) replacement else it }
+                                        selectedPresetIds = selectedPresetIds - categoryId
+                                    }
+                                    showRerollDialog = null
+                                },
+                                onDismiss = { showRerollDialog = null },
+                            )
+                        },
+                        onUseSkipCard = {
+                            if (gameState.stars.useSkipCard()) {
+                                val replacement = presetPool.filter { it.id !in selectedPresetIds && it.id !in visiblePresets.map { p -> p.id } }.shuffled().firstOrNull()
+                                if (replacement != null) {
+                                    visiblePresets = visiblePresets.map { if (it.id == categoryId) replacement else it }
+                                    selectedPresetIds = selectedPresetIds - categoryId
+                                }
+                                showRerollDialog = null
+                            }
+                        },
+                        onDismiss = { showRerollDialog = null },
+                    )
+                }
+
+                // New suggestions dialog (replace all)
+                if (showNewSuggestionsDialog) {
+                    RerollDialog(
+                        title = S.current.newSuggestions,
+                        starsCost = 10,
+                        starsState = gameState.stars,
+                        onPayStars = {
+                            if (gameState.stars.spend(10)) {
+                                scope.launch {
+                                    shuffleAlpha.animateTo(0f, tween(150))
+                                    val selectedOnes = presetPool.filter { it.id in selectedPresetIds }
+                                    val unselectedPool = presetPool.filter { it.id !in selectedPresetIds }.shuffled()
+                                    val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
+                                    visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                                    shuffleAlpha.animateTo(1f, tween(250))
+                                }
+                                showNewSuggestionsDialog = false
+                            }
+                        },
+                        onWatchAd = {
+                            AdManager.showRewardedAd(
+                                onReward = {
+                                    scope.launch {
+                                        shuffleAlpha.animateTo(0f, tween(150))
+                                        val selectedOnes = presetPool.filter { it.id in selectedPresetIds }
+                                        val unselectedPool = presetPool.filter { it.id !in selectedPresetIds }.shuffled()
+                                        val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
+                                        visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                                        shuffleAlpha.animateTo(1f, tween(250))
+                                    }
+                                    showNewSuggestionsDialog = false
+                                },
+                                onDismiss = { showNewSuggestionsDialog = false },
+                            )
+                        },
+                        onUseSkipCard = {
+                            if (gameState.stars.useSkipCard()) {
+                                scope.launch {
+                                    shuffleAlpha.animateTo(0f, tween(150))
+                                    val selectedOnes = presetPool.filter { it.id in selectedPresetIds }
+                                    val unselectedPool = presetPool.filter { it.id !in selectedPresetIds }.shuffled()
+                                    val fillCount = (VISIBLE_PRESET_COUNT - selectedOnes.size).coerceAtLeast(0)
+                                    visiblePresets = (selectedOnes + unselectedPool.take(fillCount)).shuffled()
+                                    shuffleAlpha.animateTo(1f, tween(250))
+                                }
+                                showNewSuggestionsDialog = false
+                            }
+                        },
+                        onDismiss = { showNewSuggestionsDialog = false },
+                    )
                 }
             }
 

@@ -296,6 +296,9 @@ interface StringRes {
     val emptyNoPhotoRetryHint: String
     val emptyAllCaughtCelebration: String
 
+    // ── Privacy ────────────────────────────────────────────────────────
+    val namePrivacyHint: String
+
     // ── Rejoin ─────────────────────────────────────────────────────────
     val rejoinTitle: String
     val rejoinBody: String
@@ -327,4 +330,48 @@ interface StringRes {
     val calculatingResults: String
     val getReady: String
     val gameStartsNow: String
+
+    // ── Stars / Monetization ──────────────────────────────────────────
+    val stars: String
+    val earnStars: String
+    val earnStarsDesc: String
+    fun adsRemaining(count: Int): String
+    val watchVideo: String
+    val useSkipCard: String
+    fun skipCardsRemaining(count: Int): String
+    val dailyLoginBonus: String
+    fun dailyLoginBonusReward(amount: Int): String
+    val removeAds: String
+    val removeAdsPrice: String
+    val removeAdsDesc: String
+    val adsRemoved: String
+    val restorePurchases: String
+    val purchaseSuccess: String
+    val purchaseFailed: String
+    val rerollCategory: String
+    val newSuggestions: String
+    fun rerollCost(stars: Int): String
+    fun newSuggestionsCost(stars: Int): String
+    val orWatchVideo: String
+    val notEnoughStars: String
+    val extremeMode: String
+    val extremeModeSubtitle: String
+    val extremeModeDesc: String
+    fun unlockWithStars(stars: Int): String
+    val unlockWithVideos: String
+    val locked: String
+    val dailyChallenge: String
+    val dailyChallengeDesc: String
+    val dailyChallengeCompleted: String
+    fun dailyChallengeReward(stars: Int): String
+    val challengeWinRound: String
+    val challengePlayMode: String
+    val challengeCaptureCategories: String
+    val shop: String
+    val buyStars: String
+    val adSkipper: String
+    fun starsPackage(stars: Int, price: String): String
+    fun skipCardsPackage(cards: Int, price: String): String
+    val interstitialDisabledNote: String
+    val starsEarned: String
 }

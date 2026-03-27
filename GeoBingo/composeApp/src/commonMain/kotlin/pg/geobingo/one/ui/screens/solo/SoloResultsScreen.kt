@@ -46,7 +46,8 @@ fun SoloResultsScreen(gameState: GameState) {
         val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
         AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
 
-        // Submit to server
+        // Submit to server (rate-limited)
+        if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_SOLO_SUBMIT, pg.geobingo.one.util.RateLimiter.SOLO_SUBMIT_COOLDOWN_MS)) return@LaunchedEffect
         try {
             GameRepository.submitSoloScore(
                 playerName = solo.playerName,
@@ -68,6 +69,13 @@ fun SoloResultsScreen(gameState: GameState) {
     }
 
     val allCaptured = solo.capturedCategories.size == solo.categories.size
+    var showConfetti by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (allCaptured) {
+            kotlinx.coroutines.delay(600)
+            showConfetti = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -112,6 +120,7 @@ fun SoloResultsScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -234,6 +243,10 @@ fun SoloResultsScreen(gameState: GameState) {
 
             Spacer(Modifier.height(24.dp))
         }
+        if (allCaptured) {
+            ConfettiEffect(trigger = showConfetti, modifier = Modifier.fillMaxSize())
+        }
+        } // end Box
     }
 }
 

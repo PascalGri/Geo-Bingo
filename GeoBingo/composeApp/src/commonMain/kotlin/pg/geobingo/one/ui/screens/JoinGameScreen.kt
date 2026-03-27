@@ -37,6 +37,7 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
@@ -52,7 +53,7 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 fun JoinGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var codeInput by remember { mutableStateOf("") }
-    var nameInput by remember { mutableStateOf("") }
+    var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -215,6 +216,14 @@ fun JoinGameScreen(gameState: GameState) {
                     Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary)
                 },
             )
+            if (nameInput.trim().split(" ").size >= 2) {
+                Text(
+                    S.current.namePrivacyHint,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -249,6 +258,7 @@ fun JoinGameScreen(gameState: GameState) {
                             } else {
                                 val colorIndex = (0..7).random()
                                 val color = PLAYER_COLORS[colorIndex].toHex()
+                                AppSettings.setString("last_player_name", nameInput.trim())
                                 val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color)
                                 val avatarBytes = selectedAvatarBytes
                                 if (avatarBytes != null) {

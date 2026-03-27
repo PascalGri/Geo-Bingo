@@ -28,4 +28,16 @@ object SettingsKeys {
     const val CURRENT_WIN_STREAK = "current_win_streak"
     const val TOTAL_STARS_EARNED = "total_stars_earned"
     const val TOTAL_STARS_COUNT = "total_stars_count"
+
+    // ── Stars Currency ────────────────────────────────────────────────
+    const val STAR_COUNT = "star_count"
+    const val ADS_WATCHED_TODAY = "ads_watched_today"
+    const val LAST_AD_DATE = "last_ad_date"
+    const val LAST_LOGIN_DATE = "last_login_date"
+    const val LAST_DAILY_DATE = "last_daily_date"
+    const val SKIP_CARDS_COUNT = "skip_cards_count"
+    const val NO_ADS_PURCHASED = "no_ads_purchased"
+    const val DAILY_CHALLENGE_COMPLETED = "daily_challenge_completed"
+    const val DAILY_CHALLENGE_TYPE = "daily_challenge_type"
+    const val EXTREME_MODE_UNLOCKED = "extreme_mode_unlocked"
 }
