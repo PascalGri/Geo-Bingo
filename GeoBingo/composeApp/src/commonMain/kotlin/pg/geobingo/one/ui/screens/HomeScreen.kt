@@ -119,23 +119,22 @@ fun HomeScreen(gameState: GameState) {
                     }
 
                     // ── FOOTER ────────────────────────────────────────────────
+                    val uriHandler = LocalUriHandler.current
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),
-                        ) {
-                        val uriHandler = LocalUriHandler.current
+                    ) {
                         TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
                             Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
                             Spacer(Modifier.width(4.dp))
-                            Text(S.current.settings, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                            Text(S.current.settings, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                         }
                         TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
                             Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
                             Spacer(Modifier.width(4.dp))
-                            Text(S.current.statsTitle, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                            Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                         }
-                        Spacer(Modifier.weight(1f))
                         TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
                             Text(S.current.impressum, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
                         }
