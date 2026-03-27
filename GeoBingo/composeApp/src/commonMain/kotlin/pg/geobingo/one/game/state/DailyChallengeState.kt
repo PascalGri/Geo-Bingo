@@ -12,47 +12,56 @@ enum class ChallengeType {
 
 data class DailyChallenge(
     val type: ChallengeType,
-    val description: String,
-    val reward: Int,
+    val descriptionKey: String,
+    val reward: Int = 5,
     val targetMode: String? = null,
+)
+
+private val CHALLENGES_30_DAYS = listOf(
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_classic", targetMode = "CLASSIC"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_blind", targetMode = "BLIND_BINGO"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_weird", targetMode = "WEIRD_CORE"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_quick", targetMode = "QUICK_START"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_classic", targetMode = "CLASSIC"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_blind", targetMode = "BLIND_BINGO"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_weird", targetMode = "WEIRD_CORE"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_quick", targetMode = "QUICK_START"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_classic", targetMode = "CLASSIC"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_blind", targetMode = "BLIND_BINGO"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_weird", targetMode = "WEIRD_CORE"),
+    DailyChallenge(ChallengeType.WIN_ROUND, "win_round"),
+    DailyChallenge(ChallengeType.PLAY_MODE, "play_quick", targetMode = "QUICK_START"),
+    DailyChallenge(ChallengeType.CAPTURE_CATEGORIES, "capture_3"),
 )
 
 object DailyChallengeManager {
     fun getTodayChallenge(): DailyChallenge {
-        val today = todayString()
-        val hash = today.hashCode()
-        val types = ChallengeType.entries
-        val type = types[(hash and Int.MAX_VALUE) % types.size]
-        return when (type) {
-            ChallengeType.WIN_ROUND -> DailyChallenge(
-                type = type,
-                description = "", // filled by UI via i18n
-                reward = 30,
-            )
-            ChallengeType.PLAY_MODE -> {
-                val modes = listOf("CLASSIC", "BLIND_BINGO", "WEIRD_CORE", "QUICK_START")
-                val mode = modes[(hash and Int.MAX_VALUE) % modes.size]
-                DailyChallenge(
-                    type = type,
-                    description = "",
-                    reward = 25,
-                    targetMode = mode,
-                )
-            }
-            ChallengeType.CAPTURE_CATEGORIES -> DailyChallenge(
-                type = type,
-                description = "",
-                reward = 25,
-            )
-        }
+        val dayIndex = dayOfYear() % CHALLENGES_30_DAYS.size
+        return CHALLENGES_30_DAYS[dayIndex]
     }
 
     fun isCompleted(): Boolean =
         AppSettings.getBoolean(SettingsKeys.DAILY_CHALLENGE_COMPLETED, false)
 
-    private fun todayString(): String {
+    private fun dayOfYear(): Int {
         val now = kotlinx.datetime.Clock.System.now()
         val local = now.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-        return local.date.toString()
+        return local.dayOfYear
     }
 }

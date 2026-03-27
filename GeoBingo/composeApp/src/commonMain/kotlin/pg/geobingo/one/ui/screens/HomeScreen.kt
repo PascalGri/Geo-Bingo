@@ -304,30 +304,18 @@ fun HomeScreen(gameState: GameState) {
                     HeroTagline()
                 }
 
-                // ── STARS BAR ────────────────────────────────────────────────
+                // ── STARS + SHOP (minimal) ────────────────────────────────────
                 Row(
                     modifier = Modifier
-                        .staggered(1)
                         .padding(horizontal = Spacing.screenHorizontal)
                         .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     StarsChip(
                         count = gameState.stars.starCount,
                         onClick = { nav.navigateTo(Screen.SHOP) },
                     )
-                    Spacer(Modifier.weight(1f))
-                    if (AdManager.isAdSupported && gameState.stars.canWatchAd) {
-                        TextButton(onClick = { showEarnStarsDialog = true }) {
-                            Icon(Icons.Default.PlayCircle, null, modifier = Modifier.size(14.dp), tint = ColorWarning)
-                            Spacer(Modifier.width(4.dp))
-                            Text(S.current.earnStars, style = MaterialTheme.typography.labelSmall, color = ColorWarning)
-                        }
-                    }
-                    IconButton(onClick = { nav.navigateTo(Screen.SHOP) }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = S.current.shop, modifier = Modifier.size(18.dp), tint = ColorPrimary)
-                    }
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -342,30 +330,56 @@ fun HomeScreen(gameState: GameState) {
                     Card(
                         modifier = Modifier
                             .padding(horizontal = Spacing.screenHorizontal)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .clickable {
+                                // Navigate to the mode the challenge requires
+                                when (dailyChallenge.type) {
+                                    ChallengeType.PLAY_MODE -> {
+                                        val mode = dailyChallenge.targetMode
+                                        if (mode == "QUICK_START") {
+                                            gameState.session.gameMode = pg.geobingo.one.game.GameMode.QUICK_START
+                                            gameState.session.quickStartOutdoor = true
+                                            gameState.session.quickStartDurationMinutes = 15
+                                            gameState.session.quickStartDifficulty = "medium"
+                                            gameState.gameplay.gameDurationMinutes = 15
+                                            nav.navigateTo(Screen.CREATE_GAME)
+                                        } else {
+                                            val gameMode = when (mode) {
+                                                "CLASSIC" -> pg.geobingo.one.game.GameMode.CLASSIC
+                                                "BLIND_BINGO" -> pg.geobingo.one.game.GameMode.BLIND_BINGO
+                                                "WEIRD_CORE" -> pg.geobingo.one.game.GameMode.WEIRD_CORE
+                                                else -> pg.geobingo.one.game.GameMode.CLASSIC
+                                            }
+                                            gameState.session.gameMode = gameMode
+                                            nav.navigateTo(Screen.CREATE_GAME)
+                                        }
+                                    }
+                                    else -> nav.navigateTo(Screen.SELECT_MODE)
+                                }
+                            },
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = ColorSurface),
-                        border = BorderStroke(1.dp, ColorWarning.copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, ColorOutlineVariant),
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Icon(Icons.Default.Today, null, tint = ColorWarning, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Today, null, tint = ColorWarning, modifier = Modifier.size(18.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(S.current.dailyChallenge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
-                                Text(challengeText, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                                Text(challengeText, style = MaterialTheme.typography.bodySmall, color = ColorOnSurface)
                             }
                             Text(
-                                S.current.dailyChallengeReward(dailyChallenge.reward),
+                                "+${dailyChallenge.reward}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = ColorWarning,
-                                fontWeight = FontWeight.SemiBold,
+                                color = ColorOnSurfaceVariant,
                             )
+                            Icon(Icons.Default.Star, null, tint = ColorWarning, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Default.ChevronRight, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(14.dp))
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                 }
 
                 Spacer(Modifier.height(4.dp))

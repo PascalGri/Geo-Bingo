@@ -546,10 +546,10 @@ fun CreateGameScreen(gameState: GameState) {
                 if (showNewSuggestionsDialog) {
                     RerollDialog(
                         title = S.current.newSuggestions,
-                        starsCost = 10,
+                        starsCost = 5,
                         starsState = gameState.stars,
                         onPayStars = {
-                            if (gameState.stars.spend(10)) {
+                            if (gameState.stars.spend(5)) {
                                 scope.launch {
                                     shuffleAlpha.animateTo(0f, tween(150))
                                     val selectedOnes = presetPool.filter { it.id in selectedPresetIds }
