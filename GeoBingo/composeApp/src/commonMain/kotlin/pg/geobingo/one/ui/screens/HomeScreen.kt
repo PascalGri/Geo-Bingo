@@ -222,26 +222,35 @@ fun HomeScreen(gameState: GameState) {
 
                     // ── FOOTER ────────────────────────────────────────────────
                     val uriHandler = LocalUriHandler.current
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
-                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                            Spacer(Modifier.width(4.dp))
-                            Text(S.current.settings, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
+                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                Spacer(Modifier.width(4.dp))
+                                Text(S.current.settings, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
+                            TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
+                                Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                Spacer(Modifier.width(4.dp))
+                                Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
                         }
-                        TextButton(onClick = { nav.navigateTo(Screen.STATS) }) {
-                            Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                            Spacer(Modifier.width(4.dp))
-                            Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                        }
-                        TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
-                            Text(S.current.impressum, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
-                        }
-                        TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
-                            Text(S.current.privacy, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
+                                Text(S.current.impressum, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
+                            }
+                            TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
+                                Text(S.current.privacy, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
+                            }
                         }
                     }
                 }
