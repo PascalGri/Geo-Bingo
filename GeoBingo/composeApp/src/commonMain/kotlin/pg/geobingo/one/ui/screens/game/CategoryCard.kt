@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,8 +79,17 @@ internal fun DarkBingoCategoryCard(
         }
     }
 
+    val a11yLabel = buildString {
+        append(category.name)
+        if (isCaptured) append(", captured")
+        if (isUploading) append(", uploading")
+        if (showUploadSuccess) append(", upload complete")
+    }
+
     Card(
-        modifier = Modifier.aspectRatio(0.9f).fillMaxWidth().combinedClickable(onClick = { onCameraClick() }, onLongClick = { showInfo = true }),
+        modifier = Modifier.aspectRatio(0.9f).fillMaxWidth()
+            .semantics { contentDescription = a11yLabel }
+            .combinedClickable(onClick = { onCameraClick() }, onLongClick = { showInfo = true }),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor),
@@ -88,7 +99,7 @@ internal fun DarkBingoCategoryCard(
                 // Photo fills the entire card
                 Image(
                     bitmap = thumbnail,
-                    contentDescription = null,
+                    contentDescription = "${category.name} photo",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )

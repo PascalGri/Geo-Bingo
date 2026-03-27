@@ -37,4 +37,8 @@ actual object SoundPlayer {
     actual fun playGameEnd() { playTone(784.0, 200) }
     actual fun playSuccess() { playTone(880.0, 250) }
     actual fun playTap() { playTone(800.0, 40, "square", 0.15) }
+    actual fun playTimerWarning() { playTone(600.0, 300, "sawtooth", 0.25) }
+    actual fun playResultsReveal() { playTone(440.0, 300) }
+    actual fun playSpeedBonus() { playTone(1320.0, 150) }
+    actual fun playError() { playTone(250.0, 200, "square", 0.2) }
 }

@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import pg.geobingo.one.data.Category
+import pg.geobingo.one.data.*
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
 import pg.geobingo.one.util.AppLogger
@@ -37,6 +37,7 @@ import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.ui.theme.*
 
 internal fun formatRating(value: Double): String {
@@ -100,6 +101,7 @@ fun ResultsScreen(gameState: GameState) {
 
     // Save to history once on entry, then cleanup server storage
     LaunchedEffect(Unit) {
+        Analytics.track(Analytics.GAME_COMPLETED, mapOf("mode" to gameState.session.gameMode.name, "players" to gameState.gameplay.players.size.toString()))
         gameState.saveToHistory()
         // Update persistent stats
         val myId = gameState.session.myPlayerId
@@ -176,6 +178,30 @@ fun ResultsScreen(gameState: GameState) {
                 var showRematchDialog by remember { mutableStateOf(false) }
 
                 if (showRematchDialog) {
+                    fun launchRematch(categories: List<Category>) {
+                        if (rematchLoading) return
+                        rematchLoading = true
+                        showRematchDialog = false
+                        scope.launch {
+                            try {
+                                val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
+                                val name = myPlayer?.name ?: "Player"
+                                val colorHex = myPlayer?.color?.toHex() ?: "#4CAF50"
+                                val newCode = generateCode()
+                                val mode = gameState.session.gameMode
+                                val newGame = GameRepository.createGame(newCode, gameState.gameplay.gameDurationMinutes * 60, gameMode = mode.name)
+                                val newPlayer = GameRepository.addPlayer(newGame.id, name, colorHex)
+                                GameRepository.addCategories(newGame.id, categories)
+                                gameState.resetForRematch(newGame.id, newCode, newPlayer.id)
+                                gameState.session.gameMode = mode
+                                nav.resetTo(Screen.LOBBY)
+                            } catch (e: Exception) {
+                                AppLogger.e("Results", "Rematch creation failed", e)
+                                rematchLoading = false
+                            }
+                        }
+                    }
+
                     AlertDialog(
                         onDismissRequest = { showRematchDialog = false },
                         title = {
@@ -188,35 +214,38 @@ fun ResultsScreen(gameState: GameState) {
                         text = null,
                         confirmButton = {
                             TextButton(onClick = {
-                                showRematchDialog = false
-                                if (!rematchLoading) {
-                                    rematchLoading = true
-                                    scope.launch {
-                                        try {
-                                            val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
-                                            val name = myPlayer?.name ?: "Player"
-                                            val colorHex = myPlayer?.color?.toHex() ?: "#4CAF50"
-                                            val newCode = generateCode()
-                                            val newGame = GameRepository.createGame(newCode, gameState.gameplay.gameDurationMinutes * 60)
-                                            val newPlayer = GameRepository.addPlayer(newGame.id, name, colorHex)
-                                            GameRepository.addCategories(newGame.id, gameState.gameplay.selectedCategories)
-                                            gameState.resetForRematch(newGame.id, newCode, newPlayer.id)
-                                            nav.resetTo(Screen.LOBBY)
-                                        } catch (e: Exception) {
-                                            AppLogger.e("Results", "Rematch creation failed", e)
-                                            rematchLoading = false
-                                        }
-                                    }
-                                }
+                                Analytics.track(Analytics.REMATCH_SAME, mapOf("mode" to gameState.session.gameMode.name))
+                                launchRematch(gameState.gameplay.selectedCategories)
                             }) {
                                 Text(S.current.sameCategories, color = modeColor)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = {
-                                showRematchDialog = false
-                                gameState.resetGame()
-                                nav.resetTo(Screen.SELECT_MODE)
+                                // Pick fresh categories from the same mode pool
+                                val currentIds = gameState.gameplay.selectedCategories.map { it.id }.toSet()
+                                val count = gameState.gameplay.selectedCategories.size
+                                val freshCategories = when (gameState.session.gameMode) {
+                                    GameMode.QUICK_START -> {
+                                        val outdoor = gameState.session.quickStartOutdoor
+                                        quickStartCategories(outdoor, gameState.session.quickStartDifficulty)
+                                    }
+                                    GameMode.WEIRD_CORE -> {
+                                        val pool = WEIRD_CORE_CATEGORIES.shuffled()
+                                        val fresh = pool.filter { it.id !in currentIds }
+                                        if (fresh.size >= count) fresh.take(count)
+                                        else (fresh + pool.filter { it.id in currentIds }.shuffled()).take(count)
+                                    }
+                                    else -> {
+                                        // Classic / Blind Bingo: pick from PRESET_CATEGORIES
+                                        val pool = CATEGORY_TEMPLATES_SHUFFLED()
+                                        val fresh = pool.filter { it.id !in currentIds }
+                                        if (fresh.size >= count) fresh.take(count)
+                                        else (fresh + pool.filter { it.id in currentIds }.shuffled()).take(count)
+                                    }
+                                }
+                                Analytics.track(Analytics.REMATCH_NEW, mapOf("mode" to gameState.session.gameMode.name))
+                                launchRematch(freshCategories)
                             }) {
                                 Text(S.current.newCategories, color = modeColor)
                             }
@@ -262,6 +291,7 @@ fun ResultsScreen(gameState: GameState) {
                                 }
                                 append("\n${S.current.showYourSkills}")
                             }
+                            Analytics.track(Analytics.SHARE_RESULTS)
                             shareManager.shareText(text)
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -278,7 +308,15 @@ fun ResultsScreen(gameState: GameState) {
                                 if (!rewardedAdLoading) {
                                     rewardedAdLoading = true
                                     AdManager.showRewardedAd(
-                                        onReward = { /* Hier spaeter Belohnung vergeben */ },
+                                        onReward = {
+                            Analytics.track(Analytics.AD_WATCHED)
+                            // Reward: +2 bonus stars to persistent stats
+                            val totalStars = AppSettings.getInt(SettingsKeys.TOTAL_STARS_EARNED, 0) + 20
+                            val totalCount = AppSettings.getInt(SettingsKeys.TOTAL_STARS_COUNT, 0) + 10
+                            AppSettings.setInt(SettingsKeys.TOTAL_STARS_EARNED, totalStars)
+                            AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, totalCount)
+                            gameState.ui.pendingToast = S.current.adRewardReceived
+                        },
                                         onDismiss = { rewardedAdLoading = false }
                                     )
                                 }
@@ -349,7 +387,7 @@ fun ResultsScreen(gameState: GameState) {
                     ) {
                         Icon(
                             imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
+                            contentDescription = S.current.wins,
                             modifier = Modifier.size(44.dp),
                             tint = Color(0xFFFBBF24),
                         )
@@ -447,7 +485,7 @@ fun ResultsScreen(gameState: GameState) {
                     ) {
                         Icon(
                             imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
+                            contentDescription = S.current.wins,
                             modifier = Modifier.size(44.dp),
                             tint = Color(0xFFFBBF24),
                         )

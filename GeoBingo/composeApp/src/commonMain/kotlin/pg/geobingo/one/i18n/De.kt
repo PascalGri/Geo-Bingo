@@ -272,6 +272,25 @@ object De : StringRes {
     override val emptyNoPhotoRetryHint = "Kein Foto eingereicht. Versuche es nochmal."
     override val emptyAllCaughtCelebration = "Alle Kategorien geschafft! Gut gemacht!"
 
+    // ── Ad Rewards ─────────────────────────────────────────────────────
+    override val adRewardReceived = "Bonus erhalten! +2 Sterne"
+
+    // ── Solo / Offline Mode ──────────────────────────────────────────
+    override val soloMode = "Solo Challenge"
+    override val soloModeSubtitle = "Spiele allein gegen die Uhr"
+    override val soloModeDesc = "Fotografiere Kategorien so schnell wie moeglich. Je schneller, desto mehr Punkte. Vergleiche dich mit allen Spielern weltweit."
+    override val soloChallengeComplete = "Challenge abgeschlossen!"
+    override val soloLeaderboard = "Bestenliste"
+    override val soloNoScoresYet = "Noch keine Eintraege"
+    override val soloYourBestScore = "Dein Bestwert"
+    override val soloGlobalBest = "Weltbester"
+    override val soloStartChallenge = "Challenge starten"
+    override fun soloTimeBonus(seconds: Int) = "+${seconds}s Zeitbonus"
+    override val soloTotalScore = "Gesamtpunkte"
+    override val soloYourRank = "Dein Rang"
+    override fun soloRankDisplay(rank: Int, total: Int) = "Platz $rank von $total"
+    override fun soloApproxRank(bracket: String) = "Du bist in den $bracket"
+
     // ── Transition Screens ──────────────────────────────────────────────
     override val reviewInProgress = "Überprüfung läuft..."
     override val calculatingResults = "Ergebnisse werden berechnet..."

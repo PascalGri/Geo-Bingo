@@ -104,4 +104,20 @@ actual object SoundPlayer {
     actual fun playTap() {
         playWebTone(800f, 40f, "square", 0.15f)
     }
+
+    actual fun playTimerWarning() {
+        playWebToneSequence(600f, 150f, 900f, 200f, "sawtooth", 0.25f)
+    }
+
+    actual fun playResultsReveal() {
+        playWebToneSequence(440f, 150f, 880f, 300f, "sine", 0.3f)
+    }
+
+    actual fun playSpeedBonus() {
+        playWebToneSequence(660f, 100f, 1320f, 150f, "sine", 0.25f)
+    }
+
+    actual fun playError() {
+        playWebToneSequence(400f, 150f, 250f, 200f, "square", 0.2f)
+    }
 }

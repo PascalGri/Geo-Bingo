@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -80,7 +82,7 @@ fun HomeScreen(gameState: GameState) {
                     GradientButton(
                         text = S.current.createRound,
                         onClick = { nav.navigateTo(Screen.SELECT_MODE) },
-                        modifier = Modifier.fillMaxWidth().graphicsLayer {
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = S.current.createRound }.graphicsLayer {
                             translationY = btnOffsets[0].value
                             alpha = btnAlphas[0].value
                         },

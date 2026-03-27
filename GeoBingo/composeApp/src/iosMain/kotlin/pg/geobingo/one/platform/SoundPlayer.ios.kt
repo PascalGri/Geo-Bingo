@@ -26,4 +26,8 @@ actual object SoundPlayer {
     actual fun playGameEnd() = play(SOUND_END)
     actual fun playSuccess() = play(SOUND_SUCCESS)
     actual fun playTap() = play(SOUND_TAP)
+    actual fun playTimerWarning() = play(1029u)  // Alarm (ascending)
+    actual fun playResultsReveal() = play(1025u) // Positive tri-tone
+    actual fun playSpeedBonus() = play(1115u)    // Short positive chirp
+    actual fun playError() = play(1073u)         // Negative/Error beep
 }

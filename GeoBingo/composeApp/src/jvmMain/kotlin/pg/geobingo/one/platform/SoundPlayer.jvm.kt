@@ -8,4 +8,8 @@ actual object SoundPlayer {
     actual fun playGameEnd() {}
     actual fun playSuccess() {}
     actual fun playTap() {}
+    actual fun playTimerWarning() {}
+    actual fun playResultsReveal() {}
+    actual fun playSpeedBonus() {}
+    actual fun playError() {}
 }

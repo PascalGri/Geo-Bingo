@@ -21,6 +21,8 @@ import pg.geobingo.one.network.VoteKeys
 import pg.geobingo.one.network.withRetry
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.getCurrentLocation
+import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.util.AppLogger
 
 /**
@@ -82,6 +84,7 @@ class GameViewModel(
         if (bytes == null) return
         val gameId = gameState.session.gameId
 
+        Analytics.track(Analytics.PHOTO_CAPTURED, mapOf("isJoker" to categoryId.startsWith("joker_").toString()))
         gameState.addPhoto(playerId, categoryId, bytes)
         val isJoker = categoryId.startsWith("joker_")
 
@@ -104,6 +107,7 @@ class GameViewModel(
                     true
                 } catch (e: Exception) {
                     AppLogger.e("GameVM", "Capture upload failed for $categoryId", e)
+                    if (gameState.ui.soundEnabled) SoundPlayer.playError()
                     gameState.ui.pendingToast = S.current.uploadFailed
                     false
                 }
@@ -178,6 +182,11 @@ class GameViewModel(
                 delay(GameConstants.TIMER_TICK_MS)
                 if (gameState.gameplay.isGameRunning && !gameState.review.allCategoriesCaptured) {
                     gameState.gameplay.timeRemainingSeconds--
+                    // Timer warning sound at 60s, 30s, 10s
+                    val t = gameState.gameplay.timeRemainingSeconds
+                    if (gameState.ui.soundEnabled && (t == 60 || t == 30 || t == 10)) {
+                        SoundPlayer.playTimerWarning()
+                    }
                 }
             }
             if (!gameState.review.allCategoriesCaptured && gameState.gameplay.timeRemainingSeconds <= 0 && gameState.gameplay.isGameRunning) {

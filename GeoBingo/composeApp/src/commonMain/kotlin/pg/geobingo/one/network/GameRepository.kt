@@ -72,6 +72,26 @@ private data class VoteSubmissionInsertDto(val game_id: String, val voter_id: St
 private data class GameInsertDto(val code: String, val duration_s: Int, val joker_mode: Boolean = false, val game_mode: String = "CLASSIC")
 
 @Serializable
+data class SoloScoreDto(
+    val id: String = "",
+    val player_name: String = "",
+    val score: Int = 0,
+    val categories_count: Int = 0,
+    val time_bonus: Int = 0,
+    val duration_seconds: Int = 0,
+    val created_at: String = "",
+)
+
+@Serializable
+private data class SoloScoreInsertDto(
+    val player_name: String,
+    val score: Int,
+    val categories_count: Int,
+    val time_bonus: Int,
+    val duration_seconds: Int,
+)
+
+@Serializable
 data class JokerLabelDto(val game_id: String = "", val player_id: String = "", val label: String = "")
 
 @Serializable
@@ -450,6 +470,61 @@ object GameRepository {
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
             .decodeList<VoteSubmissionDto>().isNotEmpty()
+
+    // ── Solo Leaderboard ────────────────────────────────────────────────
+
+    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int): SoloScoreDto =
+        supabase.from("solo_scores").insert(
+            SoloScoreInsertDto(
+                player_name = playerName,
+                score = score,
+                categories_count = categoriesCount,
+                time_bonus = timeBonus,
+                duration_seconds = durationSeconds,
+            )
+        ) { select() }.decodeSingle()
+
+    suspend fun getSoloLeaderboard(limit: Int = 50): List<SoloScoreDto> =
+        supabase.from("solo_scores")
+            .select {
+                order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+
+    suspend fun getSoloPersonalBest(playerName: String): SoloScoreDto? =
+        supabase.from("solo_scores")
+            .select {
+                filter { eq("player_name", playerName) }
+                order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<SoloScoreDto>().firstOrNull()
+
+    /**
+     * Returns the approximate rank of a player's best score.
+     * Counts how many distinct higher scores exist + 1.
+     */
+    suspend fun getSoloRank(playerName: String): Int? {
+        val best = getSoloPersonalBest(playerName) ?: return null
+        val higherScores = supabase.from("solo_scores")
+            .select {
+                filter { gt("score", best.score) }
+            }
+            .decodeList<SoloScoreDto>()
+        // Count distinct player names with higher scores
+        val distinctHigher = higherScores.map { it.player_name }.toSet().size
+        return distinctHigher + 1
+    }
+
+    /** Total number of distinct players on the leaderboard. */
+    suspend fun getSoloTotalPlayers(): Int =
+        supabase.from("solo_scores")
+            .select()
+            .decodeList<SoloScoreDto>()
+            .map { it.player_name }
+            .toSet()
+            .size
 
     /** Delete all game photos and avatars from Supabase Storage to free space. */
     suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {

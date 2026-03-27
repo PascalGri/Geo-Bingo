@@ -354,6 +354,11 @@ val PRESET_CATEGORIES: List<Category> = CATEGORY_TEMPLATES.map { t ->
     Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
 }.shuffled()
 
+/** Returns a freshly shuffled list of categories with new random variant names. */
+fun CATEGORY_TEMPLATES_SHUFFLED(): List<Category> = CATEGORY_TEMPLATES.map { t ->
+    Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
+}.shuffled()
+
 // Lookup map: template id → description (used client-side without DB storage)
 val CATEGORY_DESCRIPTIONS: Map<String, String> = CATEGORY_TEMPLATES.associate { it.id to it.description }
 

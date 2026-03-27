@@ -296,6 +296,25 @@ interface StringRes {
     val emptyNoPhotoRetryHint: String
     val emptyAllCaughtCelebration: String
 
+    // ── Ad Rewards ─────────────────────────────────────────────────────
+    val adRewardReceived: String
+
+    // ── Solo / Offline Mode ──────────────────────────────────────────
+    val soloMode: String
+    val soloModeSubtitle: String
+    val soloModeDesc: String
+    val soloChallengeComplete: String
+    val soloLeaderboard: String
+    val soloNoScoresYet: String
+    val soloYourBestScore: String
+    val soloGlobalBest: String
+    val soloStartChallenge: String
+    fun soloTimeBonus(seconds: Int): String
+    val soloTotalScore: String
+    val soloYourRank: String
+    fun soloRankDisplay(rank: Int, total: Int): String
+    fun soloApproxRank(bracket: String): String
+
     // ── Transition Screens ──────────────────────────────────────────────
     val reviewInProgress: String
     val calculatingResults: String

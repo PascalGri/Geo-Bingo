@@ -59,4 +59,20 @@ actual object SoundPlayer {
     actual fun playTap() {
         playTone(android.media.ToneGenerator.TONE_PROP_BEEP, 50)
     }
+
+    actual fun playTimerWarning() {
+        playTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 300)
+    }
+
+    actual fun playResultsReveal() {
+        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 350)
+    }
+
+    actual fun playSpeedBonus() {
+        playTone(android.media.ToneGenerator.TONE_CDMA_ANSWER, 200)
+    }
+
+    actual fun playError() {
+        playTone(android.media.ToneGenerator.TONE_PROP_NACK, 200)
+    }
 }

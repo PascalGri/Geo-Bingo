@@ -28,12 +28,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
+import pg.geobingo.one.data.CATEGORY_TEMPLATES_SHUFFLED
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +98,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 onSelectOutdoor = { quickStartOutdoor = it },
                 onSelectDifficulty = { quickStartDifficulty = it },
                 onConfirm = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "QUICK_START"))
                     gameState.session.gameMode = GameMode.QUICK_START
                     gameState.session.quickStartOutdoor = quickStartOutdoor
                     gameState.session.quickStartDurationMinutes = 15
@@ -115,6 +118,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 gradientColors = GradientPrimary,
                 modifier = Modifier.staggered(2),
                 onClick = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "CLASSIC"))
                     gameState.session.gameMode = GameMode.CLASSIC
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
@@ -129,6 +133,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 gradientColors = GradientCool,
                 modifier = Modifier.staggered(3),
                 onClick = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "BLIND_BINGO"))
                     gameState.session.gameMode = GameMode.BLIND_BINGO
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
@@ -143,8 +148,37 @@ fun ModeSelectScreen(gameState: GameState) {
                 gradientColors = GradientWeird,
                 modifier = Modifier.staggered(4),
                 onClick = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "WEIRD_CORE"))
                     gameState.session.gameMode = GameMode.WEIRD_CORE
                     nav.navigateTo(Screen.CREATE_GAME)
+                },
+            )
+
+            // Solo Challenge
+            HorizontalDivider(
+                color = ColorOutlineVariant,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+
+            ModeCard(
+                mode = GameMode.CLASSIC, // reuse, doesn't matter for solo
+                title = S.current.soloMode,
+                subtitle = S.current.soloModeSubtitle,
+                description = S.current.soloModeDesc,
+                icon = Icons.Default.Person,
+                gradientColors = listOf(Color(0xFF22D3EE), Color(0xFF6366F1)),
+                modifier = Modifier.staggered(4),
+                onClick = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO"))
+                    // Set up solo game with 5 random categories
+                    val categories = CATEGORY_TEMPLATES_SHUFFLED().take(5)
+                    gameState.solo.categories = categories
+                    gameState.solo.totalDurationSeconds = 300
+                    gameState.solo.timeRemainingSeconds = 300
+                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                    gameState.solo.isRunning = true
+                    Analytics.track(Analytics.SOLO_GAME_STARTED)
+                    nav.navigateTo(Screen.SOLO_GAME)
                 },
             )
 
