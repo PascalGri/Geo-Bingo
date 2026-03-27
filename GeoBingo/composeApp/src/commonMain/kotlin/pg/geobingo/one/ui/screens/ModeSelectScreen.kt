@@ -170,15 +170,12 @@ fun ModeSelectScreen(gameState: GameState) {
                 modifier = Modifier.staggered(4),
                 onClick = {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO"))
-                    // Set up solo game with 5 random categories
                     val categories = CATEGORY_TEMPLATES_SHUFFLED().take(5)
                     gameState.solo.categories = categories
                     gameState.solo.totalDurationSeconds = 300
                     gameState.solo.timeRemainingSeconds = 300
                     gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
-                    gameState.solo.isRunning = true
-                    Analytics.track(Analytics.SOLO_GAME_STARTED)
-                    nav.navigateTo(Screen.SOLO_GAME)
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
                 },
             )
 

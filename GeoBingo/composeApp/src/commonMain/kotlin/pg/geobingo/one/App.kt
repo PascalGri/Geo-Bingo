@@ -29,6 +29,7 @@ import pg.geobingo.one.ui.screens.review.ReviewScreen
 import pg.geobingo.one.ui.screens.solo.SoloGameScreen
 import pg.geobingo.one.ui.screens.solo.SoloLeaderboardScreen
 import pg.geobingo.one.ui.screens.solo.SoloResultsScreen
+import pg.geobingo.one.ui.screens.solo.SoloStartTransitionScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
 import pg.geobingo.one.ui.theme.OfflineBanner
 
@@ -90,6 +91,7 @@ fun App() {
                     Screen.HISTORY -> HistoryScreen(gameState)
                     Screen.SETTINGS -> SettingsScreen(gameState)
                     Screen.STATS -> StatsScreen(gameState)
+                    Screen.SOLO_START_TRANSITION -> SoloStartTransitionScreen(gameState)
                     Screen.SOLO_GAME -> SoloGameScreen(gameState)
                     Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
