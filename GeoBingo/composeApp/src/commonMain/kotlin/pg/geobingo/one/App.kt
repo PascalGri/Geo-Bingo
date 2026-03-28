@@ -139,6 +139,7 @@ fun App() {
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
                     Screen.SHOP -> ShopScreen(gameState)
                     Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)
+                    Screen.ACCOUNT -> AccountScreen(gameState)
                 }
             }
         }

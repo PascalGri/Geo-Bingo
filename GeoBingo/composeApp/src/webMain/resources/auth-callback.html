@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KatchIt! - Bestaetigung</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #050508; color: #F0ECFF;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 24px;
+        }
+        .container {
+            background: #0C0B15; border: 1px solid #2E1F50; border-radius: 16px;
+            padding: 40px; max-width: 420px; width: 100%; text-align: center;
+        }
+        h1 {
+            font-size: 28px; font-weight: 800; margin-bottom: 8px;
+            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .message { color: #CBB8F0; font-size: 15px; margin: 16px 0; line-height: 1.5; }
+        .success-icon { font-size: 48px; margin-bottom: 12px; }
+        .error-icon { font-size: 48px; margin-bottom: 12px; }
+        .success { color: #22C55E; }
+        .error { color: #FF4D6D; }
+        .back-link {
+            display: inline-block; margin-top: 20px;
+            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            color: #fff; border-radius: 12px; padding: 12px 32px;
+            font-size: 16px; font-weight: 700; text-decoration: none;
+        }
+        .loading { color: #5A3D8A; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>KatchIt!</h1>
+    <div id="content">
+        <p class="loading">Wird verarbeitet...</p>
+    </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const supabaseUrl = 'https://itkmtovubmhkqtguzeex.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0a210b3Z1Ym1oa3F0Z3V6ZWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTc2NjIsImV4cCI6MjA4OTEzMzY2Mn0.sH0-CL7V58UaCyqLGkGKp36CLIn15uOHbTV7HN2G0MY';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const content = document.getElementById('content');
+
+// Parse hash fragment
+const hash = window.location.hash.substring(1);
+const params = new URLSearchParams(hash);
+const accessToken = params.get('access_token');
+const refreshToken = params.get('refresh_token');
+const type = params.get('type');
+
+// Also check query params (some flows use query instead of hash)
+const queryParams = new URLSearchParams(window.location.search);
+const errorCode = queryParams.get('error_code') || params.get('error_code');
+const errorDesc = queryParams.get('error_description') || params.get('error_description');
+
+if (errorCode || errorDesc) {
+    // Error from Supabase
+    content.innerHTML = `
+        <div class="error-icon">&#10060;</div>
+        <p class="message error">${errorDesc || 'Ein Fehler ist aufgetreten.'}</p>
+        <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+    `;
+} else if (accessToken) {
+    // Set session
+    try {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' });
+
+        if (type === 'recovery') {
+            // Redirect to password reset page
+            window.location.href = '/reset-password.html' + window.location.hash;
+        } else if (type === 'email_change') {
+            content.innerHTML = `
+                <div class="success-icon">&#9989;</div>
+                <p class="message success">E-Mail-Adresse wurde erfolgreich geaendert!</p>
+                <p class="message">Du kannst dich jetzt mit deiner neuen E-Mail anmelden.</p>
+                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            `;
+        } else if (type === 'signup') {
+            content.innerHTML = `
+                <div class="success-icon">&#9989;</div>
+                <p class="message success">E-Mail wurde erfolgreich bestaetigt!</p>
+                <p class="message">Dein Konto ist jetzt aktiv. Du kannst dich in der App anmelden.</p>
+                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            `;
+        } else if (type === 'magiclink') {
+            content.innerHTML = `
+                <div class="success-icon">&#9989;</div>
+                <p class="message success">Erfolgreich angemeldet!</p>
+                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            `;
+        } else if (type === 'invite') {
+            content.innerHTML = `
+                <div class="success-icon">&#9989;</div>
+                <p class="message success">Einladung angenommen!</p>
+                <p class="message">Willkommen bei KatchIt! Lade dir die App herunter oder spiele im Browser.</p>
+                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            `;
+        } else {
+            // Generic success
+            content.innerHTML = `
+                <div class="success-icon">&#9989;</div>
+                <p class="message success">Erfolgreich bestaetigt!</p>
+                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            `;
+        }
+    } catch (e) {
+        content.innerHTML = `
+            <div class="error-icon">&#10060;</div>
+            <p class="message error">${e.message}</p>
+            <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+        `;
+    }
+} else {
+    content.innerHTML = `
+        <div class="error-icon">&#10060;</div>
+        <p class="message error">Ungueltiger oder abgelaufener Link.</p>
+        <p class="message">Bitte fordere einen neuen Link in der App an.</p>
+        <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+    `;
+}
+</script>
+</body>
+</html>

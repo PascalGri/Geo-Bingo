@@ -84,23 +84,27 @@ fun SettingsScreen(gameState: GameState) {
                 .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Profile section (when logged in)
-            val isLoggedIn = AccountManager.isLoggedIn
-            val currentUser = AccountManager.currentUser
-
-            if (isLoggedIn && currentUser != null) {
-                ProfileSection(snackbarHostState, scope)
+            // Account section - links to dedicated account screen
+            SettingsSection(title = S.current.account) {
+                val isLoggedIn = AccountManager.isLoggedIn
+                if (isLoggedIn) {
+                    val name = AppSettings.getString("last_player_name", "")
+                    val avatarBytes = LocalPhotoStore.loadAvatar("profile")
+                    SettingsClickRow(
+                        icon = Icons.Default.Person,
+                        title = name.ifBlank { S.current.account },
+                        subtitle = AccountManager.currentUser?.email ?: "",
+                        onClick = { nav.navigateTo(Screen.ACCOUNT) },
+                    )
+                } else {
+                    SettingsClickRow(
+                        icon = Icons.Default.PersonAdd,
+                        title = S.current.signIn,
+                        subtitle = S.current.syncDataDesc,
+                        onClick = { nav.navigateTo(Screen.ACCOUNT) },
+                    )
+                }
             }
-
-            // Account section
-            AccountSection(
-                isLoggedIn = isLoggedIn,
-                currentUser = currentUser,
-                gameState = gameState,
-                snackbarHostState = snackbarHostState,
-                scope = scope,
-                nav = nav,
-            )
 
             // Sound & Haptic section
             SettingsSection(title = S.current.general) {
@@ -571,7 +575,7 @@ private fun AccountSection(
 // ── Auth Dialog with OAuth + Email ───────────────────────────────────────────
 
 @Composable
-private fun AuthDialog(
+internal fun AuthDialog(
     onDismiss: () -> Unit,
     authLoading: Boolean,
     onAuthLoadingChange: (Boolean) -> Unit,
@@ -756,7 +760,7 @@ private fun AuthDialog(
 }
 
 @Composable
-private fun OAuthButton(
+internal fun OAuthButton(
     text: String,
     icon: ImageVector,
     onClick: () -> Unit,
@@ -782,7 +786,7 @@ private fun OAuthButton(
 // ── Password Reset Dialog ────────────────────────────────────────────────────
 
 @Composable
-private fun ResetPasswordDialog(
+internal fun ResetPasswordDialog(
     onDismiss: () -> Unit,
     onResult: (String) -> Unit,
 ) {
@@ -849,7 +853,7 @@ private fun ResetPasswordDialog(
 // ── Change Email Dialog ─────────────────────────────────────────────────────
 
 @Composable
-private fun ChangeEmailDialog(
+internal fun ChangeEmailDialog(
     onDismiss: () -> Unit,
     onResult: (String) -> Unit,
 ) {
@@ -917,7 +921,7 @@ private fun ChangeEmailDialog(
 // ── Change Password Dialog ──────────────────────────────────────────────────
 
 @Composable
-private fun ChangePasswordDialog(
+internal fun ChangePasswordDialog(
     onDismiss: () -> Unit,
     onResult: (String) -> Unit,
 ) {

@@ -137,7 +137,10 @@ object AccountManager {
 
     suspend fun resetPassword(email: String): Result<Unit> {
         return try {
-            supabase.auth.resetPasswordForEmail(email)
+            supabase.auth.resetPasswordForEmail(
+                email = email,
+                redirectUrl = "https://katchit.app/reset-password.html",
+            )
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Password reset failed", e)
