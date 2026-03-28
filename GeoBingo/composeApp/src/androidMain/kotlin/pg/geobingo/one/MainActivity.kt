@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.google.android.gms.ads.MobileAds
 import pg.geobingo.one.platform.appContext
 import pg.geobingo.one.platform.currentActivity
+import pg.geobingo.one.util.Analytics
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         appContext = applicationContext
         currentActivity = this
+        Analytics.platform = "android"
 
         MobileAds.initialize(this)
 

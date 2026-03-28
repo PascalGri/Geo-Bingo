@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.ui.theme.ColorPrimary
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
@@ -30,7 +31,7 @@ fun TopBarStarsAndProfile(
     ) {
         StarsChip(
             count = gameState.stars.starCount,
-            onClick = { onNavigate(Screen.SHOP) },
+            onClick = { onNavigate(if (BillingManager.isBillingSupported) Screen.SHOP else Screen.SETTINGS) },
         )
         val name = AppSettings.getString("last_player_name", "")
         val avatarBytes = LocalPhotoStore.loadAvatar("profile")

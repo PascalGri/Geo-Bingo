@@ -35,6 +35,7 @@ import pg.geobingo.one.ui.screens.solo.SoloResultsScreen
 import pg.geobingo.one.ui.screens.solo.SoloStartTransitionScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
 import pg.geobingo.one.ui.theme.OfflineBanner
+import pg.geobingo.one.util.Analytics
 
 @Composable
 fun App() {
@@ -71,6 +72,11 @@ fun App() {
                 onError = {},
             )
         }
+    }
+
+    // Track app open
+    LaunchedEffect(Unit) {
+        Analytics.track(Analytics.APP_OPENED)
     }
 
     // Daily login bonus + daily challenge reset

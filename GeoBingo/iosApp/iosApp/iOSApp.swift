@@ -9,6 +9,8 @@ struct iOSApp: App {
         requestTrackingAuthorization()
         // StoreKit 2 Bridge initialisieren
         BillingBridgeImpl.shared.setup()
+        // Analytics platform
+        Analytics.shared.platform = "ios"
     }
 
     var body: some Scene {

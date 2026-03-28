@@ -17,6 +17,7 @@ import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
+import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.util.AppLogger
 
 @Serializable
@@ -70,6 +71,7 @@ object AccountManager {
                 createProfileIfNeeded(userId, email)
                 syncLocalToCloud(userId)
             }
+            Analytics.track(Analytics.SIGN_UP, mapOf("method" to "email"))
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sign up failed", e)
@@ -87,6 +89,7 @@ object AccountManager {
             if (userId != null) {
                 syncCloudToLocal(userId)
             }
+            Analytics.track(Analytics.SIGN_IN, mapOf("method" to "email"))
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sign in failed", e)
@@ -105,6 +108,7 @@ object AccountManager {
                 createProfileIfNeeded(userId, email)
                 syncCloudToLocal(userId)
             }
+            Analytics.track(Analytics.SIGN_IN, mapOf("method" to "google"))
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Google sign in failed", e)
@@ -121,6 +125,7 @@ object AccountManager {
                 createProfileIfNeeded(userId, email)
                 syncCloudToLocal(userId)
             }
+            Analytics.track(Analytics.SIGN_IN, mapOf("method" to "apple"))
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Apple sign in failed", e)
