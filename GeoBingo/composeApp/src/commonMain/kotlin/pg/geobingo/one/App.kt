@@ -15,6 +15,7 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.Language
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.BillingManager
@@ -77,6 +78,14 @@ fun App() {
     // Track app open
     LaunchedEffect(Unit) {
         Analytics.track(Analytics.APP_OPENED)
+    }
+
+    // Auto-sync with cloud when logged in
+    LaunchedEffect(Unit) {
+        val userId = AccountManager.currentUserId
+        if (userId != null) {
+            AccountManager.syncLocalToCloud(userId)
+        }
     }
 
     // Daily login bonus + daily challenge reset

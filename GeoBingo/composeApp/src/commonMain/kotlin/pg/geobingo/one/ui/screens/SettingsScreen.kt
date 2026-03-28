@@ -2,6 +2,7 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -276,6 +277,16 @@ private fun ProfileSection(
     var avatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
     var isSaving by remember { mutableStateOf(false) }
 
+    // Download avatar from cloud if local cache is empty
+    LaunchedEffect(Unit) {
+        if (avatarBytes == null || avatarBytes?.isEmpty() == true) {
+            val downloaded = AccountManager.downloadProfileAvatar()
+            if (downloaded != null && downloaded.isNotEmpty()) {
+                avatarBytes = downloaded
+            }
+        }
+    }
+
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             avatarBytes = bytes
@@ -430,20 +441,6 @@ private fun AccountSection(
                 title = S.current.inviteFriends,
                 subtitle = S.current.inviteFriendsDesc,
                 onClick = { shareManager.shareText(S.current.inviteFriendsMessage) },
-            )
-            HorizontalDivider(color = ColorOutlineVariant)
-            // Sync data
-            SettingsClickRow(
-                icon = Icons.Default.Sync,
-                title = S.current.syncData,
-                subtitle = S.current.syncDataDesc,
-                onClick = {
-                    scope.launch {
-                        val userId = AccountManager.currentUserId ?: return@launch
-                        AccountManager.syncLocalToCloud(userId)
-                        snackbarHostState.showSnackbar(S.current.syncData)
-                    }
-                },
             )
             HorizontalDivider(color = ColorOutlineVariant)
             // Sign out
