@@ -7,6 +7,8 @@ struct iOSApp: App {
     init() {
         // ATT muss VOR UMP/AdMob-Consent aufgerufen werden (Apple-Anforderung seit iOS 14.5)
         requestTrackingAuthorization()
+        // StoreKit 2 Bridge initialisieren
+        BillingBridgeImpl.shared.setup()
     }
 
     var body: some Scene {

@@ -68,6 +68,7 @@ kotlin {
             implementation(libs.play.services.location)
             implementation(libs.google.mobile.ads)
             implementation(libs.google.ump)
+            implementation(libs.billing.client)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

@@ -1,24 +1,45 @@
 # KatchIt! Post-Launch Plan
 
-## Sofort nach Veroeffentlichung
+## Bereits erledigt
+- [x] Google OAuth in Produktion gesetzt
+- [x] Custom SMTP (Resend) eingerichtet
+- [x] E-Mail Templates gebrandet
+- [x] Deep Linking (Android + iOS)
+- [x] Edge Function fuer Account-Loeschung
+- [x] RLS + Storage Policies gehaertet
+- [x] Rate Limits konfiguriert
+- [x] Google Play Billing Library integriert (Code fertig)
+- [x] StoreKit 2 integriert (Code fertig)
 
-### Google OAuth in Produktion setzen
-- Google Cloud Console > OAuth-Zustimmungsbildschirm
-- Status von "Testing" auf "In Produktion" umstellen
-- Google-Pruefung abwarten (dauert wenige Tage)
-- Ohne diesen Schritt koennen sich nur Testnutzer anmelden
+## Vor Release: Produkte in den Stores anlegen
 
-### Apple Sign-In einrichten
-- Apple Developer Account registrieren (99 USD/Jahr)
+### Google Play Console - In-App-Produkt anlegen
+1. Google Play Console > App auswaehlen > Monetarisierung > Produkte > In-App-Produkte
+2. "Produkt erstellen" klicken
+3. Produkt-ID: `pg.geobingo.one.no_ads` (muss exakt so heissen!)
+4. Name: "Werbung entfernen"
+5. Beschreibung: "Entfernt alle Werbung dauerhaft aus KatchIt!"
+6. Preis festlegen (z.B. 2,99 EUR)
+7. Status: Aktiv
+8. Speichern
+
+### App Store Connect - In-App-Kauf anlegen
+1. App Store Connect > App > In-App-Kaeufe > "+" klicken
+2. Typ: "Nicht-verbrauchbar" (Non-Consumable)
+3. Referenzname: "Werbung entfernen"
+4. Produkt-ID: `pg.geobingo.one.no_ads` (muss exakt so heissen!)
+5. Preis festlegen (z.B. Stufe 3 = 2,99 EUR)
+6. Lokalisierung hinzufuegen (DE + EN):
+   - Anzeigename: "Werbung entfernen" / "Remove Ads"
+   - Beschreibung: "Entfernt alle Werbung dauerhaft" / "Permanently removes all ads"
+7. Screenshot fuer Review hochladen (Screenshot vom Kaufdialog)
+8. Status: "Bereit zur Uebermittlung"
+
+### Apple Sign-In einrichten (sobald Developer Account aktiv)
+- Apple Developer > Certificates, Identifiers & Profiles
 - App ID + Service ID + Key erstellen
 - Supabase Dashboard: Authentication > Providers > Apple konfigurieren
 - iOS plist hat URL-Schema bereits konfiguriert
-
-### Custom SMTP einrichten
-- Resend.com Account erstellen (kostenlos, 100 Emails/Tag)
-- Domain katchit.app verifizieren (DNS-Eintraege)
-- Supabase Dashboard: Project Settings > SMTP Settings konfigurieren
-- Dann Rate Limit fuer Emails von 2/h auf 30/h erhoehen
 
 ## Erste Woche
 
@@ -26,6 +47,8 @@
 - Supabase Dashboard: Logs regelmaessig pruefen (Auth errors, DB errors)
 - Crash-Reporting pruefen (Firebase Crashlytics / Sentry)
 - Storage-Verbrauch im Auge behalten (Fotos wachsen schnell)
+- AdMob-Einnahmen im AdMob Dashboard verfolgen
+- In-App-Kauf-Transaktionen pruefen (Google Play Console + App Store Connect)
 
 ### Performance pruefen
 - Supabase Advisors laufen lassen (Index-Empfehlungen)
@@ -49,6 +72,10 @@
 - CDN fuer Storage-Assets aktivieren
 - Database Pooling konfigurieren bei steigenden Connections
 
+### Web-App Werbung (optional)
+- Google AdSense erneut beantragen (vorherige Ablehnung pruefen)
+- Alternative: Web-App werbefrei lassen, nur Mobile monetarisieren
+
 ## Laufend
 
 ### Regelmaessige Wartung
@@ -64,3 +91,5 @@
 - Spiele pro Tag
 - Crash-Free Rate
 - App Store Bewertungen
+- AdMob Revenue (eCPM, Fill Rate)
+- In-App-Kauf Conversion Rate

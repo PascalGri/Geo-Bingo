@@ -21,6 +21,7 @@ supabase = "3.0.3"
 playServicesLocation = "21.3.0"
 googleMobileAds = "23.6.0"
 googleUmp = "3.1.0"
+billingClient = "7.1.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -54,6 +55,7 @@ supabase-storage = { module = "io.github.jan-tennert.supabase:storage-kt", versi
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 google-mobile-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "googleMobileAds" }
 google-ump = { module = "com.google.android.ump:user-messaging-platform", version.ref = "googleUmp" }
+billing-client = { module = "com.android.billingclient:billing-ktx", version.ref = "billingClient" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
