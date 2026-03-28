@@ -1,2 +1,8 @@
 .DS_Store
 .vercel
+.mcp.json
+*.jks
+*.p8
+*.mobileprovision
+.env*
+local.properties

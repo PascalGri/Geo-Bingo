@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magic Link - KatchIt!</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #050508; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #050508; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color: #0C0B15; border-radius: 16px; border: 1px solid #2E1F50; overflow: hidden;">
+          <!-- Header with gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); padding: 32px 40px; text-align: center;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;">KatchIt!</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #F0ECFF;">
+                Dein Login-Link
+              </h2>
+              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #CBB8F0;">
+                Klicke auf den Button, um dich bei KatchIt! anzumelden. Kein Passwort nötig.
+              </p>
+              <!-- Button -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 8px 0 32px 0;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none; padding: 14px 40px; border-radius: 12px;">
+                      Jetzt anmelden
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.5; color: #5A3D8A;">
+                Falls du diese Anmeldung nicht angefordert hast, kannst du diese E-Mail ignorieren.
+              </p>
+              <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5A3D8A;">
+                Der Link ist 24 Stunden gültig.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; border-top: 1px solid #2E1F50; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #5A3D8A;">
+                KatchIt! &mdash; Das Foto-Bingo-Spiel
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

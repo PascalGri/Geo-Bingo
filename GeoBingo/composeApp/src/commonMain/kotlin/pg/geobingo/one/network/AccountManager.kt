@@ -9,6 +9,9 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.http.HttpHeaders
 import kotlinx.serialization.Serializable
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.AppSettings
@@ -137,6 +140,30 @@ object AccountManager {
         }
     }
 
+    // ── Change Email ──────────────────────────────────────────────
+
+    suspend fun changeEmail(newEmail: String): Result<Unit> {
+        return try {
+            supabase.auth.updateUser { email = newEmail }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Change email failed", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── Change Password ────────────────────────────────────────────
+
+    suspend fun changePassword(newPassword: String): Result<Unit> {
+        return try {
+            supabase.auth.updateUser { password = newPassword }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Change password failed", e)
+            Result.failure(e)
+        }
+    }
+
     // ── Sign Out ───────────────────────────────────────────────────
 
     suspend fun signOut() {
@@ -151,26 +178,21 @@ object AccountManager {
 
     suspend fun deleteAccount(): Result<Unit> {
         return try {
-            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
-            // Delete profile from DB
-            try {
-                supabase.postgrest["profiles"].delete {
-                    filter { eq("id", userId) }
+            val session = supabase.auth.currentSessionOrNull()
+                ?: return Result.failure(Exception("Not logged in"))
+            // Call Edge Function to delete auth user, profile, and avatar server-side
+            val url = "${SupabaseConfig.current.url}/functions/v1/delete-account"
+            ServiceLocator.httpClient.post(url) {
+                headers {
+                    append(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+                    append("apikey", SupabaseConfig.current.anonKey)
                 }
-            } catch (e: Exception) {
-                AppLogger.w(TAG, "Profile deletion failed", e)
             }
-            // Delete avatar from storage
-            try {
-                supabase.storage.from("photos").delete("avatars/$userId.jpg")
-            } catch (e: Exception) {
-                AppLogger.d(TAG, "Avatar deletion failed (may not exist)", e)
-            }
-            // Sign out (user deletion on Supabase side requires admin/edge function)
-            signOut()
             // Clear local data
             AppSettings.setString("last_player_name", "")
             try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+            // Sign out locally
+            try { supabase.auth.signOut() } catch (_: Exception) {}
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Account deletion failed", e)

@@ -419,4 +419,22 @@ interface StringRes {
     val deleteAccountConfirm: String
     val deleteAccountDesc: String
     val accountDeleted: String
+
+    // ── Account Management ──────────────────────────────────────────
+    val changeEmail: String
+    val changeEmailDesc: String
+    val newEmail: String
+    val emailChanged: String
+    val emailChangeError: String
+    val changePassword: String
+    val changePasswordDesc: String
+    val currentPassword: String
+    val newPassword: String
+    val confirmPassword: String
+    val passwordChanged: String
+    val passwordChangeError: String
+    val passwordsDoNotMatch: String
+    val inviteFriends: String
+    val inviteFriendsDesc: String
+    val inviteFriendsMessage: String
 }

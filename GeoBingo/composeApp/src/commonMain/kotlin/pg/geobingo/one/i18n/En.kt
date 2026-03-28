@@ -395,4 +395,22 @@ object En : StringRes {
     override val deleteAccountConfirm = "Really delete account?"
     override val deleteAccountDesc = "All data will be permanently deleted"
     override val accountDeleted = "Account deleted"
+
+    // ── Account Management ──────────────────────────────────────────
+    override val changeEmail = "Change email"
+    override val changeEmailDesc = "Enter your new email address"
+    override val newEmail = "New email"
+    override val emailChanged = "Confirmation link has been sent"
+    override val emailChangeError = "Failed to change email"
+    override val changePassword = "Change password"
+    override val changePasswordDesc = "Set a new password"
+    override val currentPassword = "Current password"
+    override val newPassword = "New password"
+    override val confirmPassword = "Confirm password"
+    override val passwordChanged = "Password has been changed"
+    override val passwordChangeError = "Failed to change password"
+    override val passwordsDoNotMatch = "Passwords do not match"
+    override val inviteFriends = "Invite friends"
+    override val inviteFriendsDesc = "Share KatchIt! with your friends"
+    override val inviteFriendsMessage = "Play KatchIt! with me! The photo bingo game for on the go.\nhttps://katchit.app"
 }

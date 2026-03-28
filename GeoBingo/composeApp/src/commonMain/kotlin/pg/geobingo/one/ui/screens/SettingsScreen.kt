@@ -41,6 +41,7 @@ import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.i18n.Language
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
+import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -401,9 +402,36 @@ private fun AccountSection(
     var authLoading by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showChangeEmailDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    val shareManager = rememberShareManager()
 
     SettingsSection(title = S.current.account) {
         if (isLoggedIn && currentUser != null) {
+            // Change email
+            SettingsClickRow(
+                icon = Icons.Default.Email,
+                title = S.current.changeEmail,
+                subtitle = S.current.changeEmailDesc,
+                onClick = { showChangeEmailDialog = true },
+            )
+            HorizontalDivider(color = ColorOutlineVariant)
+            // Change password
+            SettingsClickRow(
+                icon = Icons.Default.Lock,
+                title = S.current.changePassword,
+                subtitle = S.current.changePasswordDesc,
+                onClick = { showChangePasswordDialog = true },
+            )
+            HorizontalDivider(color = ColorOutlineVariant)
+            // Invite friends
+            SettingsClickRow(
+                icon = Icons.Default.Share,
+                title = S.current.inviteFriends,
+                subtitle = S.current.inviteFriendsDesc,
+                onClick = { shareManager.shareText(S.current.inviteFriendsMessage) },
+            )
+            HorizontalDivider(color = ColorOutlineVariant)
             // Sync data
             SettingsClickRow(
                 icon = Icons.Default.Sync,
@@ -516,6 +544,28 @@ private fun AccountSection(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text(S.current.cancel, color = ColorOnSurfaceVariant)
                 }
+            },
+        )
+    }
+
+    // ── Change Email Dialog ─────────────────────────────────────────────
+    if (showChangeEmailDialog) {
+        ChangeEmailDialog(
+            onDismiss = { showChangeEmailDialog = false },
+            onResult = { msg ->
+                showChangeEmailDialog = false
+                scope.launch { snackbarHostState.showSnackbar(msg) }
+            },
+        )
+    }
+
+    // ── Change Password Dialog ──────────────────────────────────────────
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            onDismiss = { showChangePasswordDialog = false },
+            onResult = { msg ->
+                showChangePasswordDialog = false
+                scope.launch { snackbarHostState.showSnackbar(msg) }
             },
         )
     }
@@ -788,6 +838,171 @@ private fun ResetPasswordDialog(
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
                 } else {
                     Text(S.current.resetPassword, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(S.current.cancel, color = ColorOnSurfaceVariant)
+            }
+        },
+    )
+}
+
+// ── Change Email Dialog ─────────────────────────────────────────────────────
+
+@Composable
+private fun ChangeEmailDialog(
+    onDismiss: () -> Unit,
+    onResult: (String) -> Unit,
+) {
+    var newEmail by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        containerColor = ColorSurface,
+        title = {
+            Text(S.current.changeEmail, color = ColorOnSurface, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(S.current.changeEmailDesc, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                OutlinedTextField(
+                    value = newEmail,
+                    onValueChange = { newEmail = it },
+                    placeholder = { Text(S.current.newEmail) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorPrimary,
+                        unfocusedBorderColor = ColorOutline,
+                        focusedTextColor = ColorOnSurface,
+                        unfocusedTextColor = ColorOnSurface,
+                        cursorColor = ColorPrimary,
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = ColorPrimary) },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    isLoading = true
+                    scope.launch {
+                        val result = AccountManager.changeEmail(newEmail.trim())
+                        isLoading = false
+                        onResult(
+                            if (result.isSuccess) S.current.emailChanged
+                            else S.current.emailChangeError
+                        )
+                    }
+                },
+                enabled = newEmail.isNotBlank() && !isLoading,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
+                } else {
+                    Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(S.current.cancel, color = ColorOnSurfaceVariant)
+            }
+        },
+    )
+}
+
+// ── Change Password Dialog ──────────────────────────────────────────────────
+
+@Composable
+private fun ChangePasswordDialog(
+    onDismiss: () -> Unit,
+    onResult: (String) -> Unit,
+) {
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        containerColor = ColorSurface,
+        title = {
+            Text(S.current.changePassword, color = ColorOnSurface, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(S.current.changePasswordDesc, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it; errorMsg = null },
+                    placeholder = { Text(S.current.newPassword) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorPrimary,
+                        unfocusedBorderColor = ColorOutline,
+                        focusedTextColor = ColorOnSurface,
+                        unfocusedTextColor = ColorOnSurface,
+                        cursorColor = ColorPrimary,
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = ColorPrimary) },
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it; errorMsg = null },
+                    placeholder = { Text(S.current.confirmPassword) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorPrimary,
+                        unfocusedBorderColor = ColorOutline,
+                        focusedTextColor = ColorOnSurface,
+                        unfocusedTextColor = ColorOnSurface,
+                        cursorColor = ColorPrimary,
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = ColorPrimary) },
+                )
+                if (errorMsg != null) {
+                    Text(errorMsg!!, style = MaterialTheme.typography.bodySmall, color = ColorError)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (newPassword.length < 6) {
+                        errorMsg = S.current.passwordTooShort
+                        return@TextButton
+                    }
+                    if (newPassword != confirmPassword) {
+                        errorMsg = S.current.passwordsDoNotMatch
+                        return@TextButton
+                    }
+                    isLoading = true
+                    scope.launch {
+                        val result = AccountManager.changePassword(newPassword)
+                        isLoading = false
+                        onResult(
+                            if (result.isSuccess) S.current.passwordChanged
+                            else S.current.passwordChangeError
+                        )
+                    }
+                },
+                enabled = newPassword.isNotBlank() && confirmPassword.isNotBlank() && !isLoading,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
+                } else {
+                    Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
                 }
             }
         },
