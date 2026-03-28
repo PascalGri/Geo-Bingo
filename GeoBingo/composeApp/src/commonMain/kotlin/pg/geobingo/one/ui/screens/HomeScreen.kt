@@ -38,6 +38,8 @@ import pg.geobingo.one.game.state.ChallengeType
 import pg.geobingo.one.game.state.DailyChallengeManager
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AdManager
+import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.ui.components.EarnStarsDialog
 import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.ui.theme.*
@@ -321,9 +323,9 @@ fun HomeScreen(gameState: GameState) {
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StarsChip(
-                        count = gameState.stars.starCount,
-                        onClick = { nav.navigateTo(Screen.SHOP) },
+                    pg.geobingo.one.ui.components.TopBarStarsAndProfile(
+                        gameState = gameState,
+                        onNavigate = { nav.navigateTo(it) },
                     )
                 }
 

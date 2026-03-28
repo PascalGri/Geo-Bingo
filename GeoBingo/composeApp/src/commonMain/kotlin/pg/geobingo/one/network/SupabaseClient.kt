@@ -12,7 +12,11 @@ val supabase = createSupabaseClient(
     supabaseUrl = SupabaseConfig.current.url,
     supabaseKey = SupabaseConfig.current.anonKey,
 ) {
-    install(Auth)
+    install(Auth) {
+        // OAuth redirect scheme for deep linking (Google/Apple sign-in)
+        scheme = "pg.geobingo.one"
+        host = "login-callback"
+    }
     install(Postgrest)
     install(Realtime)
     install(Storage)

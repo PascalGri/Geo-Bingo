@@ -66,23 +66,18 @@ fun ShopScreen(gameState: GameState) {
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AnimatedGradientText(
-                            text = S.current.shop,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            gradientColors = GradientPrimary,
-                        )
-                        StarsChip(count = gameState.stars.starCount)
-                    }
+                    AnimatedGradientText(
+                        text = S.current.shop,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        gradientColors = GradientPrimary,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { nav.goBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
+                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },

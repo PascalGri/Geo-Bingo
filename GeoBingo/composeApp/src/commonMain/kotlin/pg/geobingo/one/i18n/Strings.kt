@@ -391,4 +391,32 @@ interface StringRes {
     val loggedInAs: String
     val authError: String
     val passwordTooShort: String
+
+    // ── Profile Setup ───────────────────────────────────────────
+    val profileSetupTitle: String
+    val profileSetupSubtitle: String
+    val profileSetupNameLabel: String
+    val profileSetupAvatarLabel: String
+    val profileSetupComplete: String
+    val profileSetupSkip: String
+    val profileSetupNameRequired: String
+    val editProfile: String
+    val profileUpdated: String
+    val displayName: String
+    val changeAvatar: String
+    val removeAvatar: String
+
+    // ── OAuth / Auth Providers ───────────────────────────────────
+    val continueWithGoogle: String
+    val continueWithApple: String
+    val orContinueWithEmail: String
+    val forgotPassword: String
+    val resetPassword: String
+    val resetPasswordDesc: String
+    val resetPasswordSent: String
+    val resetPasswordError: String
+    val deleteAccount: String
+    val deleteAccountConfirm: String
+    val deleteAccountDesc: String
+    val accountDeleted: String
 }

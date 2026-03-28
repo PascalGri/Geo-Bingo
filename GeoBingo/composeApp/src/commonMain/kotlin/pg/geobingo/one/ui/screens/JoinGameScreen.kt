@@ -40,11 +40,9 @@ import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
-import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
-import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -54,17 +52,13 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 fun JoinGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var codeInput by remember { mutableStateOf("") }
-    var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
+    val nameInput = remember { AppSettings.getString("last_player_name", "") }
+    val selectedAvatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    val photoCapturer = rememberPhotoCapturer { bytes ->
-        if (bytes != null) selectedAvatarBytes = bytes
-    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(errorMessage) {
@@ -195,62 +189,30 @@ fun JoinGameScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Compact profile card
-            var editingProfile by remember { mutableStateOf(nameInput.isBlank()) }
-            if (editingProfile || nameInput.isBlank()) {
-                OutlinedTextField(
-                    value = nameInput,
-                    onValueChange = { if (it.length <= 20) nameInput = it },
-                    label = { Text(S.current.nameAndAvatar, color = ColorOnSurfaceVariant) },
-                    placeholder = { Text(S.current.namePlaceholder, color = ColorOutline) },
-                    modifier = Modifier.fillMaxWidth().staggered(4),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorPrimary,
-                        unfocusedBorderColor = ColorOutline,
-                        focusedTextColor = ColorOnSurface,
-                        unfocusedTextColor = ColorOnSurface,
-                        focusedLabelColor = ColorPrimary,
-                        cursorColor = ColorPrimary,
-                        focusedContainerColor = ColorSurface,
-                        unfocusedContainerColor = ColorSurface,
-                    ),
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = ColorPrimary) },
+            // Compact profile card (read-only, editable in Settings)
+            Row(
+                modifier = Modifier.fillMaxWidth().staggered(4)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ColorSurface)
+                    .clickable { nav.navigateTo(Screen.SETTINGS) }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                pg.geobingo.one.ui.theme.PlayerAvatarViewRaw(
+                    name = nameInput.ifBlank { "?" },
+                    color = ColorPrimary,
+                    size = 36.dp,
+                    photoBytes = selectedAvatarBytes,
                 )
-                if (nameInput.trim().isNotEmpty()) {
-                    TextButton(onClick = {
-                        AppSettings.setString("last_player_name", nameInput.trim())
-                        editingProfile = false
-                    }) {
-                        Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().staggered(4)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(ColorSurface)
-                        .clickable { editingProfile = true }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    pg.geobingo.one.ui.theme.PlayerAvatarViewRaw(
-                        name = nameInput,
-                        color = ColorPrimary,
-                        size = 36.dp,
-                        photoBytes = selectedAvatarBytes,
-                    )
-                    Text(
-                        nameInput,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
-                }
+                Text(
+                    nameInput.ifBlank { S.current.enterName },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (nameInput.isBlank()) ColorOnSurfaceVariant else ColorOnSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
             }
 
             Spacer(Modifier.weight(1f))

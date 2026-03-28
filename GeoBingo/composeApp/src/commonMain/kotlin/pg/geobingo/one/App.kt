@@ -24,6 +24,7 @@ import pg.geobingo.one.platform.rememberConnectivityState
 import pg.geobingo.one.ui.components.SyncAvatars
 import pg.geobingo.one.ui.screens.*
 import pg.geobingo.one.ui.screens.ModeSelectScreen
+import pg.geobingo.one.ui.screens.ProfileSetupScreen
 import pg.geobingo.one.ui.screens.create.CreateGameScreen
 import pg.geobingo.one.ui.screens.game.GameScreen
 import pg.geobingo.one.ui.screens.results.ResultsScreen
@@ -122,6 +123,7 @@ fun App() {
                     Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
                     Screen.SHOP -> ShopScreen(gameState)
+                    Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)
                 }
             }
         }

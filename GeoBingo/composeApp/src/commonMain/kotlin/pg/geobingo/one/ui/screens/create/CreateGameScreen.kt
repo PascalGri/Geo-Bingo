@@ -39,11 +39,9 @@ import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
-import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.ui.components.RerollDialog
-import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
@@ -55,14 +53,8 @@ fun CreateGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val gameMode = gameState.session.gameMode
 
-    var hostNameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
-    val photoCapturer = rememberPhotoCapturer { bytes ->
-        if (bytes != null) {
-            selectedAvatarBytes = bytes
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
-        }
-    }
+    val hostNameInput = remember { AppSettings.getString("last_player_name", "") }
+    val selectedAvatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }
     var customNameInput by remember { mutableStateOf("") }
     var customCategories by remember { mutableStateOf(listOf<Category>()) }
     var customCategoryCounter by remember { mutableStateOf(0) }
@@ -258,87 +250,48 @@ fun CreateGameScreen(gameState: GameState) {
                 ModeBanner(gameMode = gameMode, modifier = Modifier.staggered(0))
             }
 
-            // ── 1. Profil ────────────────────────────────────────────────
+            // ── 1. Profil (read-only, editable in Settings) ──────────���─
             val profileGradient = when (gameMode) {
                 GameMode.CLASSIC -> GradientPrimary
                 GameMode.BLIND_BINGO -> GradientCool
                 GameMode.WEIRD_CORE -> GradientWeird
                 GameMode.QUICK_START -> GradientQuickStart
             }
-            var editingProfile by remember { mutableStateOf(hostNameInput.isBlank()) }
 
             DarkSectionCard(
                 title = S.current.nameAndAvatar,
                 modifier = Modifier.staggered(if (gameMode == GameMode.CLASSIC) 0 else 1),
                 gradientColors = profileGradient,
             ) {
-                if (editingProfile || hostNameInput.isBlank()) {
-                    // Edit mode
-                    OutlinedTextField(
-                        value = hostNameInput,
-                        onValueChange = { if (it.length <= 20) hostNameInput = it },
-                        placeholder = { Text(S.current.namePlaceholder, color = ColorOnSurfaceVariant) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ColorPrimary,
-                            unfocusedBorderColor = ColorOutline,
-                            focusedTextColor = ColorOnSurface,
-                            unfocusedTextColor = ColorOnSurface,
-                            cursorColor = ColorPrimary,
-                            focusedContainerColor = ColorSurfaceVariant,
-                            unfocusedContainerColor = ColorSurfaceVariant,
-                        ),
-                        leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PlayerAvatarViewRaw(
+                        name = hostNameInput.ifBlank { "?" },
+                        color = ColorPrimary,
+                        size = 40.dp,
+                        photoBytes = selectedAvatarBytes,
                     )
-                    Spacer(Modifier.height(12.dp))
-                    SelfiePicker(
-                        avatarBytes = selectedAvatarBytes,
-                        onTakePhoto = { photoCapturer.launch() },
-                        onClear = { selectedAvatarBytes = null },
-                    )
-                    if (hostNameInput.trim().isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = {
-                            AppSettings.setString("last_player_name", hostNameInput.trim())
-                            editingProfile = false
-                        }) {
-                            Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
-                            Spacer(Modifier.width(4.dp))
-                            Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                } else {
-                    // Compact display mode
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Mini avatar
-                        PlayerAvatarViewRaw(
-                            name = hostNameInput,
-                            color = ColorPrimary,
-                            size = 40.dp,
-                            photoBytes = selectedAvatarBytes,
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            hostNameInput.ifBlank { S.current.enterName },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (hostNameInput.isBlank()) ColorOnSurfaceVariant else ColorOnSurface,
                         )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                hostNameInput,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ColorOnSurface,
-                            )
-                            Text(
-                                S.current.otherPlayersJoinViaCode,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                        }
-                        IconButton(onClick = { editingProfile = true }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
-                        }
+                        Text(
+                            S.current.otherPlayersJoinViaCode,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = { nav.navigateTo(Screen.SETTINGS) },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
                     }
                 }
             }

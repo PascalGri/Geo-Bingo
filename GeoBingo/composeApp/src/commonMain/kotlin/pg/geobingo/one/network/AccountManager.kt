@@ -1,11 +1,18 @@
 package pg.geobingo.one.network
 
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
+import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.util.AppLogger
 
@@ -14,6 +21,7 @@ data class UserProfile(
     val id: String = "",
     val email: String = "",
     val display_name: String = "",
+    val avatar_url: String = "",
     val star_count: Int = 0,
     val skip_cards_count: Int = 0,
     val no_ads_purchased: Boolean = false,
@@ -36,6 +44,16 @@ object AccountManager {
 
     val currentUserId: String?
         get() = supabase.auth.currentUserOrNull()?.id
+
+    /** True if the user has signed up but hasn't set a display name yet. */
+    val needsProfileSetup: Boolean
+        get() {
+            if (!isLoggedIn) return false
+            val name = AppSettings.getString("last_player_name", "")
+            return name.isBlank()
+        }
+
+    // ── Email Auth ─────────────────────────────────────────────────
 
     suspend fun signUp(email: String, password: String): Result<Unit> {
         return try {
@@ -73,6 +91,54 @@ object AccountManager {
         }
     }
 
+    // ── OAuth Providers ────────────────────────────────────────────
+
+    suspend fun signInWithGoogle(): Result<Unit> {
+        return try {
+            supabase.auth.signInWith(Google)
+            val userId = supabase.auth.currentUserOrNull()?.id
+            if (userId != null) {
+                val email = supabase.auth.currentUserOrNull()?.email ?: ""
+                createProfileIfNeeded(userId, email)
+                syncCloudToLocal(userId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Google sign in failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signInWithApple(): Result<Unit> {
+        return try {
+            supabase.auth.signInWith(Apple)
+            val userId = supabase.auth.currentUserOrNull()?.id
+            if (userId != null) {
+                val email = supabase.auth.currentUserOrNull()?.email ?: ""
+                createProfileIfNeeded(userId, email)
+                syncCloudToLocal(userId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Apple sign in failed", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── Password Reset ─────────────────────────────────────────────
+
+    suspend fun resetPassword(email: String): Result<Unit> {
+        return try {
+            supabase.auth.resetPasswordForEmail(email)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Password reset failed", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── Sign Out ───────────────────────────────────────────────────
+
     suspend fun signOut() {
         try {
             supabase.auth.signOut()
@@ -80,6 +146,116 @@ object AccountManager {
             AppLogger.w(TAG, "Sign out failed", e)
         }
     }
+
+    // ── Delete Account ─────────────────────────────────────────────
+
+    suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            // Delete profile from DB
+            try {
+                supabase.postgrest["profiles"].delete {
+                    filter { eq("id", userId) }
+                }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Profile deletion failed", e)
+            }
+            // Delete avatar from storage
+            try {
+                supabase.storage.from("photos").delete("avatars/$userId.jpg")
+            } catch (e: Exception) {
+                AppLogger.d(TAG, "Avatar deletion failed (may not exist)", e)
+            }
+            // Sign out (user deletion on Supabase side requires admin/edge function)
+            signOut()
+            // Clear local data
+            AppSettings.setString("last_player_name", "")
+            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Account deletion failed", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── Profile Management ─────────────────────────────────────────
+
+    suspend fun updateDisplayName(name: String): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            AppSettings.setString("last_player_name", name)
+            supabase.postgrest["profiles"].update({
+                set("display_name", name)
+            }) {
+                filter { eq("id", userId) }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Update display name failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun uploadProfileAvatar(bytes: ByteArray): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            val path = "avatars/$userId.jpg"
+            supabase.storage.from("photos").upload(path, bytes) { upsert = true }
+            // Update profile to mark avatar as present
+            supabase.postgrest["profiles"].update({
+                set("avatar_url", path)
+            }) {
+                filter { eq("id", userId) }
+            }
+            // Cache locally
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Avatar upload failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun removeProfileAvatar(): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            try {
+                supabase.storage.from("photos").delete("avatars/$userId.jpg")
+            } catch (_: Exception) {}
+            supabase.postgrest["profiles"].update({
+                set("avatar_url", "")
+            }) {
+                filter { eq("id", userId) }
+            }
+            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Avatar removal failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun downloadProfileAvatar(): ByteArray? {
+        val userId = currentUserId ?: return null
+        // Try local cache first
+        try {
+            val cached = LocalPhotoStore.loadAvatar("profile")
+            if (cached != null && cached.isNotEmpty()) return cached
+        } catch (_: Exception) {}
+        // Download from storage
+        return try {
+            val path = "avatars/$userId.jpg"
+            val url = supabase.storage.from("photos").createSignedUrl(path, pg.geobingo.one.game.GameConstants.AVATAR_URL_EXPIRY)
+            val bytes: ByteArray = ServiceLocator.httpClient.get(url).body()
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            bytes
+        } catch (e: Exception) {
+            AppLogger.d(TAG, "Profile avatar download failed", e)
+            null
+        }
+    }
+
+    // ── Cloud Sync ─────────────────────────────────────────────────
 
     suspend fun syncLocalToCloud(userId: String) {
         try {
@@ -131,6 +307,16 @@ object AccountManager {
             // Display name: use cloud value if local is empty
             if (profile.display_name.isNotBlank()) {
                 AppSettings.setString("last_player_name", profile.display_name)
+            }
+
+            // Download avatar if profile has one and local cache is empty
+            if (profile.avatar_url.isNotBlank()) {
+                try {
+                    val cached = LocalPhotoStore.loadAvatar("profile")
+                    if (cached == null || cached.isEmpty()) {
+                        downloadProfileAvatar()
+                    }
+                } catch (_: Exception) {}
             }
 
             // Preferences: use cloud values

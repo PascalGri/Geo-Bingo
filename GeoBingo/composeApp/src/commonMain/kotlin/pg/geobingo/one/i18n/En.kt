@@ -367,4 +367,32 @@ object En : StringRes {
     override val loggedInAs = "Signed in as"
     override val authError = "Authentication failed"
     override val passwordTooShort = "Password must be at least 6 characters"
+
+    // ── Profile Setup ───────────────────────────────────────────
+    override val profileSetupTitle = "Set up your profile"
+    override val profileSetupSubtitle = "Choose a name and profile picture"
+    override val profileSetupNameLabel = "Display name"
+    override val profileSetupAvatarLabel = "Profile picture"
+    override val profileSetupComplete = "Done"
+    override val profileSetupSkip = "Later"
+    override val profileSetupNameRequired = "Please enter a name"
+    override val editProfile = "Edit profile"
+    override val profileUpdated = "Profile updated"
+    override val displayName = "Display name"
+    override val changeAvatar = "Change profile picture"
+    override val removeAvatar = "Remove profile picture"
+
+    // ── OAuth / Auth Providers ───────────────────────────────────
+    override val continueWithGoogle = "Continue with Google"
+    override val continueWithApple = "Continue with Apple"
+    override val orContinueWithEmail = "Or with email"
+    override val forgotPassword = "Forgot password?"
+    override val resetPassword = "Reset password"
+    override val resetPasswordDesc = "Enter your email to receive a reset link"
+    override val resetPasswordSent = "Reset link sent"
+    override val resetPasswordError = "Failed to send reset link"
+    override val deleteAccount = "Delete account"
+    override val deleteAccountConfirm = "Really delete account?"
+    override val deleteAccountDesc = "All data will be permanently deleted"
+    override val accountDeleted = "Account deleted"
 }

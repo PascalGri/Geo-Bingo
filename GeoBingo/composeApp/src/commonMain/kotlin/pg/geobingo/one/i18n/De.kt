@@ -367,4 +367,32 @@ object De : StringRes {
     override val loggedInAs = "Angemeldet als"
     override val authError = "Anmeldung fehlgeschlagen"
     override val passwordTooShort = "Passwort muss mind. 6 Zeichen haben"
+
+    // ── Profile Setup ───────────────────────────────────────────
+    override val profileSetupTitle = "Dein Profil einrichten"
+    override val profileSetupSubtitle = "Waehle einen Namen und ein Profilbild"
+    override val profileSetupNameLabel = "Anzeigename"
+    override val profileSetupAvatarLabel = "Profilbild"
+    override val profileSetupComplete = "Fertig"
+    override val profileSetupSkip = "Spaeter"
+    override val profileSetupNameRequired = "Bitte gib einen Namen ein"
+    override val editProfile = "Profil bearbeiten"
+    override val profileUpdated = "Profil aktualisiert"
+    override val displayName = "Anzeigename"
+    override val changeAvatar = "Profilbild aendern"
+    override val removeAvatar = "Profilbild entfernen"
+
+    // ── OAuth / Auth Providers ───────────────────────────────────
+    override val continueWithGoogle = "Weiter mit Google"
+    override val continueWithApple = "Weiter mit Apple"
+    override val orContinueWithEmail = "Oder mit E-Mail"
+    override val forgotPassword = "Passwort vergessen?"
+    override val resetPassword = "Passwort zuruecksetzen"
+    override val resetPasswordDesc = "Gib deine E-Mail ein, um einen Link zum Zuruecksetzen zu erhalten"
+    override val resetPasswordSent = "Link zum Zuruecksetzen wurde gesendet"
+    override val resetPasswordError = "Fehler beim Zuruecksetzen"
+    override val deleteAccount = "Account loeschen"
+    override val deleteAccountConfirm = "Account wirklich loeschen?"
+    override val deleteAccountDesc = "Alle Daten werden unwiderruflich geloescht"
+    override val accountDeleted = "Account geloescht"
 }
