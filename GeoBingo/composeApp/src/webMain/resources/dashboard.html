@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KatchIt! Analytics Dashboard</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #050508; color: #F0ECFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+        /* Login */
+        #login-overlay {
+            position: fixed; inset: 0; background: #050508; z-index: 100;
+            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+        }
+        #login-overlay h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #login-overlay input {
+            background: #0C0B15; border: 1px solid #2E1F50; border-radius: 12px; padding: 12px 20px;
+            color: #F0ECFF; font-size: 16px; width: 280px; outline: none;
+        }
+        #login-overlay input:focus { border-color: #D946EF; }
+        #login-overlay button {
+            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); color: #fff; border: none;
+            border-radius: 12px; padding: 12px 40px; font-size: 16px; font-weight: 700; cursor: pointer;
+        }
+        #login-error { color: #FF4D6D; font-size: 13px; display: none; }
+
+        /* Dashboard */
+        #dashboard { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h1 { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .period-select { background: #0C0B15; border: 1px solid #2E1F50; border-radius: 8px; padding: 8px 12px; color: #CBB8F0; font-size: 14px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .card {
+            background: #0C0B15; border: 1px solid #2E1F50; border-radius: 16px; padding: 16px;
+        }
+        .card .label { font-size: 12px; color: #5A3D8A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .card .value { font-size: 28px; font-weight: 800; color: #F0ECFF; }
+        .card .value.highlight { background: linear-gradient(135deg, #F43F5E, #D946EF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section { margin-bottom: 24px; }
+        .section h2 { font-size: 16px; font-weight: 700; color: #CBB8F0; margin-bottom: 12px; }
+
+        table { width: 100%; border-collapse: collapse; background: #0C0B15; border-radius: 12px; overflow: hidden; }
+        th { background: #15132A; text-align: left; padding: 10px 14px; font-size: 12px; color: #5A3D8A; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 10px 14px; border-top: 1px solid #1E1535; font-size: 14px; color: #CBB8F0; }
+        tr:hover td { background: #15132A; }
+
+        .bar-container { display: flex; align-items: center; gap: 8px; }
+        .bar { height: 8px; border-radius: 4px; background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7); min-width: 4px; }
+        .bar-label { font-size: 12px; color: #5A3D8A; white-space: nowrap; }
+
+        .loading { text-align: center; padding: 40px; color: #5A3D8A; }
+        .refresh-btn { background: #15132A; border: 1px solid #2E1F50; border-radius: 8px; padding: 6px 14px; color: #CBB8F0; cursor: pointer; font-size: 13px; }
+        .refresh-btn:hover { background: #1E1535; }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            #dashboard { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-overlay">
+    <h1>KatchIt! Dashboard</h1>
+    <input type="password" id="password-input" placeholder="Passwort" autofocus>
+    <p id="login-error">Falsches Passwort</p>
+    <button onclick="tryLogin()">Anmelden</button>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+    <div class="header">
+        <h1>KatchIt! Analytics</h1>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <select class="period-select" id="period-select" onchange="loadDashboard()">
+                <option value="1">Heute</option>
+                <option value="7" selected>7 Tage</option>
+                <option value="30">30 Tage</option>
+                <option value="90">90 Tage</option>
+                <option value="365">1 Jahr</option>
+            </select>
+            <button class="refresh-btn" onclick="loadDashboard()">Aktualisieren</button>
+        </div>
+    </div>
+
+    <div id="totals-grid" class="grid"></div>
+
+    <div class="section">
+        <h2>Plattform-Verteilung</h2>
+        <div id="platform-table"></div>
+    </div>
+
+    <div class="section">
+        <h2>Beliebteste Spielmodi</h2>
+        <div id="mode-chart"></div>
+    </div>
+
+    <div class="section">
+        <h2>Taegliche Aktivitaet</h2>
+        <div id="daily-table"></div>
+    </div>
+
+    <div class="section">
+        <h2>Letzte Events</h2>
+        <div id="recent-table"></div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://itkmtovubmhkqtguzeex.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0a210b3Z1Ym1oa3F0Z3V6ZWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTc2NjIsImV4cCI6MjA4OTEzMzY2Mn0.sH0-CL7V58UaCyqLGkGKp36CLIn15uOHbTV7HN2G0MY';
+
+// Dashboard password (hashed with SHA-256)
+const PASSWORD_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'; // "password"
+let session = null;
+
+async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function tryLogin() {
+    const input = document.getElementById('password-input');
+    const hash = await sha256(input.value);
+    if (hash === PASSWORD_HASH) {
+        // Sign in with Supabase using a dashboard service account
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        sessionStorage.setItem('dashboard_auth', '1');
+        loadDashboard();
+    } else {
+        document.getElementById('login-error').style.display = 'block';
+        input.value = '';
+    }
+}
+
+document.getElementById('password-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') tryLogin();
+});
+
+// Auto-login if already authenticated this session
+if (sessionStorage.getItem('dashboard_auth') === '1') {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDashboard();
+}
+
+async function supabaseQuery(table, options = {}) {
+    let url = `${SUPABASE_URL}/rest/v1/${table}?`;
+    const params = [];
+    if (options.select) params.push(`select=${options.select}`);
+    if (options.filters) params.push(...options.filters);
+    if (options.order) params.push(`order=${options.order}`);
+    if (options.limit) params.push(`limit=${options.limit}`);
+    url += params.join('&');
+
+    const res = await fetch(url, {
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+        }
+    });
+    return res.json();
+}
+
+async function supabaseRpc(fn, params = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+    });
+    return res.json();
+}
+
+async function loadDashboard() {
+    const days = parseInt(document.getElementById('period-select').value);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    document.getElementById('totals-grid').innerHTML = '<div class="loading">Laden...</div>';
+
+    try {
+        const [totals, platforms, modes, daily, recent] = await Promise.all([
+            supabaseRpc('analytics_totals', { since_date: since }),
+            supabaseRpc('analytics_by_platform', { since_date: since }),
+            supabaseRpc('analytics_mode_breakdown', { since_date: since }),
+            supabaseRpc('analytics_daily', { since_date: since }),
+            supabaseQuery('analytics_events', {
+                select: 'event,platform,params,created_at',
+                filters: [`created_at=gte.${since}`],
+                order: 'created_at.desc',
+                limit: 50,
+            }),
+        ]);
+
+        renderTotals(totals);
+        renderPlatforms(platforms);
+        renderModes(modes);
+        renderDaily(daily);
+        renderRecent(recent);
+    } catch (e) {
+        document.getElementById('totals-grid').innerHTML = `<div class="loading">Fehler: ${e.message}</div>`;
+    }
+}
+
+function renderTotals(data) {
+    const items = [
+        { label: 'App Opens', key: 'app_opens', hl: true },
+        { label: 'Unique Users', key: 'unique_users', hl: true },
+        { label: 'Spiele gestartet', key: 'games_started' },
+        { label: 'Spiele fertig', key: 'games_completed' },
+        { label: 'Fotos', key: 'photos_captured' },
+        { label: 'Ads geschaut', key: 'ads_watched' },
+        { label: 'Sign-ups', key: 'sign_ups' },
+        { label: 'Sign-ins', key: 'sign_ins' },
+        { label: 'Stars gekauft', key: 'stars_purchased' },
+        { label: 'No-Ads gekauft', key: 'no_ads_purchased' },
+        { label: 'Solo gestartet', key: 'solo_games_started' },
+        { label: 'Gesamt Events', key: 'total_events' },
+    ];
+    document.getElementById('totals-grid').innerHTML = items.map(i =>
+        `<div class="card"><div class="label">${i.label}</div><div class="value ${i.hl ? 'highlight' : ''}">${(data?.[i.key] ?? 0).toLocaleString('de-DE')}</div></div>`
+    ).join('');
+}
+
+function renderPlatforms(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('platform-table').innerHTML = '<div class="loading">Keine Daten</div>';
+        return;
+    }
+    const platformNames = { android: 'Android', ios: 'iOS', web: 'Web', unknown: 'Unbekannt' };
+    document.getElementById('platform-table').innerHTML = `<table>
+        <tr><th>Plattform</th><th>App Opens</th><th>Spiele</th><th>Ads</th><th>Users</th></tr>
+        ${data.map(r => `<tr>
+            <td><strong>${platformNames[r.platform] || r.platform}</strong></td>
+            <td>${(r.app_opens || 0).toLocaleString('de-DE')}</td>
+            <td>${(r.games_played || 0).toLocaleString('de-DE')}</td>
+            <td>${(r.ads_watched || 0).toLocaleString('de-DE')}</td>
+            <td>${(r.unique_users || 0).toLocaleString('de-DE')}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
+function renderModes(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('mode-chart').innerHTML = '<div class="loading">Keine Daten</div>';
+        return;
+    }
+    const max = Math.max(...data.map(r => r.count));
+    const modeNames = { CLASSIC: 'Klassisch', BLIND_BINGO: 'Blind Bingo', WEIRD_CORE: 'Weird Core', QUICK_START: 'Quick Start' };
+    document.getElementById('mode-chart').innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;background:#0C0B15;border-radius:12px;padding:16px;border:1px solid #2E1F50;">
+        ${data.map(r => `<div class="bar-container">
+            <span class="bar-label" style="width:100px">${modeNames[r.mode] || r.mode}</span>
+            <div class="bar" style="width:${(r.count / max) * 100}%"></div>
+            <span class="bar-label">${r.count}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderDaily(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('daily-table').innerHTML = '<div class="loading">Keine Daten</div>';
+        return;
+    }
+    document.getElementById('daily-table').innerHTML = `<table>
+        <tr><th>Datum</th><th>App Opens</th><th>Spiele</th><th>Ads</th></tr>
+        ${data.slice(0, 14).map(r => {
+            const d = new Date(r.day);
+            const dateStr = d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            return `<tr><td>${dateStr}</td><td>${r.app_opens || 0}</td><td>${r.games || 0}</td><td>${r.ads || 0}</td></tr>`;
+        }).join('')}
+    </table>`;
+}
+
+function renderRecent(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('recent-table').innerHTML = '<div class="loading">Keine Events</div>';
+        return;
+    }
+    document.getElementById('recent-table').innerHTML = `<table>
+        <tr><th>Zeit</th><th>Event</th><th>Plattform</th><th>Details</th></tr>
+        ${data.map(r => {
+            const t = new Date(r.created_at);
+            const timeStr = t.toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            const params = r.params && Object.keys(r.params).length > 0 ? Object.entries(r.params).map(([k,v]) => `${k}=${v}`).join(', ') : '-';
+            return `<tr><td>${timeStr}</td><td>${r.event}</td><td>${r.platform}</td><td>${params}</td></tr>`;
+        }).join('')}
+    </table>`;
+}
+</script>
+</body>
+</html>
