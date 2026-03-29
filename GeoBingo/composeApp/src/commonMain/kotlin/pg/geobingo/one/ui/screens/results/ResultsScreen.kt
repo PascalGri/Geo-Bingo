@@ -257,7 +257,7 @@ fun ResultsScreen(gameState: GameState) {
                                 val freshCategories = when (gameState.session.gameMode) {
                                     GameMode.QUICK_START -> {
                                         val outdoor = gameState.session.quickStartOutdoor
-                                        quickStartCategories(outdoor, gameState.session.quickStartDifficulty)
+                                        quickStartCategories(outdoor)
                                     }
                                     GameMode.WEIRD_CORE -> {
                                         val pool = WEIRD_CORE_CATEGORIES.shuffled()

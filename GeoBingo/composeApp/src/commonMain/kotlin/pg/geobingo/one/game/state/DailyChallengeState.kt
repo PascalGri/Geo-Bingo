@@ -61,7 +61,7 @@ object DailyChallengeManager {
 
     private fun dayOfYear(): Int {
         val now = kotlinx.datetime.Clock.System.now()
-        val local = now.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-        return local.dayOfYear
+        val utc = now.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+        return utc.dayOfYear
     }
 }

@@ -149,6 +149,13 @@ fun HomeScreen(gameState: GameState) {
 
     var selectedHistoryEntry by remember { mutableStateOf<GameHistoryEntry?>(null) }
     var showEarnStarsDialog by remember { mutableStateOf(false) }
+    // Reset daily challenge if a new UTC day has started (handles app staying open past midnight)
+    LaunchedEffect(Unit) {
+        while (true) {
+            gameState.stars.resetDailyChallengeIfNewDay()
+            delay(60_000L) // check every 60 seconds
+        }
+    }
     val dailyChallenge = remember { DailyChallengeManager.getTodayChallenge() }
 
     if (showEarnStarsDialog) {
@@ -320,7 +327,7 @@ fun HomeScreen(gameState: GameState) {
                     modifier = Modifier
                         .padding(horizontal = Spacing.screenHorizontal)
                         .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     pg.geobingo.one.ui.components.TopBarStarsAndProfile(
@@ -335,7 +342,16 @@ fun HomeScreen(gameState: GameState) {
                 if (!gameState.stars.dailyChallengeCompleted) {
                     val challengeText = when (dailyChallenge.type) {
                         ChallengeType.WIN_ROUND -> S.current.challengeWinRound
-                        ChallengeType.PLAY_MODE -> "${S.current.challengePlayMode} ${dailyChallenge.targetMode ?: ""}"
+                        ChallengeType.PLAY_MODE -> {
+                            val modeName = when (dailyChallenge.targetMode) {
+                                "CLASSIC" -> S.current.modeClassic
+                                "BLIND_BINGO" -> S.current.modeBlindBingo
+                                "WEIRD_CORE" -> S.current.modeWeirdCore
+                                "QUICK_START" -> S.current.modeQuickStart
+                                else -> dailyChallenge.targetMode ?: ""
+                            }
+                            "${S.current.challengePlayMode} $modeName"
+                        }
                         ChallengeType.CAPTURE_CATEGORIES -> S.current.challengeCaptureCategories
                     }
                     Card(
@@ -351,7 +367,6 @@ fun HomeScreen(gameState: GameState) {
                                             gameState.session.gameMode = pg.geobingo.one.game.GameMode.QUICK_START
                                             gameState.session.quickStartOutdoor = true
                                             gameState.session.quickStartDurationMinutes = 15
-                                            gameState.session.quickStartDifficulty = "medium"
                                             gameState.gameplay.gameDurationMinutes = 15
                                             nav.navigateTo(Screen.CREATE_GAME)
                                         } else {

@@ -291,7 +291,7 @@ fun GameScreenContent(
                     val elapsed = totalSeconds - gameState.gameplay.timeRemainingSeconds
                     val totalCats = gameState.gameplay.selectedCategories.size
                     val revealedCount = if (isBlindBingo && totalCats > 0 && totalSeconds > 0) {
-                        (elapsed * totalCats / totalSeconds + 1).coerceIn(1, totalCats)
+                        (elapsed.toFloat() * totalCats / totalSeconds + 1).toInt().coerceIn(1, totalCats)
                     } else {
                         totalCats
                     }

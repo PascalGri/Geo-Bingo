@@ -1,5 +1,7 @@
 package pg.geobingo.one.ui.screens.solo
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -34,6 +37,8 @@ fun SoloResultsScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     var submitted by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf(false) }
+    val AIGradient = listOf(Color(0xFF8B5CF6), Color(0xFFEC4899))
+    val SoloGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
 
     // Submit score to leaderboard
     LaunchedEffect(Unit) {
@@ -41,6 +46,7 @@ fun SoloResultsScreen(gameState: GameState) {
             "score" to solo.totalScore.toString(),
             "captured" to solo.capturedCategories.size.toString(),
             "timeBonus" to solo.timeBonus.toString(),
+            "ratingScore" to solo.ratingScore.toString(),
         ))
         // Update persistent stats
         val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
@@ -68,7 +74,7 @@ fun SoloResultsScreen(gameState: GameState) {
         if (!gameState.stars.dailyChallengeCompleted) {
             val challenge = pg.geobingo.one.game.state.DailyChallengeManager.getTodayChallenge()
             val done = when (challenge.type) {
-                pg.geobingo.one.game.state.ChallengeType.WIN_ROUND -> true // completing solo = "win"
+                pg.geobingo.one.game.state.ChallengeType.WIN_ROUND -> solo.capturedCategories.isNotEmpty()
                 pg.geobingo.one.game.state.ChallengeType.CAPTURE_CATEGORIES -> solo.capturedCategories.size >= 3
                 pg.geobingo.one.game.state.ChallengeType.PLAY_MODE -> false // solo doesn't count for mode challenges
             }
@@ -97,11 +103,17 @@ fun SoloResultsScreen(gameState: GameState) {
         topBar = {
             TopAppBar(
                 title = {
-                    AnimatedGradientText(
-                        text = S.current.soloChallengeComplete,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        gradientColors = GradientPrimary,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, null, tint = AIGradient.first(), modifier = Modifier.size(18.dp))
+                        AnimatedGradientText(
+                            text = "KatchIt! AI",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            gradientColors = AIGradient,
+                        )
+                    }
                 },
                 actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
@@ -113,8 +125,8 @@ fun SoloResultsScreen(gameState: GameState) {
                     onClick = { nav.navigateTo(Screen.SOLO_LEADERBOARD) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, ColorPrimary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorPrimary),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, SoloGradient.first()),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = SoloGradient.first()),
                 ) {
                     Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
@@ -128,7 +140,7 @@ fun SoloResultsScreen(gameState: GameState) {
                         nav.resetTo(Screen.HOME)
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    gradientColors = GradientPrimary,
+                    gradientColors = SoloGradient,
                     leadingIcon = {
                         Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                     },
@@ -146,24 +158,47 @@ fun SoloResultsScreen(gameState: GameState) {
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // Trophy
+            // Trophy with pulse animation
+            val trophyScale = remember { Animatable(0f) }
+            LaunchedEffect(Unit) {
+                trophyScale.animateTo(1.15f, tween(400))
+                trophyScale.animateTo(1f, tween(200))
+            }
             Icon(
                 imageVector = Icons.Default.EmojiEvents,
                 contentDescription = S.current.soloChallengeComplete,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier
+                    .size(64.dp)
+                    .graphicsLayer { scaleX = trophyScale.value; scaleY = trophyScale.value },
                 tint = Color(0xFFFBBF24),
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Score
-            Text(
-                "${solo.totalScore}",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
+            // AI judged badge
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(Icons.Default.AutoAwesome, null, tint = AIGradient.first(), modifier = Modifier.size(14.dp))
+                AnimatedGradientText(
+                    text = "AI Judged",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    gradientColors = AIGradient,
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Animated score reveal
+            val scoreAnim = remember { Animatable(0f) }
+            LaunchedEffect(Unit) { scoreAnim.animateTo(1f, tween(800)) }
+            AnimatedGradientText(
+                text = "${solo.totalScore}",
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                gradientColors = SoloGradient,
             )
             Text(
                 S.current.soloTotalScore,
@@ -177,15 +212,16 @@ fun SoloResultsScreen(gameState: GameState) {
             GradientBorderCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
-                borderColors = GradientPrimary,
+                borderColors = SoloGradient,
                 backgroundColor = ColorSurface,
                 borderWidth = 1.5.dp,
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ScoreRow(
-                        label = "${solo.capturedCategories.size}/${solo.categories.size} ${S.current.categories}",
-                        value = "${solo.capturedCategories.size * solo.basePointsPerCategory} ${S.current.pointsAbbrev}",
-                        icon = Icons.Default.CameraAlt,
+                        label = "${S.current.categories}: ${solo.capturedCategories.size}/${solo.categories.size}",
+                        value = "${solo.ratingScore} ${S.current.pointsAbbrev}",
+                        icon = Icons.Default.Star,
+                        valueColor = Color(0xFFFBBF24),
                     )
                     if (allCaptured && solo.timeBonus > 0) {
                         HorizontalDivider(color = ColorOutlineVariant)
@@ -201,10 +237,20 @@ fun SoloResultsScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Category details
+            // Category details with AI ratings
             solo.categories.forEach { category ->
                 val isCaptured = category.id in solo.capturedCategories
                 val speed = if (isCaptured) solo.getCaptureSpeed(category.id) else null
+                val rating = solo.categoryRatings[category.id]
+                val reason = solo.categoryReasons[category.id]
+
+                val ratingColor = when {
+                    rating == null -> ColorOnSurfaceVariant
+                    rating >= 8 -> Color(0xFF22C55E)
+                    rating >= 5 -> Color(0xFFFBBF24)
+                    else -> Color(0xFFEF4444)
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -213,16 +259,46 @@ fun SoloResultsScreen(gameState: GameState) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f),
                     ) {
                         if (isCaptured) {
                             Icon(Icons.Default.Check, null, tint = ColorPrimary, modifier = Modifier.size(18.dp))
                         } else {
                             Icon(Icons.Default.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                         }
-                        Text(category.name, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurface)
+                        Column {
+                            Text(category.name, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurface)
+                            if (reason != null && reason.isNotBlank()) {
+                                Text(
+                                    reason,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorOnSurfaceVariant,
+                                    maxLines = 2,
+                                )
+                            }
+                        }
                     }
-                    if (speed != null) {
-                        Text("${speed}s", style = MaterialTheme.typography.labelMedium, color = ColorOnSurfaceVariant)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (speed != null) {
+                            Text("${speed}s", style = MaterialTheme.typography.labelMedium, color = ColorOnSurfaceVariant)
+                        }
+                        if (rating != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Icon(Icons.Default.Star, null, tint = ratingColor, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "$rating",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ratingColor,
+                                )
+                            }
+                        }
                     }
                 }
             }

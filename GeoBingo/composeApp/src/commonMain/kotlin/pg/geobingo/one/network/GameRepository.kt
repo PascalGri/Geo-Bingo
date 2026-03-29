@@ -12,8 +12,15 @@ import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.util.AppLogger
 import kotlin.random.Random
+import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.readRawBytes
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.int
 import pg.geobingo.one.di.ServiceLocator
 
 @Serializable
@@ -81,6 +88,8 @@ data class SoloScoreDto(
     val duration_seconds: Int = 0,
     val created_at: String = "",
 )
+
+data class PhotoValidationResult(val rating: Int, val reason: String)
 
 @Serializable
 private data class SoloScoreInsertDto(
@@ -470,6 +479,39 @@ object GameRepository {
         supabase.from("vote_submissions")
             .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
             .decodeList<VoteSubmissionDto>().isNotEmpty()
+
+    // ── Solo Photo Validation ─────────────────────────────────────────
+
+    /**
+     * Validates a solo-mode photo via the validate-photo Edge Function.
+     * Returns an AI rating 1-10 and a brief reason.
+     */
+    @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+    suspend fun validateSoloPhoto(
+        imageBytes: ByteArray,
+        categoryName: String,
+        categoryDescription: String,
+    ): PhotoValidationResult {
+        val base64 = kotlin.io.encoding.Base64.encode(imageBytes)
+        val url = "${SupabaseConfig.current.url}/functions/v1/validate-photo"
+        val jsonBody = kotlinx.serialization.json.buildJsonObject {
+            put("imageBase64", kotlinx.serialization.json.JsonPrimitive(base64))
+            put("categoryName", kotlinx.serialization.json.JsonPrimitive(categoryName))
+            put("categoryDescription", kotlinx.serialization.json.JsonPrimitive(categoryDescription))
+        }.toString()
+        val response = ServiceLocator.httpClient.post(url) {
+            headers {
+                append("apikey", SupabaseConfig.current.anonKey)
+            }
+            setBody(io.ktor.http.content.TextContent(jsonBody, io.ktor.http.ContentType.Application.Json))
+        }
+        val body: String = response.body()
+        val json = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
+        val rating = json["rating"]?.jsonPrimitive?.int ?: 5
+        val reasonPrimitive = json["reason"]?.jsonPrimitive
+        val reason = reasonPrimitive?.content ?: ""
+        return PhotoValidationResult(rating = rating, reason = reason)
+    }
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
 

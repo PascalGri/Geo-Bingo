@@ -43,7 +43,10 @@ fun SoloLeaderboardScreen(gameState: GameState) {
 
     LaunchedEffect(Unit) {
         try {
-            scores = GameRepository.getSoloLeaderboard(50)
+            // Fetch more than 50 so dedup still yields ~50 unique players
+            val raw = GameRepository.getSoloLeaderboard(150)
+            // Keep only the best score per player (already sorted by score DESC)
+            scores = raw.distinctBy { it.player_name }.take(50)
             loading = false
         } catch (e: Exception) {
             AppLogger.w("Leaderboard", "Failed to load", e)

@@ -118,8 +118,8 @@ class StarsState {
 
     private fun todayString(): String {
         val now = kotlinx.datetime.Clock.System.now()
-        val local = now.toLocalDate(kotlinx.datetime.TimeZone.currentSystemDefault())
-        return local.toString() // yyyy-MM-dd
+        val utc = now.toLocalDate(kotlinx.datetime.TimeZone.UTC)
+        return utc.toString() // yyyy-MM-dd
     }
 }
 

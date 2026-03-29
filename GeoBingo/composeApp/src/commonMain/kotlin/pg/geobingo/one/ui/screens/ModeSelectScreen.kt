@@ -47,7 +47,7 @@ fun ModeSelectScreen(gameState: GameState) {
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
-    var quickStartDifficulty by remember { mutableStateOf("medium") }
+    // difficulty removed – single pool per environment
 
     SystemBackHandler { nav.goBack() }
 
@@ -95,16 +95,13 @@ fun ModeSelectScreen(gameState: GameState) {
             QuickStartCard(
                 expanded = quickStartExpanded,
                 outdoor = quickStartOutdoor,
-                difficulty = quickStartDifficulty,
                 onToggleExpand = { quickStartExpanded = !quickStartExpanded },
                 onSelectOutdoor = { quickStartOutdoor = it },
-                onSelectDifficulty = { quickStartDifficulty = it },
                 onConfirm = {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "QUICK_START"))
                     gameState.session.gameMode = GameMode.QUICK_START
                     gameState.session.quickStartOutdoor = quickStartOutdoor
                     gameState.session.quickStartDurationMinutes = 15
-                    gameState.session.quickStartDifficulty = quickStartDifficulty
                     gameState.gameplay.gameDurationMinutes = 15
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
@@ -191,10 +188,8 @@ fun ModeSelectScreen(gameState: GameState) {
 private fun QuickStartCard(
     expanded: Boolean,
     outdoor: Boolean,
-    difficulty: String,
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
-    onSelectDifficulty: (String) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -350,45 +345,6 @@ private fun QuickStartCard(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                // ── Difficulty selection ────────────────────────────────────
-                Spacer(Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val diffBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    listOf(
-                        "easy" to S.current.difficultyEasy,
-                        "medium" to S.current.difficultyMedium,
-                        "hard" to S.current.difficultyHard,
-                    ).forEach { (diff, label) ->
-                        val selected = difficulty == diff
-                        Box(
-                            modifier = diffBtnModifier
-                                .background(
-                                    if (selected) Brush.linearGradient(gradientColors)
-                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (selected) Color.Transparent else ColorOutline,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
-                                .clickable { onSelectDifficulty(diff) }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (selected) Color.White else ColorOnSurfaceVariant,
                             )
                         }
                     }
