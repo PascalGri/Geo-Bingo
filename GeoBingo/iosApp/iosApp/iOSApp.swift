@@ -1,6 +1,7 @@
 import SwiftUI
 import AppTrackingTransparency
 import GoogleMobileAds
+import ComposeApp
 
 @main
 struct iOSApp: App {
