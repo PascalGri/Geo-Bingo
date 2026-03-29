@@ -2,7 +2,10 @@ package pg.geobingo.one.ui.screens.solo
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -244,6 +247,7 @@ fun SoloResultsScreen(gameState: GameState) {
                 val speed = if (isCaptured) solo.getCaptureSpeed(category.id) else null
                 val rating = solo.categoryRatings[category.id]
                 val reason = solo.categoryReasons[category.id]
+                var expanded by remember { mutableStateOf(false) }
 
                 val ratingColor = when {
                     rating == null -> ColorOnSurfaceVariant
@@ -252,52 +256,78 @@ fun SoloResultsScreen(gameState: GameState) {
                     else -> Color(0xFFEF4444)
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (expanded) ColorSurface else Color.Transparent)
+                        .clickable { if (reason != null && reason.isNotBlank()) expanded = !expanded }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        if (isCaptured) {
-                            Icon(Icons.Default.Check, null, tint = ColorPrimary, modifier = Modifier.size(18.dp))
-                        } else {
-                            Icon(Icons.Default.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
-                        }
-                        Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            if (isCaptured) {
+                                Icon(Icons.Default.Check, null, tint = ColorPrimary, modifier = Modifier.size(18.dp))
+                            } else {
+                                Icon(Icons.Default.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                            }
                             Text(category.name, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurface)
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            if (speed != null) {
+                                Text("${speed}s", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
+                            if (rating != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                ) {
+                                    repeat(5) { i ->
+                                        Icon(
+                                            if (i < rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                            null,
+                                            tint = if (i < rating) ratingColor else ratingColor.copy(alpha = 0.3f),
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                    }
+                                }
+                            }
                             if (reason != null && reason.isNotBlank()) {
-                                Text(
-                                    reason,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = ColorOnSurfaceVariant,
-                                    maxLines = 2,
+                                Icon(
+                                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    null,
+                                    tint = ColorOnSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        if (rating != null) {
-                            // Star row
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(1.dp),
-                            ) {
-                                repeat(5) { i ->
-                                    Icon(
-                                        if (i < rating) Icons.Default.Star else Icons.Default.StarBorder,
-                                        null,
-                                        tint = if (i < rating) ratingColor else ratingColor.copy(alpha = 0.3f),
-                                        modifier = Modifier.size(12.dp),
-                                    )
-                                }
-                            }
-                        }
-                        if (speed != null) {
-                            Text("${speed}s", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                    // Expandable AI reason
+                    if (expanded && reason != null && reason.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.padding(start = 26.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(Icons.Default.AutoAwesome, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(12.dp).padding(top = 2.dp))
+                            Text(
+                                reason,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorOnSurfaceVariant,
+                            )
                         }
                     }
                 }
