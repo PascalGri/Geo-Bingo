@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,7 +47,7 @@ fun SoloResultsScreen(gameState: GameState) {
             "score" to solo.totalScore.toString(),
             "captured" to solo.capturedCategories.size.toString(),
             "timeBonus" to solo.timeBonus.toString(),
-            "ratingScore" to solo.ratingScore.toString(),
+            "starScore" to solo.starScore.toString(),
         ))
         // Update persistent stats
         val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
@@ -184,7 +185,7 @@ fun SoloResultsScreen(gameState: GameState) {
             ) {
                 Icon(Icons.Default.AutoAwesome, null, tint = AIGradient.first(), modifier = Modifier.size(14.dp))
                 AnimatedGradientText(
-                    text = "AI Judged",
+                    text = "AI bewertet",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     gradientColors = AIGradient,
                 )
@@ -218,8 +219,8 @@ fun SoloResultsScreen(gameState: GameState) {
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ScoreRow(
-                        label = "${S.current.categories}: ${solo.capturedCategories.size}/${solo.categories.size}",
-                        value = "${solo.ratingScore} ${S.current.pointsAbbrev}",
+                        label = "${solo.starSum} / ${solo.categories.size * 5} ${S.current.stars}",
+                        value = "${solo.starScore} ${S.current.pointsAbbrev}",
                         icon = Icons.Default.Star,
                         valueColor = Color(0xFFFBBF24),
                     )
@@ -246,8 +247,8 @@ fun SoloResultsScreen(gameState: GameState) {
 
                 val ratingColor = when {
                     rating == null -> ColorOnSurfaceVariant
-                    rating >= 8 -> Color(0xFF22C55E)
-                    rating >= 5 -> Color(0xFFFBBF24)
+                    rating >= 4 -> Color(0xFF22C55E)
+                    rating >= 3 -> Color(0xFFFBBF24)
                     else -> Color(0xFFEF4444)
                 }
 
@@ -278,26 +279,25 @@ fun SoloResultsScreen(gameState: GameState) {
                             }
                         }
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        if (speed != null) {
-                            Text("${speed}s", style = MaterialTheme.typography.labelMedium, color = ColorOnSurfaceVariant)
-                        }
+                    Column(horizontalAlignment = Alignment.End) {
                         if (rating != null) {
+                            // Star row
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(1.dp),
                             ) {
-                                Icon(Icons.Default.Star, null, tint = ratingColor, modifier = Modifier.size(14.dp))
-                                Text(
-                                    "$rating",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ratingColor,
-                                )
+                                repeat(5) { i ->
+                                    Icon(
+                                        if (i < rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                        null,
+                                        tint = if (i < rating) ratingColor else ratingColor.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                }
                             }
+                        }
+                        if (speed != null) {
+                            Text("${speed}s", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                         }
                     }
                 }

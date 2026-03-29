@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -202,20 +203,20 @@ fun SoloGameScreen(gameState: GameState) {
                     fontWeight = FontWeight.Bold,
                     color = ColorOnSurface,
                 )
-                // Animated AI score
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(18.dp))
-                    AnimatedContent(
-                        targetState = solo.ratingScore,
-                        transitionSpec = {
-                            (fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.8f))
-                                .togetherWith(fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 1.2f))
-                        },
-                        label = "scoreAnim",
-                    ) { score ->
+                // Animated AI score display
+                AnimatedContent(
+                    targetState = solo.starScore,
+                    transitionSpec = {
+                        (fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.8f))
+                            .togetherWith(fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 1.2f))
+                    },
+                    label = "scoreAnim",
+                ) { score ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(18.dp))
                         Text(
                             "$score ${S.current.pointsAbbrev}",
                             style = MaterialTheme.typography.bodyLarge,
@@ -306,15 +307,15 @@ private fun SoloCategoryCard(
 
     val ratingColor = when {
         rating == null -> ColorOnSurfaceVariant
-        rating >= 8 -> Color(0xFF22C55E)
-        rating >= 5 -> Color(0xFFFBBF24)
+        rating >= 4 -> Color(0xFF22C55E)
+        rating >= 3 -> Color(0xFFFBBF24)
         else -> Color(0xFFEF4444)
     }
 
     val borderColors = when {
         isValidating -> AIGradient
-        rating != null && rating >= 8 -> listOf(Color(0xFF22C55E), Color(0xFF10B981))
-        rating != null && rating >= 5 -> listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+        rating != null && rating >= 4 -> listOf(Color(0xFF22C55E), Color(0xFF10B981))
+        rating != null && rating >= 3 -> listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
         rating != null -> listOf(Color(0xFFEF4444), Color(0xFFDC2626))
         isCaptured -> SoloGradient
         else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
@@ -421,28 +422,24 @@ private fun SoloCategoryCard(
                                 textAlign = TextAlign.Center,
                             )
                         } else if (rtg != null) {
-                            // Rating revealed
+                            // Rating revealed - show 1-5 filled stars
                             val rc = when {
-                                rtg >= 8 -> Color(0xFF22C55E)
-                                rtg >= 5 -> Color(0xFFFBBF24)
+                                rtg >= 4 -> Color(0xFF22C55E)
+                                rtg >= 3 -> Color(0xFFFBBF24)
                                 else -> Color(0xFFEF4444)
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(1.dp),
                             ) {
-                                Icon(Icons.Default.Star, null, tint = rc, modifier = Modifier.size(18.dp))
-                                Text(
-                                    "$rtg",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = rc,
-                                )
-                                Text(
-                                    "/10",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = rc.copy(alpha = 0.6f),
-                                )
+                                repeat(5) { i ->
+                                    Icon(
+                                        if (i < rtg) Icons.Default.Star else Icons.Default.StarBorder,
+                                        null,
+                                        tint = if (i < rtg) rc else rc.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
                             }
                             Spacer(Modifier.height(2.dp))
                             Text(
@@ -451,9 +448,21 @@ private fun SoloCategoryCard(
                                 fontWeight = FontWeight.SemiBold,
                                 color = ColorOnSurface,
                                 textAlign = TextAlign.Center,
+                                maxLines = 2,
                             )
-                            if (speed != null) {
-                                Text("${speed}s", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                if (speed != null) {
+                                    Text("${speed}s", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                                }
+                                Text(
+                                    "AI bewertet",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF8B5CF6).copy(alpha = 0.7f),
+                                    fontWeight = FontWeight.Medium,
+                                )
                             }
                         }
                     }
