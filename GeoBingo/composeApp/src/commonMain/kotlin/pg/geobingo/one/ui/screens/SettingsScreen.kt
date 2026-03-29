@@ -614,7 +614,7 @@ internal fun AuthDialog(
                             if (result.isSuccess) {
                                 onSuccess(false)
                             } else {
-                                errorMsg = result.exceptionOrNull()?.message ?: S.current.authError
+                                errorMsg = S.current.authError
                             }
                         }
                     },
@@ -632,7 +632,7 @@ internal fun AuthDialog(
                             if (result.isSuccess) {
                                 onSuccess(false)
                             } else {
-                                errorMsg = result.exceptionOrNull()?.message ?: S.current.authError
+                                errorMsg = S.current.authError
                             }
                         }
                     },
@@ -734,7 +734,7 @@ internal fun AuthDialog(
                         if (result.isSuccess) {
                             onSuccess(isSignUp)
                         } else {
-                            errorMsg = result.exceptionOrNull()?.message ?: S.current.authError
+                            errorMsg = S.current.authError
                         }
                     }
                 },

@@ -3,7 +3,7 @@ package pg.geobingo.one.util
 enum class LogLevel { DEBUG, INFO, WARN, ERROR }
 
 object AppLogger {
-    var minLevel: LogLevel = LogLevel.DEBUG
+    var minLevel: LogLevel = LogLevel.WARN
 
     fun d(tag: String, message: String, throwable: Throwable? = null) = log(LogLevel.DEBUG, tag, message, throwable)
     fun i(tag: String, message: String, throwable: Throwable? = null) = log(LogLevel.INFO, tag, message, throwable)
