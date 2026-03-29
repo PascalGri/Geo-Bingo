@@ -122,16 +122,23 @@ fun GameScreen(gameState: GameState) {
     }
 
     // ── Game content ─────────────────────────────────────────────────────
-    GameScreenContent(
-        gameState = gameState,
-        finishCountdownSeconds = vm.finishCountdownSeconds,
-        uploadSuccessCategory = vm.uploadSuccessCategory,
-        onJokerClick = { jokerDialogVisible = true },
-        onVoteToEnd = { vm.voteToEnd() },
-        onCameraClick = { playerId, catId ->
-            photoTargetPlayerId = playerId
-            photoTargetCategoryId = catId
-            photoCapturer.launch()
-        },
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        GameScreenContent(
+            gameState = gameState,
+            finishCountdownSeconds = vm.finishCountdownSeconds,
+            uploadSuccessCategory = vm.uploadSuccessCategory,
+            onJokerClick = { jokerDialogVisible = true },
+            onVoteToEnd = { vm.voteToEnd() },
+            onCameraClick = { playerId, catId ->
+                photoTargetPlayerId = playerId
+                photoTargetCategoryId = catId
+                photoCapturer.launch()
+            },
+        )
+        // Chat overlay at bottom
+        pg.geobingo.one.ui.components.GameChatOverlay(
+            gameState = gameState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
 }

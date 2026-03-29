@@ -198,6 +198,10 @@ fun ResultsScreen(gameState: GameState) {
                         avg_rating = myAvg,
                     )
                     GameRepository.upsertMultiplayerStats(stats)
+                    // Post activity
+                    val activityType = if (isWinner) "game_won" else "game_played"
+                    val activityDesc = "${AppSettings.getString("last_player_name", "Player")} ${if (isWinner) pg.geobingo.one.i18n.S.current.activityWon else pg.geobingo.one.i18n.S.current.activityPlayed}"
+                    GameRepository.postActivity(userId, activityType, activityDesc)
                 } catch (e: Exception) {
                     pg.geobingo.one.util.AppLogger.w("Results", "MP stats submit failed", e)
                 }

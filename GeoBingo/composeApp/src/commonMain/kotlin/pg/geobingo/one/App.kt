@@ -329,6 +329,8 @@ fun App() {
                     Screen.ACCOUNT -> AccountScreen(gameState)
                     Screen.FRIENDS -> FriendsScreen(gameState)
                     Screen.MP_LEADERBOARD -> MultiplayerLeaderboardScreen(gameState)
+                    Screen.PROFILE -> ProfileScreen(gameState)
+                    Screen.ACTIVITY_FEED -> ActivityFeedScreen(gameState)
                 }
             }
         }

@@ -40,7 +40,7 @@ fun TopBarStarsAndProfile(
             color = ColorPrimary,
             size = 28.dp,
             photoBytes = avatarBytes,
-            modifier = Modifier.clickable { onNavigate(Screen.ACCOUNT) },
+            modifier = Modifier.clickable { onNavigate(Screen.PROFILE) },
         )
     }
 }

@@ -576,6 +576,80 @@ object GameRepository {
             .toSet()
             .size
 
+    // ── In-Game Chat ────────────────────────────────────────────────────
+
+    @Serializable
+    data class ChatMessageDto(
+        val id: String = "",
+        val game_id: String = "",
+        val player_id: String = "",
+        val player_name: String = "",
+        val message: String = "",
+        val created_at: String = "",
+    )
+
+    @Serializable
+    private data class ChatMessageInsertDto(
+        val game_id: String,
+        val player_id: String,
+        val player_name: String,
+        val message: String,
+    )
+
+    suspend fun sendChatMessage(gameId: String, playerId: String, playerName: String, message: String) {
+        supabase.from("chat_messages").insert(
+            ChatMessageInsertDto(game_id = gameId, player_id = playerId, player_name = playerName, message = message)
+        )
+    }
+
+    suspend fun getChatMessages(gameId: String, limit: Int = 50): List<ChatMessageDto> =
+        supabase.from("chat_messages")
+            .select {
+                filter { eq("game_id", gameId) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+
+    // ── Activity Feed ──────────────────────────────────────────────────
+
+    @Serializable
+    data class ActivityDto(
+        val id: String = "",
+        val user_id: String = "",
+        val event_type: String = "",
+        val description: String = "",
+        val metadata: String = "{}",
+        val created_at: String = "",
+    )
+
+    @Serializable
+    private data class ActivityInsertDto(
+        val user_id: String,
+        val event_type: String,
+        val description: String,
+        val metadata: String = "{}",
+    )
+
+    suspend fun postActivity(userId: String, eventType: String, description: String, metadata: String = "{}") {
+        try {
+            supabase.from("activity_feed").insert(
+                ActivityInsertDto(user_id = userId, event_type = eventType, description = description, metadata = metadata)
+            )
+        } catch (_: Exception) {}
+    }
+
+    suspend fun getFriendsActivity(friendIds: List<String>, limit: Int = 30): List<ActivityDto> {
+        if (friendIds.isEmpty()) return emptyList()
+        return supabase.from("activity_feed")
+            .select {
+                filter { isIn("user_id", friendIds) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+    }
+
     // ── Multiplayer Leaderboard ──────────────────────────────────────────
 
     @Serializable

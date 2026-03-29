@@ -379,6 +379,25 @@ interface StringRes {
     val multiplayerLeaderboard: String
     val winStreak: String
     val sortBy: String
+
+    // ── Chat ────────────────────────────────────────────────────────
+    val chat: String
+    val typeMessage: String
+    val send: String
+
+    // ── Profile ─────────────────────────────────────────────────────
+    val profile: String
+    val memberSince: String
+    val totalCaptures: String
+
+    // ── Activity Feed ───────────────────────────────────────────────
+    val currentStreak: String
+    val history: String
+    val activityFeed: String
+    val noActivity: String
+    val activityWon: String
+    val activityPlayed: String
+    val activityJoined: String
     val shop: String
     val buyStars: String
     val adSkipper: String

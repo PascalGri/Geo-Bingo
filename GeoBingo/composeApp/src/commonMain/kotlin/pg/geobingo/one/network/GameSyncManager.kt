@@ -26,6 +26,9 @@ class GameSyncManager(
     private val _voteSubmissionInserted = MutableSharedFlow<VoteSubmissionDto>(replay = 0)
     val voteSubmissionInserted: SharedFlow<VoteSubmissionDto> = _voteSubmissionInserted
 
+    private val _chatMessageInserted = MutableSharedFlow<GameRepository.ChatMessageDto>(replay = 0)
+    val chatMessageInserted: SharedFlow<GameRepository.ChatMessageDto> = _chatMessageInserted
+
     private var pollingJob: Job? = null
     private var realtimeJobs: List<Job> = emptyList()
 
@@ -63,6 +66,9 @@ class GameSyncManager(
             },
             scope.launch {
                 realtime.voteSubmissionInserts.collect { _voteSubmissionInserted.emit(it) }
+            },
+            scope.launch {
+                realtime.chatMessageInserts.collect { _chatMessageInserted.emit(it) }
             },
         )
     }
