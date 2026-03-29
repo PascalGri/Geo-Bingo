@@ -7,6 +7,8 @@ import io.ktor.client.statement.readRawBytes
 import kotlinx.serialization.Serializable
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameConstants
+import pg.geobingo.one.i18n.S
+import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.util.AppLogger
 import kotlin.random.Random
 
@@ -124,6 +126,9 @@ object FriendsManager {
             supabase.from("friendships").insert(
                 FriendshipInsertDto(user_id = uid1, friend_id = uid2, requested_by = myId)
             )
+            // Send push notification
+            val myName = AppSettings.getString("last_player_name", "Player")
+            PushService.sendPushToUser(target.id, S.current.friendRequestReceived, myName)
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to send friend request", e)
@@ -226,6 +231,14 @@ object FriendsManager {
         return try {
             supabase.from("game_invites").insert(
                 GameInviteInsertDto(from_user_id = myId, to_user_id = toUserId, game_code = gameCode, game_id = gameId)
+            )
+            // Send push notification
+            val myName = AppSettings.getString("last_player_name", "Player")
+            PushService.sendPushToUser(
+                toUserId,
+                S.current.gameInviteReceived,
+                "${S.current.gameInviteFrom} $myName",
+                mapOf("game_code" to gameCode),
             )
             Result.success(Unit)
         } catch (e: Exception) {

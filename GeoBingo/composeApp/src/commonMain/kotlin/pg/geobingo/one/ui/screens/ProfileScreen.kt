@@ -149,7 +149,7 @@ fun ProfileScreen(gameState: GameState) {
                 shape = RoundedCornerShape(12.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, ProfileGradient.first().copy(alpha = 0.5f)),
             ) {
-                Icon(Icons.Default.Feed, null, tint = ProfileGradient.first(), modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.RssFeed, null, tint = ProfileGradient.first(), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(S.current.activityFeed, color = ProfileGradient.first())
             }

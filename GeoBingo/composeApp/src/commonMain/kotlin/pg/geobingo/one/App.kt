@@ -40,6 +40,7 @@ import pg.geobingo.one.i18n.S
 import kotlinx.coroutines.launch
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.FriendsManager
+import pg.geobingo.one.platform.DeepLinkHandler
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.BillingManager
@@ -120,6 +121,11 @@ fun App() {
         }
     }
 
+    // Register push notification token
+    LaunchedEffect(Unit) {
+        pg.geobingo.one.network.PushService.registerToken()
+    }
+
     // Daily login bonus + daily challenge reset
     LaunchedEffect(Unit) {
         gameState.stars.resetDailyChallengeIfNewDay()
@@ -133,6 +139,14 @@ fun App() {
     // (screens that still read session.currentScreen)
     LaunchedEffect(nav.currentScreen) {
         gameState.session.currentScreen = nav.currentScreen
+    }
+
+    // Deep link handler: navigate to JoinGameScreen with code
+    LaunchedEffect(DeepLinkHandler.pendingGameCode) {
+        val code = DeepLinkHandler.pendingGameCode ?: return@LaunchedEffect
+        DeepLinkHandler.pendingGameCode = null
+        gameState.ui.pendingGameInviteCode = code
+        nav.navigateTo(Screen.JOIN_GAME)
     }
 
     // Game invite banner state

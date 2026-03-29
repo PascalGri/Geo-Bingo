@@ -76,7 +76,7 @@ fun ActivityFeedScreen(gameState: GameState) {
         } else if (activities.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Feed, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.RssFeed, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
                     Text(S.current.noActivity, style = MaterialTheme.typography.bodyLarge, color = ColorOnSurfaceVariant)
                 }

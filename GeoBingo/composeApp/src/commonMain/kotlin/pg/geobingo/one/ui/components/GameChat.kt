@@ -90,7 +90,7 @@ fun GameChatOverlay(
                 .padding(10.dp),
         ) {
             Icon(
-                if (expanded) Icons.Default.ExpandMore else Icons.Default.Chat,
+                if (expanded) Icons.Default.ExpandMore else Icons.Default.ChatBubble,
                 null,
                 tint = ColorPrimary,
                 modifier = Modifier.size(20.dp),
