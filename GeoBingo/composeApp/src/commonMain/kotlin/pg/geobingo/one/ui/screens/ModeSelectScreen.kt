@@ -580,7 +580,7 @@ private fun SoloChallengeCard(
                 Spacer(Modifier.height(14.dp))
 
                 Text(
-                    S.current.whereDoYouPlay,
+                    S.current.whereDoYouPlaySolo,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = ColorOnSurfaceVariant,

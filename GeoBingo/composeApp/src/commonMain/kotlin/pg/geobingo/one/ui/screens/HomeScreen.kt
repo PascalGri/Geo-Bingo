@@ -356,12 +356,11 @@ fun HomeScreen(gameState: GameState) {
                         }
                         ChallengeType.CAPTURE_CATEGORIES -> S.current.challengeCaptureCategories
                     }
-                    Card(
+                    GradientBorderCard(
                         modifier = Modifier
                             .padding(horizontal = Spacing.screenHorizontal)
                             .fillMaxWidth()
                             .clickable {
-                                // Navigate to the mode the challenge requires
                                 when (dailyChallenge.type) {
                                     ChallengeType.PLAY_MODE -> {
                                         val mode = dailyChallenge.targetMode
@@ -385,26 +384,51 @@ fun HomeScreen(gameState: GameState) {
                                     else -> nav.navigateTo(Screen.SELECT_MODE)
                                 }
                             },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = ColorSurface),
-                        border = BorderStroke(1.dp, ColorOutlineVariant),
+                        cornerRadius = 14.dp,
+                        borderColors = GradientGold,
+                        backgroundColor = ColorSurface,
+                        borderWidth = 1.5.dp,
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            modifier = Modifier.padding(14.dp).fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(Icons.Default.Today, null, tint = ColorWarning, modifier = Modifier.size(18.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(challengeText, style = MaterialTheme.typography.bodySmall, color = ColorOnSurface)
+                            // Icon with gradient background
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Brush.linearGradient(GradientGold)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Default.Today, null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
-                            Text(
-                                "+${dailyChallenge.reward}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                            Icon(Icons.Default.Star, null, tint = ColorWarning, modifier = Modifier.size(12.dp))
-                            Icon(Icons.Default.ChevronRight, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    S.current.dailyChallenge,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFFBBF24),
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    challengeText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = ColorOnSurface,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "+${dailyChallenge.reward}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFBBF24),
+                                )
+                                Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(14.dp))
+                            }
+                            Icon(Icons.Default.ChevronRight, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(16.dp))
                         }
                     }
                     Spacer(Modifier.height(4.dp))

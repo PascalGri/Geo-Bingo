@@ -68,6 +68,7 @@ object De : StringRes {
     override val modeQuickStartDesc = "Kein Setup, kein Warten. Nur Name eingeben, Umgebung wählen und die Runde startet direkt."
     override val letsGo = "Los geht's"
     override val whereDoYouPlay = "Wo spielt ihr?"
+    override val whereDoYouPlaySolo = "Wo spielst du?"
     override val outdoor = "Draußen"
     override val indoor = "Drinnen"
 

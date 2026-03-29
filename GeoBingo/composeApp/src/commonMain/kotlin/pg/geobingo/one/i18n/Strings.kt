@@ -92,6 +92,7 @@ interface StringRes {
     val modeQuickStartDesc: String
     val letsGo: String
     val whereDoYouPlay: String
+    val whereDoYouPlaySolo: String
     val outdoor: String
     val indoor: String
 
