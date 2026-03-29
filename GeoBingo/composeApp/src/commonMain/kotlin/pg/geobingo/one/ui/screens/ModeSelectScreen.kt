@@ -47,7 +47,8 @@ fun ModeSelectScreen(gameState: GameState) {
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
-    // difficulty removed – single pool per environment
+    var soloExpanded by remember { mutableStateOf(false) }
+    var soloOutdoor by remember { mutableStateOf(true) }
 
     SystemBackHandler { nav.goBack() }
 
@@ -90,6 +91,37 @@ fun ModeSelectScreen(gameState: GameState) {
                 modifier = Modifier.staggered(0),
             )
 
+            Spacer(Modifier.height(4.dp))
+
+            // ── Solo Challenge (top) ─────────────────────────────────────
+            SoloChallengeCard(
+                expanded = soloExpanded,
+                outdoor = soloOutdoor,
+                onToggleExpand = { soloExpanded = !soloExpanded },
+                onSelectOutdoor = { soloOutdoor = it },
+                onConfirm = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO"))
+                    gameState.solo.isOutdoor = soloOutdoor
+                    gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor)
+                    gameState.solo.totalDurationSeconds = 300
+                    gameState.solo.timeRemainingSeconds = 300
+                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                },
+                modifier = Modifier.staggered(1),
+            )
+
+            // ── Multiplayer ──────────────────────────────────────────────
+            HorizontalDivider(
+                color = ColorOutlineVariant,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+            Text(
+                "Multiplayer",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorOnSurfaceVariant,
+            )
             Spacer(Modifier.height(4.dp))
 
             QuickStartCard(
@@ -153,31 +185,6 @@ fun ModeSelectScreen(gameState: GameState) {
                 },
             )
 
-
-            // Solo Challenge
-            HorizontalDivider(
-                color = ColorOutlineVariant,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-
-            ModeCard(
-                mode = GameMode.CLASSIC, // reuse, doesn't matter for solo
-                title = S.current.soloMode,
-                subtitle = S.current.soloModeSubtitle,
-                description = S.current.soloModeDesc,
-                icon = Icons.Default.Person,
-                gradientColors = listOf(Color(0xFF22D3EE), Color(0xFF6366F1)),
-                modifier = Modifier.staggered(4),
-                onClick = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO"))
-                    val categories = CATEGORY_TEMPLATES_SHUFFLED().take(5)
-                    gameState.solo.categories = categories
-                    gameState.solo.totalDurationSeconds = 300
-                    gameState.solo.timeRemainingSeconds = 300
-                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
-                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
-                },
-            )
 
             Spacer(Modifier.height(24.dp))
         }
@@ -463,6 +470,205 @@ private fun ModeCard(
                 modifier = Modifier.size(20.dp).padding(top = 2.dp),
                 tint = ColorOnSurfaceVariant,
             )
+        }
+    }
+}
+
+// ── Solo Challenge Card ──────────────────────────────────────────────────
+
+private val SoloGradientColors = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+
+@Composable
+private fun SoloChallengeCard(
+    expanded: Boolean,
+    outdoor: Boolean,
+    onToggleExpand: () -> Unit,
+    onSelectOutdoor: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gradientColors = SoloGradientColors
+    val accentColor = gradientColors.first()
+    val scope = rememberCoroutineScope()
+    val pressScale = remember { Animatable(1f) }
+
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = pressScale.value; scaleY = pressScale.value }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        scope.launch { pressScale.animateTo(0.97f, tween(80)) }
+                        tryAwaitRelease()
+                        scope.launch { pressScale.animateTo(1f, tween(120)) }
+                    },
+                    onTap = { onToggleExpand() },
+                )
+            },
+        cornerRadius = 18.dp,
+        borderColors = gradientColors,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.5.dp,
+        glassmorphism = false,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = gradientColors,
+                                start = Offset(0f, 0f),
+                                end = Offset(200f, 200f),
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            S.current.soloMode,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorOnSurface,
+                        )
+                        Text(
+                            "AI",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8B5CF6),
+                        )
+                    }
+                    Text(
+                        S.current.soloModeSubtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accentColor,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        S.current.soloModeDesc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                        lineHeight = 17.sp,
+                    )
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp).padding(top = 2.dp),
+                    tint = ColorOnSurfaceVariant,
+                )
+            }
+
+            if (expanded) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = ColorOutlineVariant)
+                Spacer(Modifier.height(14.dp))
+
+                Text(
+                    S.current.whereDoYouPlay,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(true) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                S.current.outdoor,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (!outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (!outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(false) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                S.current.indoor,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Brush.linearGradient(gradientColors))
+                        .clickable { onConfirm() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        S.current.letsGo,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+            }
         }
     }
 }

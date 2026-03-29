@@ -27,6 +27,7 @@ class SoloState {
     var timeRemainingSeconds by mutableStateOf(300)
     var startTimeMillis by mutableStateOf(0L)
     var playerName by mutableStateOf("")
+    var isOutdoor by mutableStateOf(true)
 
     /** Raw sum of all AI star ratings (each 1-5). */
     val starSum: Int get() = categoryRatings.values.sum()
@@ -59,5 +60,6 @@ class SoloState {
         isRunning = false
         timeRemainingSeconds = totalDurationSeconds
         startTimeMillis = 0L
+        isOutdoor = true
     }
 }

@@ -86,6 +86,7 @@ data class SoloScoreDto(
     val categories_count: Int = 0,
     val time_bonus: Int = 0,
     val duration_seconds: Int = 0,
+    val is_outdoor: Boolean = true,
     val created_at: String = "",
 )
 
@@ -98,6 +99,7 @@ private data class SoloScoreInsertDto(
     val categories_count: Int,
     val time_bonus: Int,
     val duration_seconds: Int,
+    val is_outdoor: Boolean,
 )
 
 @Serializable
@@ -515,7 +517,7 @@ object GameRepository {
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
 
-    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int): SoloScoreDto =
+    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true): SoloScoreDto =
         supabase.from("solo_scores").insert(
             SoloScoreInsertDto(
                 player_name = playerName,
@@ -523,12 +525,14 @@ object GameRepository {
                 categories_count = categoriesCount,
                 time_bonus = timeBonus,
                 duration_seconds = durationSeconds,
+                is_outdoor = isOutdoor,
             )
         ) { select() }.decodeSingle()
 
-    suspend fun getSoloLeaderboard(limit: Int = 50): List<SoloScoreDto> =
+    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null): List<SoloScoreDto> =
         supabase.from("solo_scores")
             .select {
+                if (isOutdoor != null) filter { eq("is_outdoor", isOutdoor) }
                 order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                 limit(limit.toLong())
             }

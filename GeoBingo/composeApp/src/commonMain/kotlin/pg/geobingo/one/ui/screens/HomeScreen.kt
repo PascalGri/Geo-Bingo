@@ -771,19 +771,24 @@ private fun SoloLeaderboardPreview(
     modifier: Modifier = Modifier,
     onViewAll: () -> Unit,
 ) {
-    var topScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var outdoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var indoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var selectedTab by remember { mutableStateOf(0) } // 0=outdoor, 1=indoor
     var loading by remember { mutableStateOf(true) }
     val playerName = remember { AppSettings.getString("last_player_name", "") }
 
     LaunchedEffect(Unit) {
         try {
-            val raw = GameRepository.getSoloLeaderboard(30)
-            topScores = raw.distinctBy { it.player_name }.take(5)
+            val rawOut = GameRepository.getSoloLeaderboard(30, isOutdoor = true)
+            outdoorScores = rawOut.distinctBy { it.player_name }.take(5)
+            val rawIn = GameRepository.getSoloLeaderboard(30, isOutdoor = false)
+            indoorScores = rawIn.distinctBy { it.player_name }.take(5)
         } catch (_: Exception) { }
         loading = false
     }
 
-    if (loading || topScores.isEmpty()) return
+    val topScores = if (selectedTab == 0) outdoorScores else indoorScores
+    if (loading || (outdoorScores.isEmpty() && indoorScores.isEmpty())) return
 
     Card(
         modifier = modifier,
@@ -827,7 +832,44 @@ private fun SoloLeaderboardPreview(
 
             Spacer(Modifier.height(8.dp))
 
+            // Outdoor/Indoor toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                listOf(0 to S.current.outdoor, 1 to S.current.indoor).forEach { (idx, label) ->
+                    val selected = selectedTab == idx
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (selected) SoloGradient.first().copy(alpha = 0.15f) else Color.Transparent)
+                            .clickable { selectedTab = idx }
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) SoloGradient.first() else ColorOnSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
             // Top 5 rows
+            if (topScores.isEmpty()) {
+                Text(
+                    S.current.soloNoScoresYet,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                )
+            }
             topScores.forEachIndexed { index, score ->
                 val isMe = score.player_name == playerName
                 val rankColor = when (index) {

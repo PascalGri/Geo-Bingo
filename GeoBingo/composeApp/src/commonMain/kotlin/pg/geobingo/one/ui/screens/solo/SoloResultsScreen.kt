@@ -65,6 +65,7 @@ fun SoloResultsScreen(gameState: GameState) {
                 categoriesCount = solo.capturedCategories.size,
                 timeBonus = solo.timeBonus,
                 durationSeconds = solo.totalDurationSeconds,
+                isOutdoor = solo.isOutdoor,
             )
             submitted = true
         } catch (e: Exception) {

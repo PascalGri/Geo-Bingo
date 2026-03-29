@@ -2,6 +2,8 @@ package pg.geobingo.one.ui.screens.solo
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,36 +34,26 @@ import pg.geobingo.one.util.AppLogger
 @Composable
 fun SoloLeaderboardScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    var scores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var selectedTab by remember { mutableStateOf(0) } // 0 = outdoor, 1 = indoor
+    var outdoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var indoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
-    var myRank by remember { mutableStateOf<Int?>(null) }
-    var totalPlayers by remember { mutableStateOf(0) }
-    var myBest by remember { mutableStateOf<SoloScoreDto?>(null) }
 
     val playerName = gameState.solo.playerName
+    val scores = if (selectedTab == 0) outdoorScores else indoorScores
 
     LaunchedEffect(Unit) {
         try {
-            // Fetch more than 50 so dedup still yields ~50 unique players
-            val raw = GameRepository.getSoloLeaderboard(150)
-            // Keep only the best score per player (already sorted by score DESC)
-            scores = raw.distinctBy { it.player_name }.take(50)
+            val rawOutdoor = GameRepository.getSoloLeaderboard(150, isOutdoor = true)
+            outdoorScores = rawOutdoor.distinctBy { it.player_name }.take(50)
+            val rawIndoor = GameRepository.getSoloLeaderboard(150, isOutdoor = false)
+            indoorScores = rawIndoor.distinctBy { it.player_name }.take(50)
             loading = false
         } catch (e: Exception) {
             AppLogger.w("Leaderboard", "Failed to load", e)
             loading = false
             error = true
-        }
-        // Load own rank in parallel
-        if (playerName.isNotBlank()) {
-            try {
-                myRank = GameRepository.getSoloRank(playerName)
-                totalPlayers = GameRepository.getSoloTotalPlayers()
-                myBest = GameRepository.getSoloPersonalBest(playerName)
-            } catch (e: Exception) {
-                AppLogger.d("Leaderboard", "Rank lookup failed", e)
-            }
         }
     }
 
@@ -94,58 +86,83 @@ fun SoloLeaderboardScreen(gameState: GameState) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = ColorPrimary)
             }
-        } else if (error || scores.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Star, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        if (error) S.current.error else S.current.soloNoScoresYet,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = ColorOnSurfaceVariant,
-                    )
-                }
-            }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Own rank banner if NOT in top 50
-                if (!isInTop50 && myRank != null && myBest != null) {
-                    item {
-                        MyRankBanner(
-                            rank = myRank!!,
-                            totalPlayers = totalPlayers,
-                            bestScore = myBest!!,
-                            playerName = playerName,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        HorizontalDivider(color = ColorOutlineVariant)
-                        Spacer(Modifier.height(4.dp))
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                // Outdoor/Indoor tabs
+                val tabGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        0 to S.current.outdoor,
+                        1 to S.current.indoor,
+                    ).forEach { (idx, label) ->
+                        val selected = selectedTab == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (selected) Brush.linearGradient(tabGradient)
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(10.dp),
+                                )
+                                .clickable { selectedTab = idx }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (idx == 0) Icons.Default.WbSunny else Icons.Default.House,
+                                    null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Top 50
-                itemsIndexed(scores) { index, score ->
-                    LeaderboardRow(
-                        rank = index + 1,
-                        score = score,
-                        isCurrentPlayer = score.player_name == playerName,
-                    )
-                }
-
-                // Footer with own rank if in top 50
-                if (isInTop50 && myRank != null) {
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            S.current.soloRankDisplay(myRank!!, totalPlayers),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = ColorOnSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        )
+                if (scores.isEmpty() && !loading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Star, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(48.dp))
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                if (error) S.current.error else S.current.soloNoScoresYet,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        itemsIndexed(scores) { index, score ->
+                            LeaderboardRow(
+                                rank = index + 1,
+                                score = score,
+                                isCurrentPlayer = score.player_name == playerName,
+                            )
+                        }
                     }
                 }
             }
@@ -153,90 +170,6 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     }
 }
 
-@Composable
-private fun MyRankBanner(rank: Int, totalPlayers: Int, bestScore: SoloScoreDto, playerName: String) {
-    val bracket = when {
-        rank <= 10 -> "Top 10"
-        rank <= 50 -> "Top 50"
-        rank <= 100 -> "Top 100"
-        rank <= 500 -> "Top 500"
-        rank <= 1000 -> "Top 1000"
-        else -> "Top ${((rank / 1000) + 1) * 1000}"
-    }
-
-    GradientBorderCard(
-        modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 14.dp,
-        borderColors = GradientPrimary,
-        backgroundColor = ColorPrimary.copy(alpha = 0.06f),
-        borderWidth = 1.5.dp,
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        S.current.soloYourRank,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = ColorOnSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            "#$rank",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorPrimary,
-                        )
-                        Text(
-                            "/ $totalPlayers",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ColorOnSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        S.current.soloApproxRank(bracket),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "${bestScore.score} ${S.current.pointsAbbrev}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorOnSurface,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Progress bar showing rough position
-            val progress = if (totalPlayers > 0) 1f - (rank.toFloat() / totalPlayers) else 0f
-            LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                color = ColorPrimary,
-                trackColor = ColorSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("#1", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant, fontSize = 10.sp)
-                Text("#$totalPlayers", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant, fontSize = 10.sp)
-            }
-        }
-    }
-}
 
 @Composable
 private fun LeaderboardRow(rank: Int, score: SoloScoreDto, isCurrentPlayer: Boolean) {
