@@ -44,7 +44,7 @@
     <div class="container">
         <a href="/" class="back">&larr; Zurück zu KatchIt!</a>
         <h1>Datenschutzerklärung</h1>
-        <p style="font-size: 13px; color: #5A3D8A;">Stand: 22. März 2026</p>
+        <p style="font-size: 13px; color: #5A3D8A;">Stand: 29. März 2026</p>
 
         <h2>1. Datenschutz auf einen Blick</h2>
         <h3>Allgemeine Hinweise</h3>
@@ -52,7 +52,7 @@
             Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie KatchIt! nutzen. Personenbezogene Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können.
         </p>
         <p>
-            KatchIt! ist ein Multiplayer-Fotospiel, das als Web-App, iOS-App und Android-App verfügbar ist. Die App erhebt bewusst so wenig Daten wie möglich. Es gibt keine Nutzerkonten. In der iOS- und Android-Version werden Werbeanzeigen von Google AdMob eingeblendet (siehe Abschnitt 5b). In der Web-Version werden Werbeanzeigen von Google AdSense eingeblendet (siehe Abschnitt 5c). Werbung wird erst nach ausdrücklicher Einwilligung geladen.
+            KatchIt! ist ein Multiplayer-Fotospiel, das als Web-App, iOS-App und Android-App verfügbar ist. Die App erhebt bewusst so wenig Daten wie möglich. Optional können Nutzerkonten über Google, Apple oder E-Mail erstellt werden, um Spielstände geräteübergreifend zu synchronisieren. In der iOS- und Android-Version werden Werbeanzeigen von Google AdMob eingeblendet (siehe Abschnitt 5b). In der Web-Version werden Werbeanzeigen von Google AdSense eingeblendet (siehe Abschnitt 5c). Werbung wird erst nach ausdrücklicher Einwilligung geladen.
         </p>
 
         <h2>2. Verantwortliche Stelle</h2>
@@ -66,13 +66,27 @@
 
         <h2>3. Datenerfassung in der App</h2>
 
-        <h3>a) Spielername und Avatar</h3>
+        <h3>a) Nutzerkonto (optional)</h3>
+        <p>
+            Sie können optional ein Nutzerkonto erstellen, um Spielstände und Einstellungen geräteübergreifend zu synchronisieren. Die Anmeldung erfolgt über Google, Apple oder E-Mail (Magic Link). Dabei werden folgende Daten verarbeitet:
+        </p>
+        <ul>
+            <li>E-Mail-Adresse (zur Authentifizierung)</li>
+            <li>Anzeigename und Avatar-Foto (frei wählbar)</li>
+            <li>Spielstatistiken (Sterne, Einstellungen)</li>
+        </ul>
+        <p>
+            Die App ist auch ohne Nutzerkonto vollständig nutzbar. Ein Konto kann jederzeit in den Einstellungen gelöscht werden — alle zugehörigen Daten werden dabei serverseitig entfernt.
+        </p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch freiwillige Registrierung).</p>
+
+        <h3>b) Spielername und Avatar</h3>
         <p>
             Bei der Nutzung geben Sie einen frei wählbaren Spielernamen ein und können optional ein Avatar-Foto aufnehmen. Beides wird temporär für die Dauer des Spiels auf unseren Servern gespeichert und anderen Mitspielern angezeigt. Nach Spielende werden diese Daten gelöscht.
         </p>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung — Bereitstellung des Spieldienstes).</p>
 
-        <h3>b) Fotos</h3>
+        <h3>c) Fotos</h3>
         <p>
             Während des Spiels nehmen Sie Fotos auf, die den jeweiligen Spielkategorien zugeordnet werden. Diese Fotos werden:
         </p>
@@ -84,13 +98,30 @@
         </ul>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
 
-        <h3>c) Spieldaten</h3>
+        <h3>d) KI-Fotobewertung im Solo-Modus</h3>
+        <p>
+            Im Solo-Modus werden Ihre Fotos zur automatischen Bewertung an einen KI-Dienst (Cloudflare Workers AI) übermittelt. Dabei wird das Foto zusammen mit dem Kategorienamen an die KI gesendet, die eine Bewertung (1-5 Sterne) und eine kurze Begründung zurückgibt.
+        </p>
+        <ul>
+            <li>Die Fotos werden ausschließlich zur Bewertung übertragen und nicht dauerhaft gespeichert</li>
+            <li>Es werden keine personenbezogenen Daten an den KI-Dienst übermittelt (kein Name, keine ID)</li>
+            <li>Die Bewertung erfolgt in Echtzeit und die Daten werden nach der Verarbeitung sofort verworfen</li>
+        </ul>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung — Bereitstellung der Spielfunktion).</p>
+
+        <h3>e) Solo-Bestenliste</h3>
+        <p>
+            Im Solo-Modus wird Ihr Spielergebnis (Spielername, Punktzahl, Kategorienanzahl, Zeitbonus) an unseren Server übermittelt und in einer öffentlichen Bestenliste angezeigt. Der Spielername ist für alle Nutzer sichtbar.
+        </p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
+
+        <h3>f) Spieldaten</h3>
         <p>
             Spielbezogene Daten wie gewählte Kategorien, Bewertungen (Sternvergabe) und Spielstände werden für die Dauer des Spiels gespeichert und nach Spielende gelöscht.
         </p>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
 
-        <h3>d) Standortdaten (GPS)</h3>
+        <h3>g) Standortdaten (GPS)</h3>
         <p>
             Bei der Aufnahme eines Spielfotos wird — sofern Sie die Standortberechtigung erteilt haben — Ihr aktueller GPS-Standort (Breitengrad und Längengrad) erfasst und zusammen mit dem Foto auf unseren Servern gespeichert. Diese Daten dienen dazu, den Aufnahmeort in der Fotogalerie und im Spielverlauf anzuzeigen.
         </p>
@@ -102,20 +133,19 @@
         </ul>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch Erteilung der Standortberechtigung).</p>
 
-        <h3>e) Kamerazugriff</h3>
+        <h3>h) Kamerazugriff</h3>
         <p>
             Die App benötigt Zugriff auf die Kamera Ihres Geräts, um Spielfotos aufzunehmen. Dieser Zugriff wird über die Berechtigungsdialoge Ihres Betriebssystems angefragt und kann jederzeit in den Geräteeinstellungen widerrufen werden. Ohne Kamerazugriff ist die Kernfunktion der App nicht nutzbar.
         </p>
 
-        <h3>f) Lokale Speicherung</h3>
+        <h3>i) Lokale Speicherung</h3>
         <p>
-            Die App nutzt den lokalen Speicher Ihres Geräts (Local Storage bzw. App-interner Speicher) zur temporären Zwischenspeicherung von Spielfotos und Avataren. Diese Daten verbleiben auf Ihrem Gerät und werden nicht an Dritte übermittelt.
+            Die App nutzt den lokalen Speicher Ihres Geräts (Local Storage bzw. App-interner Speicher) zur temporären Zwischenspeicherung von Spielfotos, Avataren und Spielstatistiken. Diese Daten verbleiben auf Ihrem Gerät und werden nicht an Dritte übermittelt.
         </p>
 
         <h2>4. Daten, die NICHT erhoben werden</h2>
         <p>KatchIt! erhebt bewusst keine:</p>
         <ul>
-            <li>Personenbezogene Nutzerkonten (keine Registrierung erforderlich)</li>
             <li>Eigene Analyse- oder Tracking-Daten durch uns</li>
             <li>Kontakte, Kalender oder sonstige Gerätedaten</li>
         </ul>
@@ -128,10 +158,10 @@
         <h3>a) Supabase (Backend und Datenbank)</h3>
         <table>
             <tr><th>Anbieter</th><td>Supabase Inc., 970 Toa Payoh North #07-04, Singapore 318992</td></tr>
-            <tr><th>Zweck</th><td>Datenbank (PostgreSQL), Echtzeit-Kommunikation (WebSocket), Dateispeicher (Fotos)</td></tr>
-            <tr><th>Verarbeitete Daten</th><td>Spielernamen, Avatar-Fotos, Spielfotos, Spielstände, Bewertungen, Spiel-Metadaten</td></tr>
+            <tr><th>Zweck</th><td>Datenbank (PostgreSQL), Echtzeit-Kommunikation (WebSocket), Dateispeicher (Fotos), Authentifizierung</td></tr>
+            <tr><th>Verarbeitete Daten</th><td>Spielernamen, Avatar-Fotos, Spielfotos, Spielstände, Bewertungen, Spiel-Metadaten, Solo-Bestenliste, optional: E-Mail-Adresse und Profildaten bei Kontoerstellung</td></tr>
             <tr><th>Serverstandort</th><td>EU (Frankfurt, Deutschland)</td></tr>
-            <tr><th>Speicherdauer</th><td>Nur während der Spieldauer; automatische Löschung nach Spielende</td></tr>
+            <tr><th>Speicherdauer</th><td>Spieldaten: nur während der Spieldauer, automatische Löschung nach Spielende. Kontodaten: bis zur Kontolöschung. Solo-Bestenliste: dauerhaft.</td></tr>
             <tr><th>Datenschutz</th><td><a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a></td></tr>
         </table>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 28 DSGVO (Auftragsverarbeitung).</p>
@@ -164,7 +194,19 @@
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Ohne Einwilligung werden keine Werbeanzeigen geladen und keine Cookies gesetzt.</p>
         <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) sowie ergänzend auf Basis von Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).</p>
 
-        <h3>d) Vercel (Web-Hosting)</h3>
+        <h3>d) Cloudflare Workers AI (KI-Fotobewertung)</h3>
+        <table>
+            <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
+            <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Solo-Modus mittels KI-Bilderkennung</td></tr>
+            <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine ID).</td></tr>
+            <tr><th>Serverstandort</th><td>Weltweit (Cloudflare Edge Network), Verarbeitung auf dem nächstgelegenen Rechenzentrum</td></tr>
+            <tr><th>Speicherdauer</th><td>Keine Speicherung — Fotos werden nur zur Echtzeit-Verarbeitung übertragen und sofort verworfen</td></tr>
+            <tr><th>Datenschutz</th><td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a></td></tr>
+        </table>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung — Bereitstellung der Spielfunktion).</p>
+        <p><strong>Drittlandübermittlung:</strong> Cloudflare hat seinen Sitz in den USA und ist unter dem EU-U.S. Data Privacy Framework (DPF) zertifiziert. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt.</p>
+
+        <h3>e) Vercel (Web-Hosting)</h3>
         <table>
             <tr><th>Anbieter</th><td>Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA</td></tr>
             <tr><th>Zweck</th><td>Hosting und Auslieferung der Web-Version von KatchIt! unter katchit.app</td></tr>
@@ -184,7 +226,10 @@
             Supabase speichert die Daten für KatchIt! auf Servern in der EU (Frankfurt). Eine Übermittlung in Drittländer findet durch Supabase für dieses Projekt grundsätzlich nicht statt.
         </p>
         <p>
-            Google LLC (AdMob) hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) sowie auf Basis von Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Diese Übermittlung findet nur statt, sofern Sie im Consent-Dialog eingewilligt haben.
+            Google LLC (AdMob/AdSense) hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) sowie auf Basis von Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Diese Übermittlung findet nur statt, sofern Sie im Consent-Dialog eingewilligt haben.
+        </p>
+        <p>
+            Cloudflare Inc. hat seinen Sitz in den USA und ist unter dem EU-U.S. Data Privacy Framework (DPF) zertifiziert. Fotos werden nur zur Echtzeit-Verarbeitung übertragen und nicht gespeichert.
         </p>
 
         <h2>7. SSL/TLS-Verschlüsselung</h2>
@@ -195,11 +240,14 @@
         <h2>8. Speicherdauer</h2>
         <table>
             <tr><th>Datentyp</th><th>Speicherdauer</th></tr>
+            <tr><td>Nutzerkonto (optional)</td><td>Bis zur Kontolöschung durch den Nutzer</td></tr>
             <tr><td>Spielername</td><td>Bis Spielende, dann gelöscht</td></tr>
             <tr><td>Avatar-Foto</td><td>Bis Spielende, dann gelöscht</td></tr>
             <tr><td>Spielfotos</td><td>Bis Spielende, dann gelöscht</td></tr>
             <tr><td>Standortdaten (GPS)</td><td>Bis Spielende, dann gelöscht (zusammen mit Fotos)</td></tr>
             <tr><td>Bewertungen / Spielstände</td><td>Bis Spielende, dann gelöscht</td></tr>
+            <tr><td>Solo-Bestenliste</td><td>Dauerhaft (Spielername und Punktzahl)</td></tr>
+            <tr><td>KI-Fotobewertung</td><td>Keine Speicherung (Echtzeit-Verarbeitung)</td></tr>
             <tr><td>Server-Logdaten (Web)</td><td>Max. 30 Tage (Vercel)</td></tr>
             <tr><td>Werbedaten (AdMob, iOS/Android)</td><td>Gemäß Google-Datenschutzrichtlinie (max. 18 Monate); nur nach Einwilligung</td></tr>
             <tr><td>Lokaler Gerätespeicher</td><td>Bis zur manuellen Löschung oder Deinstallation</td></tr>
@@ -216,7 +264,7 @@
             <li><strong>Widerspruch</strong> (Art. 21 DSGVO) — Gegen die Verarbeitung Ihrer Daten</li>
         </ul>
         <p>
-            Da KatchIt! keine Nutzerkonten verwendet und alle Spieldaten nach Spielende automatisch gelöscht werden, ist eine nachträgliche Zuordnung von Daten zu einzelnen Personen in der Regel nicht möglich.
+            Falls Sie ein Nutzerkonto erstellt haben, können Sie dieses jederzeit in den App-Einstellungen löschen. Alle zugehörigen Daten werden dabei vollständig entfernt. Ohne Nutzerkonto werden alle Spieldaten nach Spielende automatisch gelöscht, sodass eine nachträgliche Zuordnung zu einzelnen Personen nicht möglich ist.
         </p>
 
         <h2>10. Beschwerderecht bei einer Aufsichtsbehörde</h2>

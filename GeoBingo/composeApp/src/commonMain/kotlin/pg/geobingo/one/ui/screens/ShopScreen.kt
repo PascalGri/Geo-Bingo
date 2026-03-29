@@ -197,7 +197,7 @@ fun ShopScreen(gameState: GameState) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     S.current.removeAds,
                                     style = MaterialTheme.typography.bodyLarge,
@@ -210,6 +210,7 @@ fun ShopScreen(gameState: GameState) {
                                     color = ColorOnSurfaceVariant,
                                 )
                             }
+                            Spacer(Modifier.width(12.dp))
                             if (purchaseLoading == "no_ads") {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = ColorPrimary)
                             } else {
@@ -218,6 +219,8 @@ fun ShopScreen(gameState: GameState) {
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = ColorPrimary,
+                                    maxLines = 1,
+                                    softWrap = false,
                                 )
                             }
                         }
