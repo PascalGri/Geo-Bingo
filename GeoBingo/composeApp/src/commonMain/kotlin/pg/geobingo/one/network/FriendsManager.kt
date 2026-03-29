@@ -162,7 +162,7 @@ object FriendsManager {
         val myId = AccountManager.currentUserId ?: return emptyList()
         return try {
             val friendships = supabase.from("friendships")
-                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) } }; filter { eq("status", "accepted") } }
+                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "accepted") } }
                 .decodeList<FriendshipDto>()
 
             val friendIds = friendships.map { if (it.user_id == myId) it.friend_id else it.user_id }
@@ -201,7 +201,7 @@ object FriendsManager {
         return try {
             // Incoming: where I'm involved but not the requester, and status is pending
             val friendships = supabase.from("friendships")
-                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) } }; filter { eq("status", "pending") } }
+                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "pending") } }
                 .decodeList<FriendshipDto>()
                 .filter { it.requested_by != myId }
 
