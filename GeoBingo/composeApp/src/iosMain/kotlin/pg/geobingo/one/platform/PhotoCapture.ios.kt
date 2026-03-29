@@ -9,20 +9,29 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Image
+import platform.CoreGraphics.CGAffineTransformIdentity
+import platform.CoreGraphics.CGAffineTransformMakeRotation
+import platform.CoreGraphics.CGAffineTransformMakeScale
+import platform.CoreGraphics.CGAffineTransformMakeTranslation
+import platform.CoreGraphics.CGAffineTransformConcat
+import platform.CoreGraphics.CGContextConcatCTM
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.UIKit.UIApplication
 import platform.UIKit.UIGraphicsBeginImageContextWithOptions
 import platform.UIKit.UIGraphicsEndImageContext
+import platform.UIKit.UIGraphicsGetCurrentContext
 import platform.UIKit.UIGraphicsGetImageFromCurrentImageContext
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
+import platform.UIKit.UIImageOrientation
 import platform.UIKit.UIImagePickerController
 import platform.UIKit.UIImagePickerControllerDelegateProtocol
 import platform.UIKit.UIImagePickerControllerOriginalImage
 import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.darwin.NSObject
+import kotlin.math.PI
 
 @OptIn(ExperimentalForeignApi::class)
 private class ImagePickerDelegate :
@@ -38,7 +47,8 @@ private class ImagePickerDelegate :
     ) {
         picker.dismissViewControllerAnimated(true, completion = null)
         val originalImage = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
-        val image = originalImage?.let { resizeImage(it, maxWidth = 1200.0) }
+        val normalized = originalImage?.let { normalizeOrientation(it) }
+        val image = normalized?.let { resizeImage(it, maxWidth = 1200.0) }
         val jpegData = image?.let { UIImageJPEGRepresentation(it, 0.7) }
         val bytes = jpegData?.let { data ->
             data.bytes?.readBytes(data.length.toInt())
@@ -50,6 +60,22 @@ private class ImagePickerDelegate :
         picker.dismissViewControllerAnimated(true, completion = null)
         onResult?.invoke(null)
     }
+}
+
+/**
+ * Re-draws the image with orientation applied so the pixel data matches visual appearance.
+ * This fixes mirrored selfies and rotated camera photos.
+ */
+@OptIn(ExperimentalForeignApi::class)
+private fun normalizeOrientation(image: UIImage): UIImage {
+    if (image.imageOrientation == UIImageOrientation.UIImageOrientationUp) return image
+    val w = image.size.useContents { width }
+    val h = image.size.useContents { height }
+    UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+    image.drawInRect(CGRectMake(0.0, 0.0, w, h))
+    val normalized = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return normalized ?: image
 }
 
 @OptIn(ExperimentalForeignApi::class)
