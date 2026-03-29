@@ -35,6 +35,7 @@ import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toHex
@@ -51,7 +52,11 @@ import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
 @Composable
 fun JoinGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    var codeInput by remember { mutableStateOf("") }
+    val inviteCode = gameState.ui.pendingGameInviteCode
+    var codeInput by remember { mutableStateOf(inviteCode ?: "") }
+    LaunchedEffect(Unit) {
+        if (inviteCode != null) gameState.ui.pendingGameInviteCode = null
+    }
     val nameInput = remember { AppSettings.getString("last_player_name", "") }
     val selectedAvatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }
     var isLoading by remember { mutableStateOf(false) }
@@ -239,7 +244,7 @@ fun JoinGameScreen(gameState: GameState) {
                                 val colorIndex = (0..7).random()
                                 val color = PLAYER_COLORS[colorIndex].toHex()
                                 AppSettings.setString("last_player_name", nameInput.trim())
-                                val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color)
+                                val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color, AccountManager.currentUserId)
                                 val avatarBytes = selectedAvatarBytes
                                 if (avatarBytes != null) {
                                     try {

@@ -82,6 +82,7 @@ private data class GameInsertDto(val code: String, val duration_s: Int, val joke
 data class SoloScoreDto(
     val id: String = "",
     val player_name: String = "",
+    val user_id: String? = null,
     val score: Int = 0,
     val categories_count: Int = 0,
     val time_bonus: Int = 0,
@@ -95,6 +96,7 @@ data class PhotoValidationResult(val rating: Int, val reason: String)
 @Serializable
 private data class SoloScoreInsertDto(
     val player_name: String,
+    val user_id: String? = null,
     val score: Int,
     val categories_count: Int,
     val time_bonus: Int,
@@ -114,11 +116,12 @@ data class PlayerDto(
     val game_id: String = "",
     val name: String = "",
     val color: String = "",
-    val avatar: String = ""
+    val avatar: String = "",
+    val user_id: String? = null,
 )
 
 @Serializable
-private data class PlayerInsertDto(val game_id: String, val name: String, val color: String)
+private data class PlayerInsertDto(val game_id: String, val name: String, val color: String, val user_id: String? = null)
 
 @Serializable
 private data class PlayerAvatarUpdateDto(val avatar: String)
@@ -256,9 +259,9 @@ object GameRepository {
             .associate { it.player_id.removePrefix("__team__") to (it.label.toIntOrNull() ?: 1) }
     }
 
-    suspend fun addPlayer(gameId: String, name: String, color: String): PlayerDto =
+    suspend fun addPlayer(gameId: String, name: String, color: String, userId: String? = null): PlayerDto =
         supabase.from("players").insert(
-            PlayerInsertDto(game_id = gameId, name = name, color = color)
+            PlayerInsertDto(game_id = gameId, name = name, color = color, user_id = userId)
         ) { select() }.decodeSingle()
 
     suspend fun setPlayerAvatar(playerId: String, avatar: String) {
@@ -517,10 +520,11 @@ object GameRepository {
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
 
-    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true): SoloScoreDto =
+    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null): SoloScoreDto =
         supabase.from("solo_scores").insert(
             SoloScoreInsertDto(
                 player_name = playerName,
+                user_id = userId,
                 score = score,
                 categories_count = categoriesCount,
                 time_bonus = timeBonus,

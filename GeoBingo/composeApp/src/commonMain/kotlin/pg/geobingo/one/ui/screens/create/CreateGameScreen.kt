@@ -33,6 +33,7 @@ import pg.geobingo.one.data.*
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
 import pg.geobingo.one.util.AppLogger
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toCategory
@@ -175,7 +176,7 @@ fun CreateGameScreen(gameState: GameState) {
                                         // Step 2: Add host player
                                         val hostColor = PLAYER_COLORS[0].toHex()
                                         AppSettings.setString("last_player_name", hostNameInput.trim())
-                                        val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor)
+                                        val hostDto = GameRepository.addPlayer(game.id, hostNameInput.trim(), hostColor, AccountManager.currentUserId)
 
                                         // Step 3: Upload avatar (optional, non-critical)
                                         val avatarBytes = selectedAvatarBytes

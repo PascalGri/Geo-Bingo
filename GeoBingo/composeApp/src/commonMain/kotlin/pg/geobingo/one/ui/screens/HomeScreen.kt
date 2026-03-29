@@ -37,6 +37,8 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.game.state.ChallengeType
 import pg.geobingo.one.game.state.DailyChallengeManager
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.AccountManager
+import pg.geobingo.one.network.FriendsManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.SoloScoreDto
 import pg.geobingo.one.platform.AdManager
@@ -151,6 +153,18 @@ fun HomeScreen(gameState: GameState) {
 
     var selectedHistoryEntry by remember { mutableStateOf<GameHistoryEntry?>(null) }
     var showEarnStarsDialog by remember { mutableStateOf(false) }
+    var pendingFriendRequestCount by remember { mutableStateOf(0) }
+
+    // Poll pending friend requests count
+    LaunchedEffect(Unit) {
+        if (!AccountManager.isLoggedIn) return@LaunchedEffect
+        while (true) {
+            try {
+                pendingFriendRequestCount = FriendsManager.getPendingRequests().size
+            } catch (_: Exception) {}
+            delay(15_000L)
+        }
+    }
     // Reset daily challenge if a new UTC day has started (handles app staying open past midnight)
     LaunchedEffect(Unit) {
         while (true) {
@@ -241,6 +255,32 @@ fun HomeScreen(gameState: GameState) {
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            TextButton(onClick = { nav.navigateTo(Screen.FRIENDS) }) {
+                                Box {
+                                    Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                    if (pendingFriendRequestCount > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(14.dp)
+                                                .align(Alignment.TopEnd)
+                                                .offset(x = 4.dp, y = (-4).dp)
+                                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                                .background(Color(0xFFEF4444)),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                "$pendingFriendRequestCount",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                Text(S.current.friends, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
                             TextButton(onClick = { nav.navigateTo(Screen.SETTINGS) }) {
                                 Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
                                 Spacer(Modifier.width(4.dp))

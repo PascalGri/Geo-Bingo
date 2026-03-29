@@ -40,6 +40,9 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.util.AppLogger
+import pg.geobingo.one.network.AccountManager
+import pg.geobingo.one.network.FriendsManager
+import pg.geobingo.one.network.FriendInfo
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.PlayerDto
 import pg.geobingo.one.network.toCategory
@@ -60,6 +63,7 @@ fun LobbyScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val scope = rememberCoroutineScope()
     var isStarting by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val gameId = gameState.session.gameId ?: return
     val syncScope = rememberCoroutineScope()
     val sync = remember(gameId) { gameState.ensureSyncManager(gameId, syncScope) }
@@ -101,6 +105,11 @@ fun LobbyScreen(gameState: GameState) {
     // Team mode state
     var showCreateTeamDialog by remember { mutableStateOf(false) }
     var newTeamNameInput by remember { mutableStateOf("") }
+
+    // Friend invite state
+    var showInviteFriendsDialog by remember { mutableStateOf(false) }
+    var onlineFriends by remember { mutableStateOf<List<FriendInfo>>(emptyList()) }
+    var friendsLoading by remember { mutableStateOf(false) }
 
     // Count distinct teams that have players
     val activeTeamCount = if (gameState.gameplay.teamModeEnabled) {
@@ -156,6 +165,13 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
+    // Consume pending toasts (e.g. quick reactions, code copied)
+    LaunchedEffect(gameState.ui.pendingToast) {
+        val msg = gameState.ui.pendingToast ?: return@LaunchedEffect
+        gameState.ui.pendingToast = null
+        snackbarHostState.showSnackbar(msg)
+    }
+
     val gameMode = gameState.session.gameMode
     val modeGradient = when (gameMode) {
         GameMode.CLASSIC    -> GradientPrimary
@@ -192,6 +208,7 @@ fun LobbyScreen(gameState: GameState) {
     SystemBackHandler { gameState.resetGame(); nav.resetTo(Screen.HOME) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -370,6 +387,72 @@ fun LobbyScreen(gameState: GameState) {
             )
         }
 
+        // Invite Friends Dialog
+        if (showInviteFriendsDialog) {
+            AlertDialog(
+                onDismissRequest = { showInviteFriendsDialog = false },
+                containerColor = ColorSurface,
+                title = { Text(S.current.inviteToGame, fontWeight = FontWeight.Bold, color = ColorOnSurface) },
+                text = {
+                    if (friendsLoading) {
+                        Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = modeGradient.first(), modifier = Modifier.size(24.dp))
+                        }
+                    } else if (onlineFriends.isEmpty()) {
+                        Text(S.current.friendsEmpty, color = ColorOnSurfaceVariant)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            onlineFriends.forEach { friend ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            val code = gameState.session.gameCode ?: return@clickable
+                                            val gid = gameState.session.gameId ?: return@clickable
+                                            scope.launch {
+                                                FriendsManager.sendGameInvite(friend.userId, code, gid)
+                                                gameState.ui.pendingToast = "${S.current.inviteToGame}: ${friend.displayName}"
+                                                showInviteFriendsDialog = false
+                                            }
+                                        }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box {
+                                        PlayerAvatarViewRaw(
+                                            name = friend.displayName,
+                                            color = modeGradient.first(),
+                                            size = 36.dp,
+                                            fontSize = 14.sp,
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(if (friend.isOnline) Color(0xFF22C55E) else ColorOutlineVariant)
+                                                .align(Alignment.BottomEnd),
+                                        )
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(friend.displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = ColorOnSurface)
+                                    Spacer(Modifier.weight(1f))
+                                    if (friend.isOnline) {
+                                        Text(S.current.friendsOnline, style = MaterialTheme.typography.labelSmall, color = Color(0xFF22C55E))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showInviteFriendsDialog = false }) {
+                        Text(S.current.cancel, color = ColorOnSurfaceVariant)
+                    }
+                },
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -437,7 +520,7 @@ fun LobbyScreen(gameState: GameState) {
                         )
                         Spacer(Modifier.height(12.dp))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             FilledTonalButton(
@@ -445,7 +528,7 @@ fun LobbyScreen(gameState: GameState) {
                                     clipboardManager.setText(AnnotatedString(code))
                                     gameState.ui.pendingToast = S.current.codeCopied
                                 },
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = modeGradient.first().copy(alpha = 0.12f),
                                 ),
@@ -456,7 +539,7 @@ fun LobbyScreen(gameState: GameState) {
                                     modifier = Modifier.size(16.dp),
                                     tint = modeGradient.first(),
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Text(
                                     S.current.roundCode,
                                     style = MaterialTheme.typography.labelMedium,
@@ -467,7 +550,7 @@ fun LobbyScreen(gameState: GameState) {
                                 onClick = {
                                     shareManager.shareText("${S.current.joinRound}: KatchIt!\nhttps://katchit.app/join/$code")
                                 },
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = modeGradient.first().copy(alpha = 0.12f),
                                 ),
@@ -478,9 +561,42 @@ fun LobbyScreen(gameState: GameState) {
                                     modifier = Modifier.size(16.dp),
                                     tint = modeGradient.first(),
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Text(
                                     S.current.share,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = modeGradient.first(),
+                                )
+                            }
+                        }
+                        // Invite Friends button (only for logged-in users)
+                        if (AccountManager.isLoggedIn) {
+                            Spacer(Modifier.height(8.dp))
+                            FilledTonalButton(
+                                onClick = {
+                                    friendsLoading = true
+                                    showInviteFriendsDialog = true
+                                    scope.launch {
+                                        try {
+                                            onlineFriends = FriendsManager.getFriends()
+                                        } catch (_: Exception) {}
+                                        friendsLoading = false
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = modeGradient.first().copy(alpha = 0.12f),
+                                ),
+                            ) {
+                                Icon(
+                                    Icons.Default.People,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = modeGradient.first(),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    S.current.inviteFriends,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = modeGradient.first(),
                                 )

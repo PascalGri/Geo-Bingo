@@ -35,6 +35,8 @@ data class UserProfile(
     val sound_enabled: Boolean = true,
     val haptic_enabled: Boolean = true,
     val language: String = "de",
+    val last_seen: String? = null,
+    val friend_code: String? = null,
 )
 
 object AccountManager {

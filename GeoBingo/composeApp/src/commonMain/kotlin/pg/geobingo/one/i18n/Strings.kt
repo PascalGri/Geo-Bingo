@@ -438,4 +438,34 @@ interface StringRes {
     val inviteFriends: String
     val inviteFriendsDesc: String
     val inviteFriendsMessage: String
+
+    // ── Friends System ─────────────────────────────────────────────
+    val friends: String
+    val friendsEmpty: String
+    val friendsOnline: String
+    val friendsOffline: String
+    val addFriend: String
+    val addFriendDesc: String
+    val friendCode: String
+    val yourFriendCode: String
+    val friendRequestSent: String
+    val friendRequestReceived: String
+    val friendRequests: String
+    val accept: String
+    val decline: String
+    val removeFriend: String
+    val removeFriendConfirm: String
+    val friendAdded: String
+    val friendRemoved: String
+    val friendNotFound: String
+    val friendAlreadyAdded: String
+    val inviteToGame: String
+    val gameInviteReceived: String
+    val gameInviteFrom: String
+    val join: String
+    val loginRequiredForFriends: String
+    val copyFriendCode: String
+    val friendCodeCopied: String
+    fun lastSeenMinutes(min: Int): String
+    fun lastSeenHours(h: Int): String
 }

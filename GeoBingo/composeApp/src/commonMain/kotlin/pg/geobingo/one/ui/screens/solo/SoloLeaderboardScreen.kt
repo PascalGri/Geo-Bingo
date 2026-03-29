@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.SoloScoreDto
 import pg.geobingo.one.platform.SystemBackHandler
@@ -40,15 +41,16 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
 
+    val currentUserId = AccountManager.currentUserId
     val playerName = gameState.solo.playerName
     val scores = if (selectedTab == 0) outdoorScores else indoorScores
 
     LaunchedEffect(Unit) {
         try {
             val rawOutdoor = GameRepository.getSoloLeaderboard(150, isOutdoor = true)
-            outdoorScores = rawOutdoor.distinctBy { it.player_name }.take(50)
+            outdoorScores = deduplicateScores(rawOutdoor).take(50)
             val rawIndoor = GameRepository.getSoloLeaderboard(150, isOutdoor = false)
-            indoorScores = rawIndoor.distinctBy { it.player_name }.take(50)
+            indoorScores = deduplicateScores(rawIndoor).take(50)
             loading = false
         } catch (e: Exception) {
             AppLogger.w("Leaderboard", "Failed to load", e)
@@ -59,7 +61,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
 
     SystemBackHandler { nav.goBack() }
 
-    val isInTop50 = scores.any { it.player_name == playerName }
+    val isInTop50 = scores.any { isOwnScore(it, currentUserId, playerName) }
 
     Scaffold(
         topBar = {
@@ -160,7 +162,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                             LeaderboardRow(
                                 rank = index + 1,
                                 score = score,
-                                isCurrentPlayer = score.player_name == playerName,
+                                isCurrentPlayer = isOwnScore(score, currentUserId, playerName),
                             )
                         }
                     }
@@ -236,5 +238,21 @@ private fun LeaderboardRow(rank: Int, score: SoloScoreDto, isCurrentPlayer: Bool
                 color = if (rank <= 3) rankColor else ColorOnSurface,
             )
         }
+    }
+}
+
+/** Check if a score belongs to the current user: prefer user_id match, fall back to name for guests. */
+private fun isOwnScore(score: SoloScoreDto, currentUserId: String?, playerName: String): Boolean {
+    if (currentUserId != null && score.user_id != null) return score.user_id == currentUserId
+    if (currentUserId != null && score.user_id == null) return false
+    return score.player_name == playerName
+}
+
+/** Deduplicate scores: keep best per user_id (if set), otherwise per player_name. */
+private fun deduplicateScores(scores: List<SoloScoreDto>): List<SoloScoreDto> {
+    val seen = mutableSetOf<String>()
+    return scores.filter { score ->
+        val key = score.user_id ?: "name:${score.player_name}"
+        seen.add(key)
     }
 }

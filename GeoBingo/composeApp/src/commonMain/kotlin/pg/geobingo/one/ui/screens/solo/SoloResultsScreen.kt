@@ -25,6 +25,7 @@ import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
@@ -66,6 +67,7 @@ fun SoloResultsScreen(gameState: GameState) {
                 timeBonus = solo.timeBonus,
                 durationSeconds = solo.totalDurationSeconds,
                 isOutdoor = solo.isOutdoor,
+                userId = AccountManager.currentUserId,
             )
             submitted = true
         } catch (e: Exception) {
@@ -354,6 +356,7 @@ fun SoloResultsScreen(gameState: GameState) {
                                 categoriesCount = solo.capturedCategories.size,
                                 timeBonus = solo.timeBonus,
                                 durationSeconds = solo.totalDurationSeconds,
+                                userId = AccountManager.currentUserId,
                             )
                             submitted = true
                         } catch (e: Exception) {
