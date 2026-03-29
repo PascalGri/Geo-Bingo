@@ -37,6 +37,8 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.game.state.ChallengeType
 import pg.geobingo.one.game.state.DailyChallengeManager
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.SoloScoreDto
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
@@ -408,6 +410,16 @@ fun HomeScreen(gameState: GameState) {
                     Spacer(Modifier.height(4.dp))
                 }
 
+                Spacer(Modifier.height(8.dp))
+
+                // ── SOLO LEADERBOARD (Top 5) ─────────────────────────────────
+                SoloLeaderboardPreview(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    onViewAll = { nav.navigateTo(Screen.SOLO_LEADERBOARD) },
+                )
+
                 Spacer(Modifier.height(4.dp))
 
                 // ── HOW TO PLAY ──────────────────────────────────────────────
@@ -748,4 +760,128 @@ private fun RoundWinnerDialog(entry: GameHistoryEntry, onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+// ── Solo Leaderboard Preview ─────────────────────────────────────────────
+
+private val SoloGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+
+@Composable
+private fun SoloLeaderboardPreview(
+    modifier: Modifier = Modifier,
+    onViewAll: () -> Unit,
+) {
+    var topScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    val playerName = remember { AppSettings.getString("last_player_name", "") }
+
+    LaunchedEffect(Unit) {
+        try {
+            val raw = GameRepository.getSoloLeaderboard(30)
+            topScores = raw.distinctBy { it.player_name }.take(5)
+        } catch (_: Exception) { }
+        loading = false
+    }
+
+    if (loading || topScores.isEmpty()) return
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = ColorSurface),
+        border = BorderStroke(1.dp, ColorOutlineVariant),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onViewAll() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(Icons.Default.EmojiEvents, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(18.dp))
+                    AnimatedGradientText(
+                        text = "Solo Bestenliste",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        gradientColors = SoloGradient,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        S.current.showAll,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = SoloGradient.first(),
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Icon(Icons.Default.ChevronRight, null, tint = SoloGradient.first(), modifier = Modifier.size(14.dp))
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Top 5 rows
+            topScores.forEachIndexed { index, score ->
+                val isMe = score.player_name == playerName
+                val rankColor = when (index) {
+                    0 -> Color(0xFFFBBF24)
+                    1 -> Color(0xFF94A3B8)
+                    2 -> Color(0xFFCD7F32)
+                    else -> ColorOnSurfaceVariant
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isMe) Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SoloGradient.first().copy(alpha = 0.08f))
+                                .padding(horizontal = 6.dp, vertical = 5.dp)
+                            else Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Rank
+                    Box(modifier = Modifier.width(22.dp)) {
+                        if (index < 3) {
+                            Icon(Icons.Default.EmojiEvents, null, tint = rankColor, modifier = Modifier.size(16.dp))
+                        } else {
+                            Text(
+                                "#${index + 1}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = rankColor,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+
+                    // Name
+                    Text(
+                        score.player_name,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (isMe) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isMe) SoloGradient.first() else ColorOnSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    // Score
+                    Text(
+                        "${score.score} ${S.current.pointsAbbrev}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (index == 0) rankColor else ColorOnSurface,
+                    )
+                }
+            }
+        }
+    }
 }
