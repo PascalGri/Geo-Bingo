@@ -576,6 +576,32 @@ object GameRepository {
             .toSet()
             .size
 
+    // ── Multiplayer Leaderboard ──────────────────────────────────────────
+
+    @Serializable
+    data class MultiplayerStatsDto(
+        val user_id: String = "",
+        val display_name: String = "",
+        val games_played: Int = 0,
+        val games_won: Int = 0,
+        val current_win_streak: Int = 0,
+        val longest_win_streak: Int = 0,
+        val total_captures: Int = 0,
+        val avg_rating: Double = 0.0,
+    )
+
+    suspend fun upsertMultiplayerStats(stats: MultiplayerStatsDto) {
+        supabase.from("multiplayer_stats").upsert(stats)
+    }
+
+    suspend fun getMultiplayerLeaderboard(limit: Int = 50, orderBy: String = "games_won"): List<MultiplayerStatsDto> =
+        supabase.from("multiplayer_stats")
+            .select {
+                order(orderBy, io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+
     /** Delete all game photos and avatars from Supabase Storage to free space. */
     suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {
         try {

@@ -36,6 +36,8 @@ import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.*
 import pg.geobingo.one.game.state.ChallengeType
 import pg.geobingo.one.game.state.DailyChallengeManager
+import pg.geobingo.one.game.state.WeeklyChallengeManager
+import pg.geobingo.one.game.state.WeeklyChallengeType
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.FriendsManager
@@ -291,6 +293,11 @@ fun HomeScreen(gameState: GameState) {
                                 Spacer(Modifier.width(4.dp))
                                 Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                             }
+                            TextButton(onClick = { nav.navigateTo(Screen.MP_LEADERBOARD) }) {
+                                Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                                Spacer(Modifier.width(4.dp))
+                                Text(S.current.multiplayerLeaderboard, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                            }
                         }
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -381,7 +388,8 @@ fun HomeScreen(gameState: GameState) {
                 Spacer(Modifier.height(8.dp))
 
                 // ── DAILY CHALLENGE ──────────────────────────────────────────
-                if (!gameState.stars.dailyChallengeCompleted) {
+                run {
+                    val isDailyDone = gameState.stars.dailyChallengeCompleted
                     val challengeText = when (dailyChallenge.type) {
                         ChallengeType.WIN_ROUND -> S.current.challengeWinRound
                         ChallengeType.PLAY_MODE -> {
@@ -400,7 +408,7 @@ fun HomeScreen(gameState: GameState) {
                         modifier = Modifier
                             .padding(horizontal = Spacing.screenHorizontal)
                             .fillMaxWidth()
-                            .clickable {
+                            .then(if (!isDailyDone) Modifier.clickable {
                                 when (dailyChallenge.type) {
                                     ChallengeType.PLAY_MODE -> {
                                         val mode = dailyChallenge.targetMode
@@ -423,9 +431,9 @@ fun HomeScreen(gameState: GameState) {
                                     }
                                     else -> nav.navigateTo(Screen.SELECT_MODE)
                                 }
-                            },
+                            } else Modifier),
                         cornerRadius = 14.dp,
-                        borderColors = GradientGold,
+                        borderColors = if (isDailyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else GradientGold,
                         backgroundColor = ColorSurface,
                         borderWidth = 1.5.dp,
                     ) {
@@ -434,41 +442,136 @@ fun HomeScreen(gameState: GameState) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            // Icon with gradient background
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Brush.linearGradient(GradientGold)),
+                                    .background(Brush.linearGradient(
+                                        if (isDailyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else GradientGold
+                                    )),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(Icons.Default.Today, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    if (isDailyDone) Icons.Default.Check else Icons.Default.Today,
+                                    null, tint = Color.White, modifier = Modifier.size(20.dp),
+                                )
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     S.current.dailyChallenge,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFFBBF24),
+                                    color = if (isDailyDone) Color(0xFF22C55E) else Color(0xFFFBBF24),
                                     fontWeight = FontWeight.Bold,
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    challengeText,
+                                    if (isDailyDone) S.current.dailyChallengeCompleted else challengeText,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = ColorOnSurface,
+                                    color = if (isDailyDone) Color(0xFF22C55E) else ColorOnSurface,
                                     fontWeight = FontWeight.Medium,
                                 )
                             }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    "+${dailyChallenge.reward}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFBBF24),
-                                )
-                                Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(14.dp))
+                            if (isDailyDone) {
+                                Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF22C55E), modifier = Modifier.size(24.dp))
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("+${dailyChallenge.reward}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFBBF24))
+                                    Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(14.dp))
+                                }
+                                Icon(Icons.Default.ChevronRight, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
-                            Icon(Icons.Default.ChevronRight, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+
+                // ── WEEKLY CHALLENGE ─────────────────────────────────────────
+                run {
+                    val weeklyChallenge = remember { WeeklyChallengeManager.getThisWeekChallenge() }
+                    val isWeeklyDone = gameState.stars.weeklyChallengeCompleted
+                    val weeklyProgress = gameState.stars.weeklyChallengeProgress.coerceAtMost(weeklyChallenge.target)
+                    val progressFraction = weeklyProgress.toFloat() / weeklyChallenge.target.toFloat()
+                    val weeklyText = when (weeklyChallenge.type) {
+                        WeeklyChallengeType.WIN_ROUNDS -> "${S.current.challengeWinRounds} (${S.current.challengeProgress(weeklyProgress, weeklyChallenge.target)})"
+                        WeeklyChallengeType.PLAY_ROUNDS -> "${S.current.challengePlayRounds} (${S.current.challengeProgress(weeklyProgress, weeklyChallenge.target)})"
+                        WeeklyChallengeType.CAPTURE_TOTAL -> "${S.current.challengeCaptureTotal} (${S.current.challengeProgress(weeklyProgress, weeklyChallenge.target)})"
+                        WeeklyChallengeType.PLAY_ALL_MODES -> "${S.current.challengePlayAllModes} (${S.current.challengeProgress(weeklyProgress, weeklyChallenge.target)})"
+                        WeeklyChallengeType.WIN_STREAK -> "${S.current.challengeWinStreak} (${S.current.challengeProgress(weeklyProgress, weeklyChallenge.target)})"
+                    }
+                    val weeklyGradient = listOf(Color(0xFF8B5CF6), Color(0xFFA855F7))
+
+                    GradientBorderCard(
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.screenHorizontal)
+                            .fillMaxWidth()
+                            .then(if (!isWeeklyDone) Modifier.clickable { nav.navigateTo(Screen.SELECT_MODE) } else Modifier),
+                        cornerRadius = 14.dp,
+                        borderColors = if (isWeeklyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else weeklyGradient,
+                        backgroundColor = ColorSurface,
+                        borderWidth = 1.5.dp,
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp).fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Brush.linearGradient(
+                                            if (isWeeklyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else weeklyGradient
+                                        )),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        if (isWeeklyDone) Icons.Default.Check else Icons.Default.DateRange,
+                                        null, tint = Color.White, modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        S.current.weeklyChallenge,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isWeeklyDone) Color(0xFF22C55E) else weeklyGradient.first(),
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        if (isWeeklyDone) S.current.weeklyChallengeCompleted else weeklyText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isWeeklyDone) Color(0xFF22C55E) else ColorOnSurface,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                                if (isWeeklyDone) {
+                                    Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF22C55E), modifier = Modifier.size(24.dp))
+                                } else {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("+${weeklyChallenge.reward}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = weeklyGradient.first())
+                                        Icon(Icons.Default.Star, null, tint = weeklyGradient.first(), modifier = Modifier.size(14.dp))
+                                    }
+                                }
+                            }
+                            // Progress bar
+                            if (!isWeeklyDone) {
+                                Spacer(Modifier.height(10.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(ColorSurfaceVariant),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .fillMaxWidth(progressFraction)
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(Brush.horizontalGradient(weeklyGradient)),
+                                    )
+                                }
+                            }
                         }
                     }
                     Spacer(Modifier.height(4.dp))

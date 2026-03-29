@@ -40,4 +40,9 @@ object SettingsKeys {
     const val DAILY_CHALLENGE_COMPLETED = "daily_challenge_completed"
     const val DAILY_CHALLENGE_TYPE = "daily_challenge_type"
     const val EXTREME_MODE_UNLOCKED = "extreme_mode_unlocked"
+
+    // ── Weekly Challenges ─────────────────────────────────────────────
+    const val WEEKLY_CHALLENGE_PROGRESS = "weekly_challenge_progress"
+    const val WEEKLY_CHALLENGE_COMPLETED = "weekly_challenge_completed"
+    const val LAST_WEEKLY_WEEK = "last_weekly_week"
 }

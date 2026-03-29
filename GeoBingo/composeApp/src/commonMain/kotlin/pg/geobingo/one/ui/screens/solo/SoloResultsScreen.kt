@@ -90,6 +90,23 @@ fun SoloResultsScreen(gameState: GameState) {
                 gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
             }
         }
+        // Weekly challenge progress for solo
+        if (!gameState.stars.weeklyChallengeCompleted) {
+            val weekly = pg.geobingo.one.game.state.WeeklyChallengeManager.getThisWeekChallenge()
+            when (weekly.type) {
+                pg.geobingo.one.game.state.WeeklyChallengeType.WIN_ROUNDS -> if (solo.capturedCategories.isNotEmpty()) gameState.stars.incrementWeeklyProgress()
+                pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ROUNDS -> gameState.stars.incrementWeeklyProgress()
+                pg.geobingo.one.game.state.WeeklyChallengeType.CAPTURE_TOTAL -> gameState.stars.incrementWeeklyProgress(solo.capturedCategories.size)
+                pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ALL_MODES -> {} // solo doesn't count for mode challenges
+                pg.geobingo.one.game.state.WeeklyChallengeType.WIN_STREAK -> if (solo.capturedCategories.isNotEmpty()) gameState.stars.incrementWeeklyProgress() else {
+                    pg.geobingo.one.game.state.WeeklyChallengeManager.setProgress(0)
+                }
+            }
+            if (gameState.stars.weeklyChallengeProgress >= weekly.target) {
+                gameState.stars.completeWeeklyChallenge(weekly.reward)
+                gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.weeklyChallengeCompleted} +${weekly.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+            }
+        }
     }
 
     SystemBackHandler {

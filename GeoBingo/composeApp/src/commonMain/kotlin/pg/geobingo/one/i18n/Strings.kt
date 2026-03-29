@@ -368,6 +368,17 @@ interface StringRes {
     val challengeWinRound: String
     val challengePlayMode: String
     val challengeCaptureCategories: String
+    val weeklyChallenge: String
+    val weeklyChallengeCompleted: String
+    val challengeWinRounds: String
+    val challengePlayRounds: String
+    val challengeCaptureTotal: String
+    val challengePlayAllModes: String
+    val challengeWinStreak: String
+    fun challengeProgress(current: Int, target: Int): String
+    val multiplayerLeaderboard: String
+    val winStreak: String
+    val sortBy: String
     val shop: String
     val buyStars: String
     val adSkipper: String
@@ -391,6 +402,9 @@ interface StringRes {
     val notLoggedIn: String
     val loggedInAs: String
     val authError: String
+    val authEmailInvalid: String
+    val authEmailAlreadyUsed: String
+    val authNetworkError: String
     val passwordTooShort: String
 
     // ── Profile Setup ───────────────────────────────────────────

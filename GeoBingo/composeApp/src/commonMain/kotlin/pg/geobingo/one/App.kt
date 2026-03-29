@@ -328,6 +328,7 @@ fun App() {
                     Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)
                     Screen.ACCOUNT -> AccountScreen(gameState)
                     Screen.FRIENDS -> FriendsScreen(gameState)
+                    Screen.MP_LEADERBOARD -> MultiplayerLeaderboardScreen(gameState)
                 }
             }
         }

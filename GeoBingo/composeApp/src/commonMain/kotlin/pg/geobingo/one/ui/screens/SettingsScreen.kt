@@ -718,6 +718,10 @@ internal fun AuthDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    if (!email.contains("@") || !email.contains(".")) {
+                        errorMsg = S.current.authEmailInvalid
+                        return@TextButton
+                    }
                     if (password.length < 6) {
                         errorMsg = S.current.passwordTooShort
                         return@TextButton
@@ -734,7 +738,19 @@ internal fun AuthDialog(
                         if (result.isSuccess) {
                             onSuccess(isSignUp)
                         } else {
-                            errorMsg = S.current.authError
+                            val msg = result.exceptionOrNull()?.message?.lowercase() ?: ""
+                            errorMsg = when {
+                                msg.contains("already registered") || msg.contains("already exists") ->
+                                    S.current.authEmailAlreadyUsed
+                                msg.contains("invalid") ->
+                                    S.current.authEmailInvalid
+                                msg.contains("network") || msg.contains("socket") ||
+                                    msg.contains("timeout") || msg.contains("unreachable") ||
+                                    msg.contains("connect") ->
+                                    S.current.authNetworkError
+                                else ->
+                                    S.current.authError
+                            }
                         }
                     }
                 },

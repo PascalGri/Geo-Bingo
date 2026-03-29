@@ -24,6 +24,11 @@ class StarsState {
         private set
     var dailyChallengeCompleted by mutableStateOf(AppSettings.getBoolean(SettingsKeys.DAILY_CHALLENGE_COMPLETED, false))
         private set
+    var weeklyChallengeCompleted by mutableStateOf(AppSettings.getBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, false))
+        private set
+    var weeklyChallengeProgress by mutableStateOf(AppSettings.getInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, 0))
+    var lastWeeklyWeek by mutableStateOf(AppSettings.getString(SettingsKeys.LAST_WEEKLY_WEEK, ""))
+        private set
 
     val canWatchAd: Boolean
         get() {
@@ -80,6 +85,34 @@ class StarsState {
             dailyChallengeCompleted = false
             AppSettings.setString(SettingsKeys.LAST_DAILY_DATE, today)
             AppSettings.setBoolean(SettingsKeys.DAILY_CHALLENGE_COMPLETED, false)
+        }
+        resetWeeklyChallengeIfNewWeek()
+    }
+
+    fun completeWeeklyChallenge(reward: Int) {
+        if (weeklyChallengeCompleted) return
+        weeklyChallengeCompleted = true
+        AppSettings.setBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, true)
+        add(reward)
+    }
+
+    fun incrementWeeklyProgress(amount: Int = 1) {
+        if (weeklyChallengeCompleted) return
+        weeklyChallengeProgress += amount
+        AppSettings.setInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, weeklyChallengeProgress)
+    }
+
+    private fun resetWeeklyChallengeIfNewWeek() {
+        val now = kotlinx.datetime.Clock.System.now()
+        val utc = now.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+        val currentWeek = "${utc.year}-W${utc.dayOfYear / 7}"
+        if (lastWeeklyWeek != currentWeek) {
+            lastWeeklyWeek = currentWeek
+            weeklyChallengeCompleted = false
+            weeklyChallengeProgress = 0
+            AppSettings.setString(SettingsKeys.LAST_WEEKLY_WEEK, currentWeek)
+            AppSettings.setBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, false)
+            AppSettings.setInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, 0)
         }
     }
 

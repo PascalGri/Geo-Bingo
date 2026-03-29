@@ -151,6 +151,57 @@ fun ResultsScreen(gameState: GameState) {
                     gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
                 }
             }
+
+            // ── Weekly Challenge Progress ─────────────────────────────
+            if (!gameState.stars.weeklyChallengeCompleted) {
+                val weekly = pg.geobingo.one.game.state.WeeklyChallengeManager.getThisWeekChallenge()
+                val myCaptureCount = gameState.review.allCaptures.count { it.player_id == myId }
+                when (weekly.type) {
+                    pg.geobingo.one.game.state.WeeklyChallengeType.WIN_ROUNDS -> if (isWinner) gameState.stars.incrementWeeklyProgress()
+                    pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ROUNDS -> gameState.stars.incrementWeeklyProgress()
+                    pg.geobingo.one.game.state.WeeklyChallengeType.CAPTURE_TOTAL -> gameState.stars.incrementWeeklyProgress(myCaptureCount)
+                    pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ALL_MODES -> {
+                        val modesKey = "weekly_modes_played"
+                        val played = AppSettings.getString(modesKey, "").split(",").filter { it.isNotBlank() }.toMutableSet()
+                        played.add(gameState.session.gameMode.name)
+                        AppSettings.setString(modesKey, played.joinToString(","))
+                        gameState.stars.incrementWeeklyProgress(0) // just refresh
+                        val newProgress = played.size
+                        pg.geobingo.one.game.state.WeeklyChallengeManager.setProgress(newProgress)
+                        gameState.stars.weeklyChallengeProgress = newProgress
+                    }
+                    pg.geobingo.one.game.state.WeeklyChallengeType.WIN_STREAK -> {
+                        if (isWinner) gameState.stars.incrementWeeklyProgress()
+                        else pg.geobingo.one.game.state.WeeklyChallengeManager.setProgress(0).also { gameState.stars.weeklyChallengeProgress = 0 }
+                    }
+                }
+                if (gameState.stars.weeklyChallengeProgress >= weekly.target) {
+                    gameState.stars.completeWeeklyChallenge(weekly.reward)
+                    gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.weeklyChallengeCompleted} +${weekly.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                }
+            }
+
+            // ── Submit Multiplayer Stats ──────────────────────────────
+            val userId = pg.geobingo.one.network.AccountManager.currentUserId
+            if (userId != null) {
+                try {
+                    val myCaptureCount = gameState.review.allCaptures.count { it.player_id == myId }
+                    val myAvg = gameState.getPlayerAverageRating(myId) ?: 0.0
+                    val stats = GameRepository.MultiplayerStatsDto(
+                        user_id = userId,
+                        display_name = AppSettings.getString("last_player_name", ""),
+                        games_played = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0),
+                        games_won = AppSettings.getInt(SettingsKeys.GAMES_WON, 0),
+                        current_win_streak = AppSettings.getInt(SettingsKeys.CURRENT_WIN_STREAK, 0),
+                        longest_win_streak = AppSettings.getInt(SettingsKeys.LONGEST_WIN_STREAK, 0),
+                        total_captures = myCaptureCount,
+                        avg_rating = myAvg,
+                    )
+                    GameRepository.upsertMultiplayerStats(stats)
+                } catch (e: Exception) {
+                    pg.geobingo.one.util.AppLogger.w("Results", "MP stats submit failed", e)
+                }
+            }
         }
         // Save game metadata locally
         val gid = gameState.session.gameId
