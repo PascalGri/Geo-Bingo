@@ -342,7 +342,7 @@ fun App() {
                     Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)
                     Screen.ACCOUNT -> AccountScreen(gameState)
                     Screen.FRIENDS -> FriendsScreen(gameState)
-                    Screen.MP_LEADERBOARD -> MultiplayerLeaderboardScreen(gameState)
+                    Screen.MP_LEADERBOARD -> { nav.resetTo(Screen.HOME) } // disabled for now
                     Screen.PROFILE -> ProfileScreen(gameState)
                     Screen.ACTIVITY_FEED -> ActivityFeedScreen(gameState)
                 }

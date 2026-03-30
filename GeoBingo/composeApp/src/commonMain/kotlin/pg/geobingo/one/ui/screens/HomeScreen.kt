@@ -293,11 +293,6 @@ fun HomeScreen(gameState: GameState) {
                                 Spacer(Modifier.width(4.dp))
                                 Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                             }
-                            TextButton(onClick = { nav.navigateTo(Screen.MP_LEADERBOARD) }) {
-                                Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                                Spacer(Modifier.width(4.dp))
-                                Text(S.current.multiplayerLeaderboard, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                            }
                         }
                         Row(
                             horizontalArrangement = Arrangement.Center,
