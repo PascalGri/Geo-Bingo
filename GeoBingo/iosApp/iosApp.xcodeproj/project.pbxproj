@@ -107,6 +107,7 @@
 				72F6F4EC7D944080AAB2ECE3 /* Frameworks */,
 				D9D75DD593E2A7F72D56A21A /* Resources */,
 				A9517BC508E7C917F46DD971 /* [CP] Copy Pods Resources */,
+				59252F934E10871F94781777 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -205,6 +206,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\nexport JAVA_HOME=\"/opt/homebrew/opt/openjdk@21\"\nif [ ! -d \"$JAVA_HOME\" ]; then\n  export JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || /usr/libexec/java_home 2>/dev/null)\nfi\nexport PATH=\"$JAVA_HOME/bin:/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT/..\"\n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode || true\nFRAMEWORK_DST=\"${CODESIGNING_FOLDER_PATH}/Frameworks/ComposeApp.framework\"\nFRAMEWORK_SRC=\"$SRCROOT/../composeApp/build/bin/iosArm64/debugFramework/ComposeApp.framework\"\nif [ ! -d \"$FRAMEWORK_DST\" ]; then\n  mkdir -p \"${CODESIGNING_FOLDER_PATH}/Frameworks\"\n  ditto --norsrc --noextattr \"$FRAMEWORK_SRC\" \"$FRAMEWORK_DST\"\nfi\nxattr -cr \"$FRAMEWORK_DST\"\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n  codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" \"$FRAMEWORK_DST\"\nfi\nif [ ! -e \"${BUILT_PRODUCTS_DIR}/ComposeApp.framework\" ]; then\n  ln -sf \"$FRAMEWORK_SRC\" \"${BUILT_PRODUCTS_DIR}/ComposeApp.framework\"\nfi\n";
+		};
+		59252F934E10871F94781777 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		A9517BC508E7C917F46DD971 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;

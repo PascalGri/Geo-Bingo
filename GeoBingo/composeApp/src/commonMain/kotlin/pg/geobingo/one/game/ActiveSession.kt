@@ -6,6 +6,8 @@ import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.util.AppLogger
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Persists the active game session to AppSettings so the player can
@@ -121,9 +123,8 @@ object ActiveSession {
                     gameState.gameplay.captures = playerDtos.associate { it.id to emptySet<String>() }
                     gameState.mergeCaptures(captureMap)
 
-                    // Estimate remaining time based on game duration
-                    // We don't have exact start time, so use a safe estimate
-                    gameState.gameplay.timeRemainingSeconds = game.duration_s / 2 // conservative: half time left
+                    // Calculate remaining time from server timestamp
+                    gameState.gameplay.timeRemainingSeconds = estimateRemainingTime(game.created_at, game.duration_s)
                     gameState.gameplay.isGameRunning = true
 
                     Screen.GAME
@@ -151,6 +152,21 @@ object ActiveSession {
             AppLogger.w("ActiveSession", "Rejoin failed", e)
             clear()
             null
+        }
+    }
+
+    /**
+     * Calculate remaining game time from the server's created_at timestamp.
+     * Falls back to half the duration if parsing fails.
+     */
+    private fun estimateRemainingTime(createdAt: String, durationSeconds: Int): Int {
+        if (createdAt.isBlank()) return durationSeconds / 2
+        return try {
+            val startInstant = Instant.parse(createdAt)
+            val elapsed = (Clock.System.now() - startInstant).inWholeSeconds.toInt()
+            (durationSeconds - elapsed).coerceIn(10, durationSeconds)
+        } catch (_: Exception) {
+            durationSeconds / 2
         }
     }
 }

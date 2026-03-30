@@ -26,6 +26,7 @@ import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.util.NameValidator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,6 +138,10 @@ fun ProfileSetupScreen(gameState: GameState) {
                     val name = nameInput.trim()
                     if (name.isEmpty()) {
                         scope.launch { snackbarHostState.showSnackbar(S.current.profileSetupNameRequired) }
+                        return@GradientButton
+                    }
+                    if (!NameValidator.isValid(name)) {
+                        scope.launch { snackbarHostState.showSnackbar(S.current.nameContainsProfanity) }
                         return@GradientButton
                     }
                     isLoading = true

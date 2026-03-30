@@ -158,6 +158,10 @@ fun CreateGameScreen(gameState: GameState) {
                         onClick = {
                             scope.launch {
                                 if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_CREATE_GAME, pg.geobingo.one.util.RateLimiter.GAME_CREATE_COOLDOWN_MS)) return@launch
+                                if (!pg.geobingo.one.util.NameValidator.isValid(hostNameInput.trim())) {
+                                    errorMessage = S.current.nameContainsProfanity
+                                    return@launch
+                                }
                                 isLoading = true
                                 errorMessage = null
                                 try {

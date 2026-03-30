@@ -134,7 +134,7 @@ class GameViewModel(
     }
 
     fun addJokerCategory(playerId: String) {
-        val label = jokerLabelInput.trim().ifEmpty { "Joker" }
+        val label = jokerLabelInput.trim().take(50).ifEmpty { "Joker" }
         jokerLabelInput = label
         val existingJoker = gameState.gameplay.selectedCategories.find { it.id == "joker_$playerId" }
         if (existingJoker == null) {

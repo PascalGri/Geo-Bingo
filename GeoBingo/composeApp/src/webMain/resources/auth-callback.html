@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KatchIt! - Bestaetigung</title>
+    <title>KatchIt! - Bestätigung</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -71,7 +71,7 @@ if (errorCode || errorDesc) {
     content.innerHTML = `
         <div class="error-icon">&#10060;</div>
         <p class="message error">${errorDesc || 'Ein Fehler ist aufgetreten.'}</p>
-        <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+        <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
     `;
 } else if (accessToken) {
     // Set session
@@ -84,51 +84,51 @@ if (errorCode || errorDesc) {
         } else if (type === 'email_change') {
             content.innerHTML = `
                 <div class="success-icon">&#9989;</div>
-                <p class="message success">E-Mail-Adresse wurde erfolgreich geaendert!</p>
+                <p class="message success">E-Mail-Adresse wurde erfolgreich geändert!</p>
                 <p class="message">Du kannst dich jetzt mit deiner neuen E-Mail anmelden.</p>
-                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+                <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
             `;
         } else if (type === 'signup') {
             content.innerHTML = `
                 <div class="success-icon">&#9989;</div>
-                <p class="message success">E-Mail wurde erfolgreich bestaetigt!</p>
+                <p class="message success">E-Mail wurde erfolgreich bestätigt!</p>
                 <p class="message">Dein Konto ist jetzt aktiv. Du kannst dich in der App anmelden.</p>
-                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+                <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
             `;
         } else if (type === 'magiclink') {
             content.innerHTML = `
                 <div class="success-icon">&#9989;</div>
                 <p class="message success">Erfolgreich angemeldet!</p>
-                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+                <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
             `;
         } else if (type === 'invite') {
             content.innerHTML = `
                 <div class="success-icon">&#9989;</div>
                 <p class="message success">Einladung angenommen!</p>
                 <p class="message">Willkommen bei KatchIt! Lade dir die App herunter oder spiele im Browser.</p>
-                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+                <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
             `;
         } else {
             // Generic success
             content.innerHTML = `
                 <div class="success-icon">&#9989;</div>
-                <p class="message success">Erfolgreich bestaetigt!</p>
-                <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+                <p class="message success">Erfolgreich bestätigt!</p>
+                <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
             `;
         }
     } catch (e) {
         content.innerHTML = `
             <div class="error-icon">&#10060;</div>
             <p class="message error">${e.message}</p>
-            <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+            <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
         `;
     }
 } else {
     content.innerHTML = `
         <div class="error-icon">&#10060;</div>
-        <p class="message error">Ungueltiger oder abgelaufener Link.</p>
+        <p class="message error">Ungültiger oder abgelaufener Link.</p>
         <p class="message">Bitte fordere einen neuen Link in der App an.</p>
-        <a href="https://katchit.app" class="back-link">Zurueck zu KatchIt!</a>
+        <a href="https://katchit.app" class="back-link">Zurück zu KatchIt!</a>
     `;
 }
 </script>

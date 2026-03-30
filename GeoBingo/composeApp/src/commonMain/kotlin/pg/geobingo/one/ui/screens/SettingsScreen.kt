@@ -344,6 +344,10 @@ private fun ProfileSection(
                         onClick = {
                             val name = nameInput.trim()
                             if (name.isEmpty()) return@TextButton
+                            if (!pg.geobingo.one.util.NameValidator.isValid(name)) {
+                                scope.launch { snackbarHostState.showSnackbar(S.current.nameContainsProfanity) }
+                                return@TextButton
+                            }
                             isSaving = true
                             scope.launch {
                                 AppSettings.setString("last_player_name", name)

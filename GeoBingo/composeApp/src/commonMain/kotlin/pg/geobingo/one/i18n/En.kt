@@ -404,6 +404,7 @@ object En : StringRes {
     override val profileSetupComplete = "Done"
     override val profileSetupSkip = "Later"
     override val profileSetupNameRequired = "Please enter a name"
+    override val nameContainsProfanity = "This name is not allowed"
     override val editProfile = "Edit profile"
     override val profileUpdated = "Profile updated"
     override val displayName = "Display name"

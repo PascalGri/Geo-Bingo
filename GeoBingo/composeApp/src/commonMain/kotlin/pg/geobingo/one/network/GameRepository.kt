@@ -32,6 +32,7 @@ data class GameDto(
     val review_category_index: Int = 0,
     val joker_mode: Boolean = false,
     val game_mode: String = "CLASSIC",
+    val created_at: String = "",
 )
 
 @Serializable
@@ -174,6 +175,14 @@ fun generateCode(): String {
     return (1..6).map { chars[Random.nextInt(chars.length)] }.joinToString("")
 }
 
+/** Check if an exception is a PostgreSQL unique constraint violation (duplicate). */
+private fun isDuplicateError(e: Exception): Boolean {
+    val msg = e.message ?: ""
+    return msg.contains("duplicate", ignoreCase = true)
+            || msg.contains("unique", ignoreCase = true)
+            || msg.contains("23505", ignoreCase = true)
+}
+
 object VoteKeys {
     const val END_VOTE = "__end_vote__"
     const val ALL_CAPTURED = "__all_captured__"
@@ -222,19 +231,14 @@ object GameRepository {
         } catch (e: Exception) {
             AppLogger.d("Repo", "team_assignments table not available, using fallback", e)
         }
-        // Fallback: store in joker_labels with prefix
+        // Fallback: store in joker_labels with prefix (upsert to avoid race conditions)
         assignments.forEach { (playerId, team) ->
-            val dto = JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
             try {
-                supabase.from("joker_labels").insert(dto)
+                supabase.from("joker_labels").upsert(
+                    JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
+                )
             } catch (e: Exception) {
-                try {
-                    supabase.from("joker_labels").update({ set("label", dto.label) }) {
-                        filter { eq("game_id", dto.game_id); eq("player_id", dto.player_id) }
-                    }
-                } catch (e2: Exception) {
-                    AppLogger.w("Repo", "Team assignment save failed for $playerId", e2)
-                }
+                AppLogger.w("Repo", "Team assignment save failed for $playerId", e)
             }
         }
     }
@@ -380,26 +384,22 @@ object GameRepository {
         stepKey: String,
         rating: Int,
     ) {
-        // Insert vote - may fail if duplicate, but we still need to submit the vote_submission
+        // Insert vote first, then submission. If vote is a duplicate that's fine -
+        // we still record the submission. Only re-throw truly unexpected errors.
         try {
             supabase.from("votes").insert(
                 VoteInsertDto(game_id = gameId, voter_id = voterId, target_player_id = targetPlayerId, category_id = categoryId, rating = rating)
             )
         } catch (e: Exception) {
-            // Duplicate vote is OK - continue to submit vote_submission
-            AppLogger.d("Repo", "Vote insert (may be duplicate)", e)
+            if (!isDuplicateError(e)) throw e
+            AppLogger.d("Repo", "Vote already exists (duplicate)", e)
         }
         try {
             supabase.from("vote_submissions").insert(
                 VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
             )
         } catch (e: Exception) {
-            // Duplicate submission is OK - vote was already counted
-            val msg = e.message ?: ""
-            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
-                && !msg.contains("23505", ignoreCase = true)) {
-                throw e
-            }
+            if (!isDuplicateError(e)) throw e
         }
     }
 
@@ -409,11 +409,7 @@ object GameRepository {
                 VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = stepKey)
             )
         } catch (e: Exception) {
-            val msg = e.message ?: ""
-            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
-                && !msg.contains("23505", ignoreCase = true)) {
-                throw e
-            }
+            if (!isDuplicateError(e)) throw e
         }
     }
 
@@ -460,12 +456,7 @@ object GameRepository {
                 VoteSubmissionInsertDto(game_id = gameId, voter_id = voterId, category_id = VoteKeys.END_VOTE)
             )
         } catch (e: Exception) {
-            // Duplicate is OK - vote was already recorded
-            val msg = e.message ?: ""
-            if (!msg.contains("duplicate", ignoreCase = true) && !msg.contains("unique", ignoreCase = true)
-                && !msg.contains("23505", ignoreCase = true)) {
-                throw e
-            }
+            if (!isDuplicateError(e)) throw e
         }
     }
 
@@ -512,7 +503,7 @@ object GameRepository {
         }
         val body: String = response.body()
         val json = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
-        val rating = json["rating"]?.jsonPrimitive?.int ?: 5
+        val rating = (json["rating"]?.jsonPrimitive?.int ?: 5).coerceIn(1, 5)
         val reasonPrimitive = json["reason"]?.jsonPrimitive
         val reason = reasonPrimitive?.content ?: ""
         return PhotoValidationResult(rating = rating, reason = reason)
@@ -597,8 +588,10 @@ object GameRepository {
     )
 
     suspend fun sendChatMessage(gameId: String, playerId: String, playerName: String, message: String) {
+        val sanitizedMessage = message.take(200)
+        if (sanitizedMessage.isBlank()) return
         supabase.from("chat_messages").insert(
-            ChatMessageInsertDto(game_id = gameId, player_id = playerId, player_name = playerName, message = message)
+            ChatMessageInsertDto(game_id = gameId, player_id = playerId, player_name = playerName.take(50), message = sanitizedMessage)
         )
     }
 
@@ -636,7 +629,9 @@ object GameRepository {
             supabase.from("activity_feed").insert(
                 ActivityInsertDto(user_id = userId, event_type = eventType, description = description, metadata = metadata)
             )
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.d("Repo", "Activity post failed (non-critical)", e)
+        }
     }
 
     suspend fun getFriendsActivity(friendIds: List<String>, limit: Int = 30): List<ActivityDto> {

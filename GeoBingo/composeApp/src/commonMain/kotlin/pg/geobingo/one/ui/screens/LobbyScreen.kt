@@ -86,6 +86,9 @@ fun LobbyScreen(gameState: GameState) {
             if (gameState.gameplay.lobbyPlayers.size >= 2) return@LaunchedEffect // second player joined → cancel
             lobbyTimeoutSeconds--
         }
+        // Re-check player count from server before closing to avoid race condition
+        val serverPlayers = try { GameRepository.getPlayers(gameId) } catch (_: Exception) { emptyList() }
+        if (serverPlayers.size >= 2) return@LaunchedEffect
         try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
         gameState.resetGame(); nav.resetTo(Screen.HOME)
     }

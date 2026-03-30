@@ -434,6 +434,7 @@ interface StringRes {
     val profileSetupComplete: String
     val profileSetupSkip: String
     val profileSetupNameRequired: String
+    val nameContainsProfanity: String
     val editProfile: String
     val profileUpdated: String
     val displayName: String

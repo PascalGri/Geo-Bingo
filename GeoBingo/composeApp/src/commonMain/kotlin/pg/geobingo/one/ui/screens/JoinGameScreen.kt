@@ -47,6 +47,7 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
+import pg.geobingo.one.util.NameValidator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -234,6 +235,11 @@ fun JoinGameScreen(gameState: GameState) {
                     scope.launch {
                         isLoading = true
                         errorMessage = null
+                        if (!NameValidator.isValid(nameInput.trim())) {
+                            errorMessage = S.current.nameContainsProfanity
+                            isLoading = false
+                            return@launch
+                        }
                         try {
                             val game = GameRepository.getGameByCode(codeInput.trim())
                             if (game == null) {
