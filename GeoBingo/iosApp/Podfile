@@ -8,6 +8,9 @@ target 'iosApp' do
 
   # Google User Messaging Platform (UMP) — GDPR Consent
   pod 'GoogleUserMessagingPlatform'
+
+  # Firebase Cloud Messaging — Push Notifications
+  pod 'FirebaseMessaging'
 end
 
 # Verhindert Signing-Konflikte bei CocoaPods-Pods

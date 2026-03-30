@@ -22,6 +22,7 @@ playServicesLocation = "21.3.0"
 googleMobileAds = "23.6.0"
 googleUmp = "3.1.0"
 billingClient = "7.1.1"
+firebaseBom = "33.7.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -56,6 +57,8 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 google-mobile-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "googleMobileAds" }
 google-ump = { module = "com.google.android.ump:user-messaging-platform", version.ref = "googleUmp" }
 billing-client = { module = "com.android.billingclient:billing-ktx", version.ref = "billingClient" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging-ktx" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -65,3 +68,4 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version = "4.4.2" }

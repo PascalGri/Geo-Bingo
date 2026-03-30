@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "704659604691",
+    "project_id": "katchit-17196",
+    "storage_bucket": "katchit-17196.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704659604691:android:305aa319d8926fd9784026",
+        "android_client_info": {
+          "package_name": "pg.geobingo.one"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAUC3NDuKoHhOsrPxMiskWUrJEv4D72Js"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
