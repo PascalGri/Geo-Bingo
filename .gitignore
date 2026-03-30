@@ -6,3 +6,4 @@
 *.mobileprovision
 .env*
 local.properties
+katchit-*.json
