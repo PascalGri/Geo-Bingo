@@ -339,6 +339,7 @@ fun App() {
                     Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
                     Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
                     Screen.SHOP -> ShopScreen(gameState)
+                    Screen.COSMETIC_SHOP -> CosmeticShopScreen(gameState)
                     Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)
                     Screen.ACCOUNT -> AccountScreen(gameState)
                     Screen.FRIENDS -> FriendsScreen(gameState)

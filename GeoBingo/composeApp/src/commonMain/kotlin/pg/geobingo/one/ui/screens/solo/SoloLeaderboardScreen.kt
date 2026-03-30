@@ -35,22 +35,38 @@ import pg.geobingo.one.util.AppLogger
 @Composable
 fun SoloLeaderboardScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    var selectedTab by remember { mutableStateOf(0) } // 0 = outdoor, 1 = indoor
-    var outdoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
-    var indoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var selectedEnvironment by remember { mutableStateOf(0) } // 0 = outdoor, 1 = indoor
+    var selectedCatCount by remember { mutableStateOf(0) } // 0 = 5 categories, 1 = 10 categories
+
+    // Cache for all 4 leaderboard variants
+    var scores5Outdoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var scores5Indoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var scores10Outdoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var scores10Indoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
 
     val currentUserId = AccountManager.currentUserId
     val playerName = gameState.solo.playerName
-    val scores = if (selectedTab == 0) outdoorScores else indoorScores
+
+    val scores = when {
+        selectedCatCount == 0 && selectedEnvironment == 0 -> scores5Outdoor
+        selectedCatCount == 0 && selectedEnvironment == 1 -> scores5Indoor
+        selectedCatCount == 1 && selectedEnvironment == 0 -> scores10Outdoor
+        else -> scores10Indoor
+    }
 
     LaunchedEffect(Unit) {
         try {
-            val rawOutdoor = GameRepository.getSoloLeaderboard(150, isOutdoor = true)
-            outdoorScores = deduplicateScores(rawOutdoor).take(50)
-            val rawIndoor = GameRepository.getSoloLeaderboard(150, isOutdoor = false)
-            indoorScores = deduplicateScores(rawIndoor).take(50)
+            // Fetch all scores and partition by categories_count
+            val rawOutdoor = GameRepository.getSoloLeaderboard(300, isOutdoor = true)
+            val rawIndoor = GameRepository.getSoloLeaderboard(300, isOutdoor = false)
+
+            // Split by category count: <= 5 goes to 5-cat, > 5 goes to 10-cat
+            scores5Outdoor = deduplicateScores(rawOutdoor.filter { it.categories_count <= 5 }).take(50)
+            scores10Outdoor = deduplicateScores(rawOutdoor.filter { it.categories_count > 5 }).take(50)
+            scores5Indoor = deduplicateScores(rawIndoor.filter { it.categories_count <= 5 }).take(50)
+            scores10Indoor = deduplicateScores(rawIndoor.filter { it.categories_count > 5 }).take(50)
             loading = false
         } catch (e: Exception) {
             AppLogger.w("Leaderboard", "Failed to load", e)
@@ -62,6 +78,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     SystemBackHandler { nav.goBack() }
 
     val isInTop50 = scores.any { isOwnScore(it, currentUserId, playerName) }
+    val tabGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
 
     Scaffold(
         topBar = {
@@ -90,8 +107,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
             }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Outdoor/Indoor tabs
-                val tabGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+                // Category count tabs (5 / 10)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -99,10 +115,10 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
-                        0 to S.current.outdoor,
-                        1 to S.current.indoor,
+                        0 to "5 ${S.current.categories}",
+                        1 to "10 ${S.current.categories}",
                     ).forEach { (idx, label) ->
-                        val selected = selectedTab == idx
+                        val selected = selectedCatCount == idx
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -116,8 +132,58 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                                     color = if (selected) Color.Transparent else ColorOutline,
                                     shape = RoundedCornerShape(10.dp),
                                 )
-                                .clickable { selectedTab = idx }
+                                .clickable { selectedCatCount = idx }
                                 .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (idx == 0) Icons.Default.GridView else Icons.Default.GridOn,
+                                    null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Outdoor/Indoor tabs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        0 to S.current.outdoor,
+                        1 to S.current.indoor,
+                    ).forEach { (idx, label) ->
+                        val selected = selectedEnvironment == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (selected) Brush.linearGradient(tabGradient.map { it.copy(alpha = 0.7f) })
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(10.dp),
+                                )
+                                .clickable { selectedEnvironment = idx }
+                                .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Row(
@@ -140,6 +206,8 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                         }
                     }
                 }
+
+                Spacer(Modifier.height(4.dp))
 
                 if (scores.isEmpty() && !loading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -216,12 +284,21 @@ private fun LeaderboardRow(rank: Int, score: SoloScoreDto, isCurrentPlayer: Bool
 
             // Name + details
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    score.player_name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isCurrentPlayer) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isCurrentPlayer) ColorPrimary else ColorOnSurface,
-                )
+                if (isCurrentPlayer) {
+                    pg.geobingo.one.ui.components.CosmeticPlayerName(
+                        name = score.player_name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        fallbackColor = ColorPrimary,
+                    )
+                } else {
+                    Text(
+                        score.player_name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorOnSurface,
+                    )
+                }
                 Text(
                     "${score.categories_count} ${S.current.categories}" +
                             if (score.time_bonus > 0) " | +${score.time_bonus}s bonus" else "",

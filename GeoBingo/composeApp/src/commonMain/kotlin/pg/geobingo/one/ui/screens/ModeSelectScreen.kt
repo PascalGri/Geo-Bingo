@@ -49,6 +49,7 @@ fun ModeSelectScreen(gameState: GameState) {
     var quickStartOutdoor by remember { mutableStateOf(true) }
     var soloExpanded by remember { mutableStateOf(false) }
     var soloOutdoor by remember { mutableStateOf(true) }
+    var soloCategoryCount by remember { mutableStateOf(5) }
 
     SystemBackHandler { nav.goBack() }
 
@@ -97,14 +98,18 @@ fun ModeSelectScreen(gameState: GameState) {
             SoloChallengeCard(
                 expanded = soloExpanded,
                 outdoor = soloOutdoor,
+                categoryCount = soloCategoryCount,
                 onToggleExpand = { soloExpanded = !soloExpanded },
                 onSelectOutdoor = { soloOutdoor = it },
+                onSelectCategoryCount = { soloCategoryCount = it },
                 onConfirm = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO"))
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
+                    val duration = if (soloCategoryCount == 10) 600 else 300
                     gameState.solo.isOutdoor = soloOutdoor
-                    gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor)
-                    gameState.solo.totalDurationSeconds = 300
-                    gameState.solo.timeRemainingSeconds = 300
+                    gameState.solo.categoryCount = soloCategoryCount
+                    gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
+                    gameState.solo.totalDurationSeconds = duration
+                    gameState.solo.timeRemainingSeconds = duration
                     gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
                     nav.navigateTo(Screen.SOLO_START_TRANSITION)
                 },
@@ -482,8 +487,10 @@ private val SoloGradientColors = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
 private fun SoloChallengeCard(
     expanded: Boolean,
     outdoor: Boolean,
+    categoryCount: Int,
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
+    onSelectCategoryCount: (Int) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -579,6 +586,7 @@ private fun SoloChallengeCard(
                 HorizontalDivider(color = ColorOutlineVariant)
                 Spacer(Modifier.height(14.dp))
 
+                // Outdoor/Indoor toggle
                 Text(
                     S.current.whereDoYouPlaySolo,
                     style = MaterialTheme.typography.labelMedium,
@@ -649,6 +657,68 @@ private fun SoloChallengeCard(
                         }
                     }
                 }
+
+                Spacer(Modifier.height(14.dp))
+
+                // Category count toggle (5 or 10)
+                Text(
+                    S.current.soloCategoryCountLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val catBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    listOf(5 to "5 ${S.current.categories}", 10 to "10 ${S.current.categories}").forEach { (count, label) ->
+                        val selected = categoryCount == count
+                        Box(
+                            modifier = catBtnModifier
+                                .background(
+                                    if (selected) Brush.linearGradient(gradientColors)
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .clickable { onSelectCategoryCount(count) }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (count == 5) Icons.Default.GridView else Icons.Default.GridOn,
+                                    null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) Color.White else ColorOnSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (categoryCount == 10) "10 Min. | ${S.current.outdoor}/${S.current.indoor}"
+                    else "5 Min. | ${S.current.outdoor}/${S.current.indoor}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+                )
 
                 Spacer(Modifier.height(12.dp))
 

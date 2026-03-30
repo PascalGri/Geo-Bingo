@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,35 @@ fun StarsChip(
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
             color = Color.White,
+        )
+    }
+}
+
+@Composable
+fun SkipCardsChip(
+    count: Int,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    val base = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
+
+    Row(
+        modifier = base.padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            Icons.Default.CreditCard,
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+            tint = Color(0xFF94A3B8),
+        )
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+            color = Color(0xFFCBD5E1),
         )
     }
 }

@@ -336,6 +336,15 @@ interface StringRes {
     val soloYourRank: String
     fun soloRankDisplay(rank: Int, total: Int): String
     fun soloApproxRank(bracket: String): String
+    val soloCategoryCountLabel: String
+    val soloPerfectGame: String
+    val soloPerfectBonus: String
+    val soloNewPersonalBest: String
+    val soloAchievementUnlocked: String
+    val soloWatchAdOrSkip: String
+    val soloSkipWithCard: String
+    val soloWatchAd: String
+    val soloSkipAd: String
 
     // ── Transition Screens ──────────────────────────────────────────────
     val reviewInProgress: String
@@ -416,6 +425,22 @@ interface StringRes {
     fun skipCardsPackage(cards: Int, price: String): String
     val interstitialDisabledNote: String
     val starsEarned: String
+    fun needMoreStars(needed: Int, have: Int): String
+    val buyExtraTime: String
+    val retakePhoto: String
+    val swapCategory: String
+    fun extraTimeCost(stars: Int): String
+    fun retakePhotoCost(stars: Int): String
+    fun swapCategoryCost(stars: Int): String
+    val photoRetakeRequired: String
+    val cosmeticShop: String
+    val profileFrames: String
+    val nameEffects: String
+    val equip: String
+    val equipped: String
+    val buy: String
+    val owned: String
+    val cosmeticsDesc: String
 
     // ── Account ───────────────────────────────────────────────────
     val account: String

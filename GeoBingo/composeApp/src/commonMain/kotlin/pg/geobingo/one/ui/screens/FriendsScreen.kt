@@ -265,6 +265,8 @@ fun FriendsScreen(gameState: GameState) {
                             onAccept = {
                                 scope.launch {
                                     FriendsManager.acceptFriendRequest(friendship.id)
+                                    // Notify the requester
+                                    pg.geobingo.one.network.NotificationHelper.notifyFriendRequestAccepted(friendship.requested_by)
                                     pendingRequests = pendingRequests.filter { it.first.id != friendship.id }
                                     friends = FriendsManager.getFriends()
                                     snackbarHostState.showSnackbar(S.current.friendAdded)

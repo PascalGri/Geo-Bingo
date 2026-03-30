@@ -10,12 +10,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -24,9 +26,13 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.game.state.AchievementManager
+import pg.geobingo.one.game.state.Achievement
+import pg.geobingo.one.game.state.SoloStatsManager
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SystemBackHandler
@@ -44,16 +50,34 @@ fun SoloResultsScreen(gameState: GameState) {
     var submitError by remember { mutableStateOf(false) }
     val AIGradient = listOf(Color(0xFF8B5CF6), Color(0xFFEC4899))
     val SoloGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+    val GoldGradient = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
 
-    // Submit score to leaderboard
+    // Track newly unlocked achievements
+    var newAchievements by remember { mutableStateOf<List<Achievement>>(emptyList()) }
+    var isNewPersonalBest by remember { mutableStateOf(false) }
+
+    // Interstitial ad state (always plays, not skippable)
+    var adShown by remember { mutableStateOf(false) }
+
+    // Record stats, check achievements, submit score
     LaunchedEffect(Unit) {
         Analytics.track(Analytics.SOLO_GAME_COMPLETED, mapOf(
             "score" to solo.totalScore.toString(),
             "captured" to solo.capturedCategories.size.toString(),
             "timeBonus" to solo.timeBonus.toString(),
             "starScore" to solo.starScore.toString(),
+            "perfectGame" to solo.isPerfectGame.toString(),
+            "categoryCount" to solo.categoryCount.toString(),
         ))
-        // Update persistent stats
+
+        // Record stats and check achievements
+        val statsBefore = SoloStatsManager.getStats()
+        isNewPersonalBest = solo.totalScore > statsBefore.bestScore
+        SoloStatsManager.recordGame(solo)
+        val statsAfter = SoloStatsManager.getStats()
+        newAchievements = AchievementManager.checkAfterGame(solo, statsAfter)
+
+        // Update persistent general stats
         val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
         AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
 
@@ -63,13 +87,17 @@ fun SoloResultsScreen(gameState: GameState) {
             GameRepository.submitSoloScore(
                 playerName = solo.playerName,
                 score = solo.totalScore,
-                categoriesCount = solo.capturedCategories.size,
+                categoriesCount = solo.categoryCount,
                 timeBonus = solo.timeBonus,
                 durationSeconds = solo.totalDurationSeconds,
                 isOutdoor = solo.isOutdoor,
                 userId = AccountManager.currentUserId,
             )
             submitted = true
+            // Notify friends about high score
+            if (isNewPersonalBest) {
+                pg.geobingo.one.network.NotificationHelper.notifySoloHighScore(solo.totalScore)
+            }
         } catch (e: Exception) {
             AppLogger.w("SoloResults", "Score submission failed", e)
             submitError = true
@@ -83,29 +111,38 @@ fun SoloResultsScreen(gameState: GameState) {
             val done = when (challenge.type) {
                 pg.geobingo.one.game.state.ChallengeType.WIN_ROUND -> solo.capturedCategories.isNotEmpty()
                 pg.geobingo.one.game.state.ChallengeType.CAPTURE_CATEGORIES -> solo.capturedCategories.size >= 3
-                pg.geobingo.one.game.state.ChallengeType.PLAY_MODE -> false // solo doesn't count for mode challenges
+                pg.geobingo.one.game.state.ChallengeType.PLAY_MODE -> false
             }
             if (done) {
                 gameState.stars.completeDailyChallenge(challenge.reward)
-                gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                gameState.ui.pendingToast = "${S.current.dailyChallengeCompleted} +${challenge.reward} ${S.current.stars}"
             }
         }
-        // Weekly challenge progress for solo
+        // Weekly challenge progress
         if (!gameState.stars.weeklyChallengeCompleted) {
             val weekly = pg.geobingo.one.game.state.WeeklyChallengeManager.getThisWeekChallenge()
             when (weekly.type) {
                 pg.geobingo.one.game.state.WeeklyChallengeType.WIN_ROUNDS -> if (solo.capturedCategories.isNotEmpty()) gameState.stars.incrementWeeklyProgress()
                 pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ROUNDS -> gameState.stars.incrementWeeklyProgress()
                 pg.geobingo.one.game.state.WeeklyChallengeType.CAPTURE_TOTAL -> gameState.stars.incrementWeeklyProgress(solo.capturedCategories.size)
-                pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ALL_MODES -> {} // solo doesn't count for mode challenges
+                pg.geobingo.one.game.state.WeeklyChallengeType.PLAY_ALL_MODES -> {}
                 pg.geobingo.one.game.state.WeeklyChallengeType.WIN_STREAK -> if (solo.capturedCategories.isNotEmpty()) gameState.stars.incrementWeeklyProgress() else {
                     pg.geobingo.one.game.state.WeeklyChallengeManager.setProgress(0)
                 }
             }
             if (gameState.stars.weeklyChallengeProgress >= weekly.target) {
                 gameState.stars.completeWeeklyChallenge(weekly.reward)
-                gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.weeklyChallengeCompleted} +${weekly.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                gameState.ui.pendingToast = "${S.current.weeklyChallengeCompleted} +${weekly.reward} ${S.current.stars}"
             }
+        }
+    }
+
+    // Interstitial after every round (not skippable, except with No-Ads purchase)
+    LaunchedEffect(Unit) {
+        if (AdManager.isAdSupported && !gameState.stars.noAdsPurchased && !adShown) {
+            kotlinx.coroutines.delay(1200)
+            adShown = true
+            AdManager.showInterstitialAd {}
         }
     }
 
@@ -114,7 +151,7 @@ fun SoloResultsScreen(gameState: GameState) {
         nav.resetTo(Screen.HOME)
     }
 
-    val allCaptured = solo.capturedCategories.size == solo.categories.size
+    val allCaptured = solo.capturedCategories.size == solo.categories.size && solo.categories.isNotEmpty()
     var showConfetti by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (allCaptured) {
@@ -191,15 +228,42 @@ fun SoloResultsScreen(gameState: GameState) {
                 trophyScale.animateTo(1f, tween(200))
             }
             Icon(
-                imageVector = Icons.Default.EmojiEvents,
+                imageVector = if (solo.isPerfectGame) Icons.Default.Verified else Icons.Default.EmojiEvents,
                 contentDescription = S.current.soloChallengeComplete,
                 modifier = Modifier
                     .size(64.dp)
                     .graphicsLayer { scaleX = trophyScale.value; scaleY = trophyScale.value },
-                tint = Color(0xFFFBBF24),
+                tint = if (solo.isPerfectGame) Color(0xFFFBBF24) else Color(0xFFFBBF24),
             )
 
             Spacer(Modifier.height(12.dp))
+
+            // Perfect Game banner
+            if (solo.isPerfectGame) {
+                AnimatedGradientText(
+                    text = S.current.soloPerfectGame,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    gradientColors = GoldGradient,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+
+            // New personal best banner
+            if (isNewPersonalBest && solo.totalScore > 0) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = Color(0xFF22C55E), modifier = Modifier.size(16.dp))
+                    Text(
+                        S.current.soloNewPersonalBest,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF22C55E),
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+            }
 
             // AI judged badge
             Row(
@@ -236,7 +300,7 @@ fun SoloResultsScreen(gameState: GameState) {
             GradientBorderCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,
-                borderColors = SoloGradient,
+                borderColors = if (solo.isPerfectGame) GoldGradient else SoloGradient,
                 backgroundColor = ColorSurface,
                 borderWidth = 1.5.dp,
             ) {
@@ -255,6 +319,56 @@ fun SoloResultsScreen(gameState: GameState) {
                             icon = Icons.Default.Timer,
                             valueColor = Color(0xFFFBBF24),
                         )
+                    }
+                    if (solo.isPerfectGame) {
+                        HorizontalDivider(color = ColorOutlineVariant)
+                        ScoreRow(
+                            label = S.current.soloPerfectBonus,
+                            value = "+${solo.perfectBonus} ${S.current.pointsAbbrev}",
+                            icon = Icons.Default.Verified,
+                            valueColor = Color(0xFFFBBF24),
+                        )
+                    }
+                }
+            }
+
+            // Newly unlocked achievements
+            if (newAchievements.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                newAchievements.forEach { achievement ->
+                    GradientBorderCard(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        cornerRadius = 12.dp,
+                        borderColors = GoldGradient,
+                        backgroundColor = ColorSurface,
+                        borderWidth = 1.5.dp,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(achievement.icon, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(28.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    S.current.soloAchievementUnlocked,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFFBBF24),
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    achievement.nameKey,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ColorOnSurface,
+                                )
+                                Text(
+                                    achievement.descriptionKey,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorOnSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -355,6 +469,44 @@ fun SoloResultsScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
+            // Solo stats summary card
+            val stats = remember { SoloStatsManager.getStats() }
+            if (stats.gamesPlayed > 1) {
+                GradientBorderCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 12.dp,
+                    borderColors = listOf(ColorOutlineVariant, ColorOutlineVariant),
+                    backgroundColor = ColorSurface,
+                    borderWidth = 1.dp,
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "Solo Stats",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorOnSurface,
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            StatItem("Spiele", "${stats.gamesPlayed}")
+                            StatItem("Rekord", "${stats.bestScore}")
+                            StatItem("Schnitt", "${stats.averageScore}")
+                            StatItem("Perfekt", "${stats.perfectGames}")
+                        }
+                        if (stats.fastestComplete > 0) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                StatItem("Schnellste", "${stats.fastestComplete}s")
+                                StatItem("Sterne", "${stats.totalStars}")
+                                val unlocked = AchievementManager.getUnlockedCount()
+                                val total = AchievementManager.ALL_ACHIEVEMENTS.size
+                                StatItem("Achievements", "$unlocked/$total")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // Submission status
             if (submitted) {
                 Text(
@@ -370,7 +522,7 @@ fun SoloResultsScreen(gameState: GameState) {
                             GameRepository.submitSoloScore(
                                 playerName = solo.playerName,
                                 score = solo.totalScore,
-                                categoriesCount = solo.capturedCategories.size,
+                                categoriesCount = solo.categoryCount,
                                 timeBonus = solo.timeBonus,
                                 durationSeconds = solo.totalDurationSeconds,
                                 userId = AccountManager.currentUserId,
@@ -387,10 +539,18 @@ fun SoloResultsScreen(gameState: GameState) {
 
             Spacer(Modifier.height(24.dp))
         }
-        if (allCaptured) {
+        if (allCaptured || solo.isPerfectGame) {
             ConfettiEffect(trigger = showConfetti, modifier = Modifier.fillMaxSize())
         }
         } // end Box
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
     }
 }
 

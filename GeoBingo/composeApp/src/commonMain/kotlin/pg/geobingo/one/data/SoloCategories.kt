@@ -1,8 +1,10 @@
 package pg.geobingo.one.data
 
+import pg.geobingo.one.platform.AppSettings
+
 // ─────────────────────────────────────────────────────────────────────────────
-//  Solo Challenge – einfache, gut machbare Kategorien für 5-Minuten-Runden.
-//  Großer Pool (40+ pro Umgebung) damit es nicht langweilig wird.
+//  Solo Challenge – einfache, gut machbare Kategorien für 5/10-Minuten-Runden.
+//  Großer Pool (80+ pro Umgebung) damit es nicht langweilig wird.
 // ─────────────────────────────────────────────────────────────────────────────
 
 private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
@@ -17,6 +19,12 @@ private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
         "Fotografiere irgendetwas Gelbes – Blume, Schild, Briefkasten, Markierung."),
     Category("solo_out_white", "Etwas Weißes", "solo_out_white",
         "Fotografiere irgendetwas Weißes – Wand, Wolke, Auto, Zaun."),
+    Category("solo_out_orange", "Etwas Oranges", "solo_out_orange",
+        "Fotografiere irgendetwas Oranges – Schild, Blume, Kleidung, Frucht."),
+    Category("solo_out_purple", "Etwas Lila", "solo_out_purple",
+        "Fotografiere irgendetwas Lila oder Violettes – Blume, Kleidung, Graffiti."),
+    Category("solo_out_brown", "Etwas Braunes", "solo_out_brown",
+        "Fotografiere irgendetwas Braunes – Holz, Erde, Rinde, Tasche."),
     // Natur
     Category("solo_out_tree", "Baum", "solo_out_tree",
         "Fotografiere einen Baum – mit Blättern, Blüten oder kahl."),
@@ -32,6 +40,18 @@ private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
         "Fotografiere den Himmel – mit oder ohne Wolken."),
     Category("solo_out_stone", "Stein", "solo_out_stone",
         "Fotografiere einen Stein, Kiesel oder Felsen."),
+    Category("solo_out_bird", "Vogel", "solo_out_bird",
+        "Fotografiere einen Vogel – fliegend, sitzend oder auf dem Boden."),
+    Category("solo_out_moss", "Moos", "solo_out_moss",
+        "Fotografiere Moos – auf einem Stein, Baum oder dem Boden."),
+    Category("solo_out_ivy", "Efeu oder Kletterpflanze", "solo_out_ivy",
+        "Fotografiere Efeu oder eine andere Kletterpflanze an einer Wand oder Baum."),
+    Category("solo_out_pine", "Nadelbaum", "solo_out_pine",
+        "Fotografiere einen Nadelbaum – Tanne, Fichte, Kiefer."),
+    Category("solo_out_bark", "Baumrinde", "solo_out_bark",
+        "Fotografiere Baumrinde aus der Nähe."),
+    Category("solo_out_insect", "Insekt oder Spinne", "solo_out_insect",
+        "Fotografiere ein Insekt, eine Spinne oder ein Spinnennetz."),
     // Straße
     Category("solo_out_sign", "Schild", "solo_out_sign",
         "Irgendein Schild – Straßenname, Verbot, Hinweis, Werbung."),
@@ -49,6 +69,18 @@ private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
         "Finde einen Briefkasten – gelb, an der Wand oder freistehend."),
     Category("solo_out_hydrant", "Hydrant oder Poller", "solo_out_hydrant",
         "Fotografiere einen Hydranten, Poller oder Absperrpfosten."),
+    Category("solo_out_traffic_light", "Ampel", "solo_out_traffic_light",
+        "Fotografiere eine Ampel – egal ob rot, gelb oder grün."),
+    Category("solo_out_bus_stop", "Bushaltestelle", "solo_out_bus_stop",
+        "Fotografiere eine Bushaltestelle oder Haltestellenschild."),
+    Category("solo_out_parking", "Parkplatzschild", "solo_out_parking",
+        "Fotografiere ein Parkplatzschild oder eine Parkuhr."),
+    Category("solo_out_arrow", "Pfeil", "solo_out_arrow",
+        "Fotografiere einen Pfeil – auf einem Schild, Boden oder Wand."),
+    Category("solo_out_cobblestone", "Pflasterstein", "solo_out_cobblestone",
+        "Fotografiere Pflastersteine oder Kopfsteinpflaster."),
+    Category("solo_out_curb", "Bordstein", "solo_out_curb",
+        "Fotografiere einen Bordstein oder Randstein."),
     // Gebäude
     Category("solo_out_door", "Tür", "solo_out_door",
         "Fotografiere eine Tür – Haus, Laden, Garage."),
@@ -62,6 +94,16 @@ private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
         "Fotografiere einen Zaun, ein Gitter oder Geländer."),
     Category("solo_out_wall", "Mauer oder Wand", "solo_out_wall",
         "Fotografiere eine Mauer, Wand oder Fassade."),
+    Category("solo_out_chimney", "Schornstein", "solo_out_chimney",
+        "Fotografiere einen Schornstein oder Kamin auf einem Dach."),
+    Category("solo_out_balcony", "Balkon", "solo_out_balcony",
+        "Fotografiere einen Balkon – mit oder ohne Pflanzen."),
+    Category("solo_out_gutter", "Dachrinne", "solo_out_gutter",
+        "Fotografiere eine Dachrinne oder ein Regenrohr."),
+    Category("solo_out_awning", "Markise", "solo_out_awning",
+        "Fotografiere eine Markise oder Sonnenschutz an einem Gebäude."),
+    Category("solo_out_bridge", "Brücke", "solo_out_bridge",
+        "Fotografiere eine Brücke oder einen Steg."),
     // Objekte
     Category("solo_out_bench", "Sitzgelegenheit", "solo_out_bench",
         "Eine Bank, Mauer oder ein anderer Ort zum Sitzen."),
@@ -91,6 +133,48 @@ private val SOLO_OUTDOOR_POOL: List<Category> = listOf(
         "Fotografiere einen Kanaldeckel im Boden."),
     Category("solo_out_wheel", "Rad oder Reifen", "solo_out_wheel",
         "Fotografiere ein Rad – am Auto, Fahrrad oder Kinderwagen."),
+    Category("solo_out_fountain", "Brunnen", "solo_out_fountain",
+        "Fotografiere einen Brunnen oder Wasserspiel."),
+    Category("solo_out_railing", "Geländer", "solo_out_railing",
+        "Fotografiere ein Geländer – an Treppe, Brücke oder Balkon."),
+    Category("solo_out_construction", "Baustelle", "solo_out_construction",
+        "Fotografiere eine Baustelle, Baumaschine oder Absperrung."),
+    Category("solo_out_clock", "Uhr draußen", "solo_out_clock",
+        "Fotografiere eine Uhr draußen – Kirchturmuhr, Bahnhofsuhr, Parkuhr."),
+    Category("solo_out_solar", "Solarpanel", "solo_out_solar",
+        "Fotografiere ein Solarpanel oder eine Solaranlage auf einem Dach."),
+    Category("solo_out_swing", "Schaukel", "solo_out_swing",
+        "Fotografiere eine Schaukel auf einem Spielplatz."),
+    Category("solo_out_slide", "Rutsche", "solo_out_slide",
+        "Fotografiere eine Rutsche – auf einem Spielplatz oder Schwimmbad."),
+    Category("solo_out_stroller", "Kinderwagen", "solo_out_stroller",
+        "Fotografiere einen Kinderwagen oder Buggy."),
+    Category("solo_out_umbrella", "Regenschirm", "solo_out_umbrella",
+        "Fotografiere einen Regenschirm oder Sonnenschirm."),
+    Category("solo_out_clothesline", "Wäscheleine", "solo_out_clothesline",
+        "Fotografiere eine Wäscheleine – mit oder ohne Wäsche."),
+    Category("solo_out_drain", "Abfluss", "solo_out_drain",
+        "Fotografiere einen Regenwasserablauf oder Abfluss im Boden."),
+    Category("solo_out_flagpole", "Fahnenmast", "solo_out_flagpole",
+        "Fotografiere einen Fahnenmast – mit oder ohne Flagge."),
+    Category("solo_out_pattern", "Muster", "solo_out_pattern",
+        "Fotografiere ein interessantes Muster – an Wand, Boden oder Gitter."),
+    Category("solo_out_reflection", "Spiegelung", "solo_out_reflection",
+        "Fotografiere eine Spiegelung – in Wasser, Glas oder einem Auto."),
+    Category("solo_out_metal", "Etwas aus Metall", "solo_out_metal",
+        "Fotografiere irgendetwas aus Metall draußen."),
+    Category("solo_out_wooden", "Etwas aus Holz", "solo_out_wooden",
+        "Fotografiere irgendetwas aus Holz draußen – Bank, Zaun, Tür."),
+    Category("solo_out_round_thing", "Etwas Rundes", "solo_out_round_thing",
+        "Fotografiere etwas Rundes draußen – Schild, Uhr, Gullydeckel, Ball."),
+    Category("solo_out_old_thing", "Etwas Altes", "solo_out_old_thing",
+        "Fotografiere etwas Altes oder Verwittertes – alte Mauer, rostiges Gitter."),
+    Category("solo_out_trash", "Müll auf dem Boden", "solo_out_trash",
+        "Fotografiere ein Stück Müll auf dem Boden (nicht aufheben nötig)."),
+    Category("solo_out_scooter", "Roller oder Scooter", "solo_out_scooter",
+        "Fotografiere einen E-Scooter, Tretroller oder Motorroller."),
+    Category("solo_out_dog_waste", "Hundekotbeutelspender", "solo_out_dog_waste",
+        "Fotografiere einen Hundekotbeutelspender oder Hundetoilette."),
 )
 
 private val SOLO_INDOOR_POOL: List<Category> = listOf(
@@ -105,6 +189,12 @@ private val SOLO_INDOOR_POOL: List<Category> = listOf(
         "Fotografiere ein weißes Objekt – Papier, Wand, Tasse."),
     Category("solo_in_black", "Etwas Schwarzes", "solo_in_black",
         "Fotografiere ein schwarzes Objekt – Handy, Tastatur, Schuh."),
+    Category("solo_in_yellow", "Etwas Gelbes", "solo_in_yellow",
+        "Fotografiere ein gelbes Objekt – Banane, Post-it, Verpackung."),
+    Category("solo_in_orange", "Etwas Oranges", "solo_in_orange",
+        "Fotografiere ein oranges Objekt – Orange, Verpackung, Dekoration."),
+    Category("solo_in_pink", "Etwas Rosa", "solo_in_pink",
+        "Fotografiere ein rosa oder pinkes Objekt – Kleidung, Blume, Deko."),
     // Möbel & Einrichtung
     Category("solo_in_chair", "Stuhl", "solo_in_chair",
         "Irgendeine Sitzgelegenheit – Stuhl, Hocker, Sessel."),
@@ -124,6 +214,10 @@ private val SOLO_INDOOR_POOL: List<Category> = listOf(
         "Fotografiere ein Regal, eine Ablage oder ein Bücherregal."),
     Category("solo_in_rug", "Teppich oder Matte", "solo_in_rug",
         "Fotografiere einen Teppich, eine Fußmatte oder einen Läufer."),
+    Category("solo_in_sofa", "Sofa oder Couch", "solo_in_sofa",
+        "Fotografiere ein Sofa, eine Couch oder ein Polstermöbel."),
+    Category("solo_in_drawer", "Schublade", "solo_in_drawer",
+        "Fotografiere eine offene oder geschlossene Schublade."),
     // Technik
     Category("solo_in_screen", "Bildschirm", "solo_in_screen",
         "Ein Bildschirm – Fernseher, Monitor, Tablet, Laptop."),
@@ -135,6 +229,29 @@ private val SOLO_INDOOR_POOL: List<Category> = listOf(
         "Fotografiere einen Lautsprecher, Kopfhörer oder Ohrstöpsel."),
     Category("solo_in_charger", "Ladegerät", "solo_in_charger",
         "Fotografiere ein Ladegerät oder Netzteil."),
+    Category("solo_in_keyboard", "Tastatur", "solo_in_keyboard",
+        "Fotografiere eine Tastatur – Computer, Laptop, Klavier."),
+    Category("solo_in_usb", "USB-Stick oder Adapter", "solo_in_usb",
+        "Fotografiere einen USB-Stick, Adapter oder Dongle."),
+    Category("solo_in_battery", "Batterie", "solo_in_battery",
+        "Fotografiere eine Batterie oder Akku."),
+    // Küche
+    Category("solo_in_pan", "Pfanne oder Topf", "solo_in_pan",
+        "Fotografiere eine Pfanne, einen Topf oder eine Auflaufform."),
+    Category("solo_in_spice", "Gewürz", "solo_in_spice",
+        "Fotografiere ein Gewürz – Salz, Pfeffer, Paprika, Kräuter."),
+    Category("solo_in_cutlery", "Besteck", "solo_in_cutlery",
+        "Fotografiere Besteck – Messer, Gabel, Löffel."),
+    Category("solo_in_plate", "Teller", "solo_in_plate",
+        "Fotografiere einen Teller – sauber oder benutzt."),
+    Category("solo_in_soap", "Seife oder Spülmittel", "solo_in_soap",
+        "Fotografiere Seife, Spülmittel oder Reinigungsmittel."),
+    Category("solo_in_sponge", "Schwamm oder Lappen", "solo_in_sponge",
+        "Fotografiere einen Schwamm, Spültuch oder Putzlappen."),
+    Category("solo_in_can", "Dose", "solo_in_can",
+        "Fotografiere eine Dose – Konserve, Getränkedose, Keksdose."),
+    Category("solo_in_fridge_magnet", "Kühlschrankmagnet", "solo_in_fridge_magnet",
+        "Fotografiere einen Magneten am Kühlschrank."),
     // Alltag
     Category("solo_in_clock", "Uhr", "solo_in_clock",
         "Finde eine Uhr – analog, digital, Wand oder Handgelenk."),
@@ -178,9 +295,79 @@ private val SOLO_INDOOR_POOL: List<Category> = listOf(
         "Etwas Weiches – Stofftier, Kissen, Pullover, Handtuch."),
     Category("solo_in_paper", "Papier oder Zettel", "solo_in_paper",
         "Fotografiere ein Stück Papier, einen Zettel oder eine Notiz."),
+    Category("solo_in_candle", "Kerze", "solo_in_candle",
+        "Fotografiere eine Kerze – angezündet oder nicht."),
+    Category("solo_in_scissors", "Schere", "solo_in_scissors",
+        "Fotografiere eine Schere oder ein Schneidwerkzeug."),
+    Category("solo_in_brush", "Bürste oder Kamm", "solo_in_brush",
+        "Fotografiere eine Bürste, einen Kamm oder eine Haarbürste."),
+    Category("solo_in_calculator", "Taschenrechner", "solo_in_calculator",
+        "Fotografiere einen Taschenrechner – echt oder auf dem Handy."),
+    Category("solo_in_board_game", "Brettspiel", "solo_in_board_game",
+        "Fotografiere ein Brettspiel, Kartenspiel oder Puzzle."),
+    Category("solo_in_keychain", "Schlüsselanhänger", "solo_in_keychain",
+        "Fotografiere einen Schlüsselanhänger oder Anhänger."),
+    Category("solo_in_trash", "Mülleimer", "solo_in_trash",
+        "Fotografiere einen Mülleimer oder Papierkorb drinnen."),
+    Category("solo_in_calendar", "Kalender", "solo_in_calendar",
+        "Fotografiere einen Kalender – Wand, Tisch oder digital."),
+    Category("solo_in_postcard", "Postkarte oder Brief", "solo_in_postcard",
+        "Fotografiere eine Postkarte, einen Brief oder eine Einladung."),
+    Category("solo_in_watering_can", "Gießkanne", "solo_in_watering_can",
+        "Fotografiere eine Gießkanne oder Sprühflasche für Pflanzen."),
+    Category("solo_in_thermometer", "Thermometer", "solo_in_thermometer",
+        "Fotografiere ein Thermometer – Fieber, Wetter oder Kochen."),
+    Category("solo_in_alarm", "Wecker", "solo_in_alarm",
+        "Fotografiere einen Wecker oder eine Uhr mit Alarmfunktion."),
+    Category("solo_in_fan", "Ventilator", "solo_in_fan",
+        "Fotografiere einen Ventilator, Heizlüfter oder Lüftungsgitter."),
+    Category("solo_in_potholder", "Topflappen", "solo_in_potholder",
+        "Fotografiere einen Topflappen, Ofenhandschuh oder Untersetzer."),
+    Category("solo_in_toy", "Spielzeug", "solo_in_toy",
+        "Fotografiere ein Spielzeug – Puppe, Figur, Auto, Stofftier."),
+    Category("solo_in_magazine", "Zeitschrift", "solo_in_magazine",
+        "Fotografiere eine Zeitschrift, Zeitung oder Katalog."),
+    Category("solo_in_vase", "Vase", "solo_in_vase",
+        "Fotografiere eine Vase – mit oder ohne Blumen."),
+    Category("solo_in_coin", "Münze oder Geldstück", "solo_in_coin",
+        "Fotografiere eine Münze oder ein Geldstück."),
+    Category("solo_in_envelope", "Briefumschlag", "solo_in_envelope",
+        "Fotografiere einen Briefumschlag – offen oder geschlossen."),
+    Category("solo_in_wooden_thing", "Etwas aus Holz", "solo_in_wooden_thing",
+        "Fotografiere irgendetwas aus Holz – Möbel, Schneidebrett, Rahmen."),
+    Category("solo_in_glass_thing", "Etwas aus Glas", "solo_in_glass_thing",
+        "Fotografiere irgendetwas aus Glas – Glas, Vase, Fenster, Flasche."),
+    Category("solo_in_metal_thing", "Etwas aus Metall", "solo_in_metal_thing",
+        "Fotografiere irgendetwas aus Metall drinnen – Besteck, Schlüssel, Dose."),
 )
 
-fun soloCategories(outdoor: Boolean): List<Category> {
+// ── Category History Keys ───────────────────────────────────────────────────
+private const val RECENT_OUTDOOR_IDS_KEY = "solo_recent_outdoor_ids"
+private const val RECENT_INDOOR_IDS_KEY = "solo_recent_indoor_ids"
+
+/**
+ * Selects [count] solo categories, preferring ones not recently used.
+ * Persists recently used IDs to avoid repetition across games.
+ */
+fun soloCategories(outdoor: Boolean, count: Int = 5): List<Category> {
     val pool = if (outdoor) SOLO_OUTDOOR_POOL else SOLO_INDOOR_POOL
-    return pool.shuffled().take(5)
+    val historyKey = if (outdoor) RECENT_OUTDOOR_IDS_KEY else RECENT_INDOOR_IDS_KEY
+
+    // Load recent history
+    val recentRaw = AppSettings.getString(historyKey, "")
+    val recentIds = if (recentRaw.isBlank()) emptySet() else recentRaw.split(",").toSet()
+
+    // Partition into fresh and stale
+    val fresh = pool.filter { it.id !in recentIds }.shuffled()
+    val stale = pool.filter { it.id in recentIds }.shuffled()
+
+    // Prefer fresh, fill remaining from stale
+    val selected = (fresh + stale).take(count)
+
+    // Save history: keep last (count * 3) IDs to ensure rotation
+    val maxHistory = count * 3
+    val newHistory = (selected.map { it.id } + recentIds.toList()).take(maxHistory)
+    AppSettings.setString(historyKey, newHistory.joinToString(","))
+
+    return selected
 }

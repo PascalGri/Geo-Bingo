@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,14 +31,22 @@ fun TopBarStarsAndProfile(
             count = gameState.stars.starCount,
             onClick = { onNavigate(if (BillingManager.isBillingSupported) Screen.SHOP else Screen.SETTINGS) },
         )
+        if (gameState.stars.skipCardsCount > 0) {
+            SkipCardsChip(
+                count = gameState.stars.skipCardsCount,
+                onClick = { onNavigate(if (BillingManager.isBillingSupported) Screen.SHOP else Screen.SETTINGS) },
+            )
+        }
         val name = AppSettings.getString("last_player_name", "")
         val avatarBytes = LocalPhotoStore.loadAvatar("profile")
-        PlayerAvatarViewRaw(
-            name = name.ifBlank { "?" },
-            color = ColorPrimary,
-            size = 28.dp,
-            photoBytes = avatarBytes,
-            modifier = Modifier.clickable { onNavigate(Screen.PROFILE) },
-        )
+        FramedAvatar(size = 32.dp) {
+            PlayerAvatarViewRaw(
+                name = name.ifBlank { "?" },
+                color = ColorPrimary,
+                size = 28.dp,
+                photoBytes = avatarBytes,
+                modifier = Modifier.clickable { onNavigate(Screen.PROFILE) },
+            )
+        }
     }
 }

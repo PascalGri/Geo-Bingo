@@ -17,8 +17,11 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.RequestLocationPermission
 import pg.geobingo.one.platform.rememberPhotoCapturer
+import pg.geobingo.one.ui.components.MiniShopPopup
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.viewmodel.GameViewModel
+
+private const val RETAKE_COST = 5
 
 @Composable
 fun GameScreen(gameState: GameState) {
@@ -31,6 +34,8 @@ fun GameScreen(gameState: GameState) {
     var photoTargetPlayerId by remember { mutableStateOf("") }
     var photoTargetCategoryId by remember { mutableStateOf("") }
     var jokerDialogVisible by remember { mutableStateOf(false) }
+    var showMiniShop by remember { mutableStateOf(false) }
+    var miniShopNeeded by remember { mutableStateOf(0) }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         vm.handlePhotoCaptured(
@@ -121,6 +126,16 @@ fun GameScreen(gameState: GameState) {
         )
     }
 
+    // Mini shop popup
+    if (showMiniShop) {
+        MiniShopPopup(
+            gameState = gameState,
+            neededStars = miniShopNeeded,
+            onDismiss = { showMiniShop = false },
+            onPurchased = { showMiniShop = false },
+        )
+    }
+
     // ── Game content ─────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
         GameScreenContent(
@@ -130,9 +145,22 @@ fun GameScreen(gameState: GameState) {
             onJokerClick = { jokerDialogVisible = true },
             onVoteToEnd = { vm.voteToEnd() },
             onCameraClick = { playerId, catId ->
-                photoTargetPlayerId = playerId
-                photoTargetCategoryId = catId
-                photoCapturer.launch()
+                val isRetake = gameState.isCaptured(playerId, catId)
+                if (isRetake) {
+                    // Retake costs stars
+                    if (gameState.stars.spend(RETAKE_COST)) {
+                        photoTargetPlayerId = playerId
+                        photoTargetCategoryId = catId
+                        photoCapturer.launch()
+                    } else {
+                        miniShopNeeded = RETAKE_COST
+                        showMiniShop = true
+                    }
+                } else {
+                    photoTargetPlayerId = playerId
+                    photoTargetCategoryId = catId
+                    photoCapturer.launch()
+                }
             },
         )
         // Chat overlay at bottom

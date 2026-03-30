@@ -9,11 +9,10 @@ import pg.geobingo.one.data.Category
  * State for solo challenge mode with AI photo validation.
  *
  * Scoring formula:
- *   starScore  = sum of AI ratings (each 1-5, max 25 for 5 categories)
- *   timeBonus  = remaining seconds (only when ALL categories captured)
- *   totalScore = starScore * 10 + timeBonus
- *
- * This weights photo quality heavily (max 250) while still rewarding speed (max 300).
+ *   starScore       = sum of AI ratings (each 1-5) * 10
+ *   timeBonus       = remaining seconds (only when ALL categories captured)
+ *   perfectBonus    = 100 (only when ALL categories rated 5 stars)
+ *   totalScore      = starScore + timeBonus + perfectBonus
  */
 class SoloState {
     var categories by mutableStateOf(listOf<Category>())
@@ -28,18 +27,28 @@ class SoloState {
     var startTimeMillis by mutableStateOf(0L)
     var playerName by mutableStateOf("")
     var isOutdoor by mutableStateOf(true)
+    var categoryCount by mutableStateOf(5) // 5 or 10
 
     /** Raw sum of all AI star ratings (each 1-5). */
     val starSum: Int get() = categoryRatings.values.sum()
 
-    /** Star score weighted x10 (max 250 for 5 perfect photos). */
+    /** Star score weighted x10. */
     val starScore: Int get() = starSum * 10
 
     /** Time bonus: remaining seconds when all captured, else 0. */
-    val timeBonus: Int get() = if (capturedCategories.size == categories.size) timeRemainingSeconds else 0
+    val timeBonus: Int get() = if (capturedCategories.size == categories.size && categories.isNotEmpty()) timeRemainingSeconds else 0
 
-    /** Total score = starScore + timeBonus. */
-    val totalScore: Int get() = starScore + timeBonus
+    /** Perfect game: all categories captured AND all rated 5 stars. */
+    val isPerfectGame: Boolean get() =
+        categories.isNotEmpty() &&
+        categoryRatings.size == categories.size &&
+        categoryRatings.values.all { it == 5 }
+
+    /** Perfect game bonus: 100 points if all 5 stars. */
+    val perfectBonus: Int get() = if (isPerfectGame) 100 else 0
+
+    /** Total score = starScore + timeBonus + perfectBonus. */
+    val totalScore: Int get() = starScore + timeBonus + perfectBonus
 
     /** Average star rating (for display). */
     val averageRating: Float get() = if (categoryRatings.isNotEmpty()) categoryRatings.values.average().toFloat() else 0f
@@ -58,6 +67,8 @@ class SoloState {
         categoryReasons = emptyMap()
         validatingCategories = emptySet()
         isRunning = false
+        categoryCount = 5
+        totalDurationSeconds = 300
         timeRemainingSeconds = totalDurationSeconds
         startTimeMillis = 0L
         isOutdoor = true

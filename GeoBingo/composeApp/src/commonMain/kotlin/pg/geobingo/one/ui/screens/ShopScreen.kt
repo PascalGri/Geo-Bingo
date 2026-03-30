@@ -248,6 +248,40 @@ fun ShopScreen(gameState: GameState) {
                 }
             }
 
+            // ── Cosmetics ────────────────────────────────────────────────
+            ShopSection(title = S.current.cosmeticShop) {
+                GradientBorderCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { nav.navigateTo(pg.geobingo.one.game.Screen.COSMETIC_SHOP) },
+                    cornerRadius = 14.dp,
+                    borderColors = GradientPrimary,
+                    backgroundColor = ColorSurface,
+                    borderWidth = 1.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                S.current.cosmeticShop,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorOnSurface,
+                            )
+                            Text(
+                                S.current.cosmeticsDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorOnSurfaceVariant,
+                            )
+                        }
+                        Icon(Icons.Default.ChevronRight, null, tint = ColorPrimary)
+                    }
+                }
+            }
+
             // ── Restore Purchases ────────────────────────────────────────
             TextButton(
                 onClick = {
