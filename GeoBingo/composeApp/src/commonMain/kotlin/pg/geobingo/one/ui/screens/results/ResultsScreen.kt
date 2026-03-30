@@ -133,6 +133,26 @@ fun ResultsScreen(gameState: GameState) {
                 AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, totalCount)
             }
 
+            // ── Detailed Stats ───────────────────────────────────────
+            val myCaptureCountLocal = gameState.review.allCaptures.count { it.player_id == myId }
+            AppSettings.setInt(SettingsKeys.TOTAL_CAPTURES, AppSettings.getInt(SettingsKeys.TOTAL_CAPTURES, 0) + myCaptureCountLocal)
+            val mySpeedBonuses = gameState.getSpeedBonusCount(myId)
+            AppSettings.setInt(SettingsKeys.TOTAL_SPEED_BONUSES, AppSettings.getInt(SettingsKeys.TOTAL_SPEED_BONUSES, 0) + mySpeedBonuses)
+            val myScore = gameState.getPlayerScore(myId)
+            val bestScore = AppSettings.getInt(SettingsKeys.BEST_GAME_SCORE, 0)
+            if (myScore > bestScore) AppSettings.setInt(SettingsKeys.BEST_GAME_SCORE, myScore)
+            val gameDurationSec = gameState.gameplay.gameDurationMinutes * 60
+            AppSettings.setInt(SettingsKeys.TOTAL_GAME_TIME_SECONDS, AppSettings.getInt(SettingsKeys.TOTAL_GAME_TIME_SECONDS, 0) + gameDurationSec)
+            AppSettings.setInt(SettingsKeys.TOTAL_CATEGORIES_PLAYED, AppSettings.getInt(SettingsKeys.TOTAL_CATEGORIES_PLAYED, 0) + gameState.gameplay.selectedCategories.size)
+            // Track mode counts for favorite mode
+            val modeKey = when (gameState.session.gameMode) {
+                pg.geobingo.one.game.GameMode.CLASSIC -> SettingsKeys.MODE_CLASSIC_COUNT
+                pg.geobingo.one.game.GameMode.BLIND_BINGO -> SettingsKeys.MODE_BLIND_COUNT
+                pg.geobingo.one.game.GameMode.WEIRD_CORE -> SettingsKeys.MODE_WEIRD_COUNT
+                pg.geobingo.one.game.GameMode.QUICK_START -> SettingsKeys.MODE_QUICK_COUNT
+            }
+            AppSettings.setInt(modeKey, AppSettings.getInt(modeKey, 0) + 1)
+
             // ── Daily Challenge Completion ────────────────────────────
             if (!gameState.stars.dailyChallengeCompleted) {
                 val challenge = pg.geobingo.one.game.state.DailyChallengeManager.getTodayChallenge()

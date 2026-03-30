@@ -233,6 +233,17 @@ object En : StringRes {
     override val avgRating = "Average"
     override val longestStreak = "Longest streak"
     override val noStatsYet = "No statistics yet."
+    override val statsTotalCaptures = "Total Photos"
+    override val statsSpeedBonuses = "Speed Bonuses"
+    override val statsBestScore = "Best Score"
+    override val statsTotalTime = "Total Play Time"
+    override val statsAvgTimePerCapture = "Avg. Time per Photo"
+    override val statsCapturesPerGame = "Avg. Photos per Game"
+    override val statsCurrentStreak = "Current Streak"
+    override val statsFavoriteMode = "Favorite Mode"
+    override val statsOverview = "Overview"
+    override val statsPerformance = "Performance"
+    override val statsActivity = "Activity"
 
     // ── Quick Start Options ─────────────────────────────────────────────
     override val duration10min = "10 min"

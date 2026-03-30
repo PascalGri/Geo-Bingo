@@ -29,6 +29,18 @@ object SettingsKeys {
     const val TOTAL_STARS_EARNED = "total_stars_earned"
     const val TOTAL_STARS_COUNT = "total_stars_count"
 
+    // ── Detailed Stats ─────────────────────────────────────────────────
+    const val TOTAL_CAPTURES = "total_captures"
+    const val TOTAL_SPEED_BONUSES = "total_speed_bonuses"
+    const val BEST_GAME_SCORE = "best_game_score"
+    const val TOTAL_GAME_TIME_SECONDS = "total_game_time_seconds"
+    const val TOTAL_CATEGORIES_PLAYED = "total_categories_played"
+    const val FAVORITE_MODE = "favorite_mode"
+    const val MODE_CLASSIC_COUNT = "mode_classic_count"
+    const val MODE_BLIND_COUNT = "mode_blind_count"
+    const val MODE_WEIRD_COUNT = "mode_weird_count"
+    const val MODE_QUICK_COUNT = "mode_quick_count"
+
     // ── Stars Currency ────────────────────────────────────────────────
     const val STAR_COUNT = "star_count"
     const val ADS_WATCHED_TODAY = "ads_watched_today"

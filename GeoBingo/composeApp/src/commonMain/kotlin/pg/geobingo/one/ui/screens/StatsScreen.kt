@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +32,7 @@ fun StatsScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     SystemBackHandler { nav.goBack() }
 
+    // Core stats
     val gamesPlayed = remember { AppSettings.getInt(SettingsKeys.GAMES_PLAYED) }
     val gamesWon = remember { AppSettings.getInt(SettingsKeys.GAMES_WON) }
     val winRate = remember {
@@ -42,8 +44,50 @@ fun StatsScreen(gameState: GameState) {
         if (totalStarsCount > 0) totalStarsEarned.toFloat() / totalStarsCount else 0f
     }
     val longestStreak = remember { AppSettings.getInt(SettingsKeys.LONGEST_WIN_STREAK) }
+    val currentStreak = remember { AppSettings.getInt(SettingsKeys.CURRENT_WIN_STREAK) }
 
-    val anim = rememberStaggeredAnimation(count = 7)
+    // Detailed stats
+    val totalCaptures = remember { AppSettings.getInt(SettingsKeys.TOTAL_CAPTURES) }
+    val totalSpeedBonuses = remember { AppSettings.getInt(SettingsKeys.TOTAL_SPEED_BONUSES) }
+    val bestScore = remember { AppSettings.getInt(SettingsKeys.BEST_GAME_SCORE) }
+    val totalTimeSec = remember { AppSettings.getInt(SettingsKeys.TOTAL_GAME_TIME_SECONDS) }
+    val totalCategoriesPlayed = remember { AppSettings.getInt(SettingsKeys.TOTAL_CATEGORIES_PLAYED) }
+
+    // Derived stats
+    val capturesPerGame = remember {
+        if (gamesPlayed > 0) totalCaptures.toFloat() / gamesPlayed else 0f
+    }
+    val avgTimePerCapture = remember {
+        if (totalCaptures > 0) totalTimeSec.toFloat() / totalCaptures else 0f
+    }
+
+    // Favorite mode
+    val modeClassic = remember { AppSettings.getInt(SettingsKeys.MODE_CLASSIC_COUNT) }
+    val modeBlind = remember { AppSettings.getInt(SettingsKeys.MODE_BLIND_COUNT) }
+    val modeWeird = remember { AppSettings.getInt(SettingsKeys.MODE_WEIRD_COUNT) }
+    val modeQuick = remember { AppSettings.getInt(SettingsKeys.MODE_QUICK_COUNT) }
+    val favoriteMode = remember {
+        val modes = listOf("Classic" to modeClassic, "Blind Bingo" to modeBlind, "Weird Core" to modeWeird, "Quick Start" to modeQuick)
+        modes.maxByOrNull { it.second }?.takeIf { it.second > 0 }?.first ?: "--"
+    }
+
+    // Format total time
+    val totalTimeFormatted = remember {
+        val hours = totalTimeSec / 3600
+        val minutes = (totalTimeSec % 3600) / 60
+        if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+    }
+
+    val avgTimeCaptureFormatted = remember {
+        if (totalCaptures > 0) {
+            val sec = avgTimePerCapture.toInt()
+            val min = sec / 60
+            val s = sec % 60
+            if (min > 0) "${min}m ${s}s" else "${s}s"
+        } else "--"
+    }
+
+    val anim = rememberStaggeredAnimation(count = 14)
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     Scaffold(
@@ -87,38 +131,54 @@ fun StatsScreen(gameState: GameState) {
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Row 1: Games Played / Games Won
+                // ── Section: Overview ────────────────────────────────
+                SectionHeader(text = S.current.statsOverview, modifier = Modifier.staggered(0))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     StatCard(
                         icon = Icons.Default.SportsEsports,
                         value = gamesPlayed.toString(),
                         label = S.current.gamesPlayed,
-                        modifier = Modifier.weight(1f).staggered(0),
+                        modifier = Modifier.weight(1f).staggered(1),
                     )
                     StatCard(
                         icon = Icons.Default.EmojiEvents,
                         value = gamesWon.toString(),
                         label = S.current.gamesWon,
-                        modifier = Modifier.weight(1f).staggered(1),
+                        modifier = Modifier.weight(1f).staggered(2),
                     )
                 }
 
-                // Row 2: Win Rate / Average Rating
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     StatCard(
                         icon = Icons.Default.Percent,
                         value = "$winRate%",
                         label = S.current.winRate,
-                        modifier = Modifier.weight(1f).staggered(2),
+                        modifier = Modifier.weight(1f).staggered(3),
                     )
+                    StatCard(
+                        icon = Icons.Default.CameraAlt,
+                        value = totalCaptures.toString(),
+                        label = S.current.statsTotalCaptures,
+                        modifier = Modifier.weight(1f).staggered(4),
+                    )
+                }
+
+                // ── Section: Performance ─────────────────────────────
+                SectionHeader(text = S.current.statsPerformance, modifier = Modifier.staggered(5))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     StatCard(
                         icon = Icons.Default.Star,
                         value = if (totalStarsCount > 0) {
@@ -126,22 +186,89 @@ fun StatsScreen(gameState: GameState) {
                             "${rounded / 10}.${rounded % 10}"
                         } else "--",
                         label = S.current.avgRating,
-                        modifier = Modifier.weight(1f).staggered(3),
+                        modifier = Modifier.weight(1f).staggered(6),
+                    )
+                    StatCard(
+                        icon = Icons.Default.WorkspacePremium,
+                        value = bestScore.takeIf { it > 0 }?.toString() ?: "--",
+                        label = S.current.statsBestScore,
+                        modifier = Modifier.weight(1f).staggered(7),
                     )
                 }
 
-                // Row 3: Longest Win Streak (full width)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    StatCard(
+                        icon = Icons.Default.Bolt,
+                        value = totalSpeedBonuses.toString(),
+                        label = S.current.statsSpeedBonuses,
+                        modifier = Modifier.weight(1f).staggered(8),
+                    )
+                    StatCard(
+                        icon = Icons.Default.PhotoCamera,
+                        value = if (gamesPlayed > 0) {
+                            val rounded = (capturesPerGame * 10).toInt()
+                            "${rounded / 10}.${rounded % 10}"
+                        } else "--",
+                        label = S.current.statsCapturesPerGame,
+                        modifier = Modifier.weight(1f).staggered(9),
+                    )
+                }
+
+                // ── Section: Activity ────────────────────────────────
+                SectionHeader(text = S.current.statsActivity, modifier = Modifier.staggered(10))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     StatCard(
                         icon = Icons.Default.LocalFireDepartment,
                         value = longestStreak.toString(),
                         label = S.current.longestStreak,
-                        modifier = Modifier.weight(1f).staggered(4),
+                        accentColor = if (currentStreak > 0 && currentStreak == longestStreak) Color(0xFFEF4444) else null,
+                        modifier = Modifier.weight(1f).staggered(11),
                     )
-                    // Empty spacer to keep 2-column grid consistent
+                    StatCard(
+                        icon = Icons.Default.Whatshot,
+                        value = currentStreak.toString(),
+                        label = S.current.statsCurrentStreak,
+                        accentColor = if (currentStreak >= 3) Color(0xFFEF4444) else null,
+                        modifier = Modifier.weight(1f).staggered(12),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    StatCard(
+                        icon = Icons.Default.Timer,
+                        value = totalTimeFormatted,
+                        label = S.current.statsTotalTime,
+                        modifier = Modifier.weight(1f).staggered(13),
+                    )
+                    StatCard(
+                        icon = Icons.Default.Speed,
+                        value = avgTimeCaptureFormatted,
+                        label = S.current.statsAvgTimePerCapture,
+                        modifier = Modifier.weight(1f).staggered(13),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    StatCard(
+                        icon = Icons.Default.Style,
+                        value = favoriteMode,
+                        label = S.current.statsFavoriteMode,
+                        smallValue = true,
+                        modifier = Modifier.weight(1f).staggered(13),
+                    )
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
@@ -152,36 +279,48 @@ fun StatsScreen(gameState: GameState) {
 }
 
 @Composable
+private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        color = ColorOnSurfaceVariant,
+        modifier = modifier.padding(top = 8.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
 private fun StatCard(
     icon: ImageVector,
     value: String,
     label: String,
     modifier: Modifier = Modifier,
+    accentColor: Color? = null,
+    smallValue: Boolean = false,
 ) {
     GradientBorderCard(
         modifier = modifier,
-        borderColors = GradientPrimary,
+        borderColors = if (accentColor != null) listOf(accentColor, accentColor.copy(alpha = 0.5f)) else GradientPrimary,
         backgroundColor = ColorSurface,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+                .padding(horizontal = 14.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = ColorPrimary,
+                modifier = Modifier.size(24.dp),
+                tint = accentColor ?: ColorPrimary,
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
+                style = if (smallValue) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        else MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = ColorOnSurface,
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = label,
@@ -189,7 +328,7 @@ private fun StatCard(
                 color = ColorOnSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                lineHeight = 16.sp,
+                lineHeight = 14.sp,
             )
         }
     }

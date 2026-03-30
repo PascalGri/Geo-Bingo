@@ -257,6 +257,17 @@ interface StringRes {
     val avgRating: String
     val longestStreak: String
     val noStatsYet: String
+    val statsTotalCaptures: String
+    val statsSpeedBonuses: String
+    val statsBestScore: String
+    val statsTotalTime: String
+    val statsAvgTimePerCapture: String
+    val statsCapturesPerGame: String
+    val statsCurrentStreak: String
+    val statsFavoriteMode: String
+    val statsOverview: String
+    val statsPerformance: String
+    val statsActivity: String
 
     // ── Quick Start Options ─────────────────────────────────────────────
     val duration10min: String

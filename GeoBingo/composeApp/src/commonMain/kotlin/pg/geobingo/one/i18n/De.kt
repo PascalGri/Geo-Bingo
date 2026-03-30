@@ -233,6 +233,17 @@ object De : StringRes {
     override val avgRating = "Durchschnitt"
     override val longestStreak = "Längste Serie"
     override val noStatsYet = "Noch keine Statistiken vorhanden."
+    override val statsTotalCaptures = "Fotos gesamt"
+    override val statsSpeedBonuses = "Speed-Boni"
+    override val statsBestScore = "Highscore"
+    override val statsTotalTime = "Gesamte Spielzeit"
+    override val statsAvgTimePerCapture = "Ø Zeit pro Foto"
+    override val statsCapturesPerGame = "Ø Fotos pro Runde"
+    override val statsCurrentStreak = "Aktuelle Serie"
+    override val statsFavoriteMode = "Lieblings-Modus"
+    override val statsOverview = "Übersicht"
+    override val statsPerformance = "Leistung"
+    override val statsActivity = "Aktivität"
 
     // ── Quick Start Options ─────────────────────────────────────────────
     override val duration10min = "10 Min"
