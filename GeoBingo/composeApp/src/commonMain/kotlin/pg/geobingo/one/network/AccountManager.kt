@@ -316,30 +316,24 @@ object AccountManager {
                 .select { filter { eq("id", userId) } }
                 .decodeSingleOrNull<UserProfile>() ?: return
 
-            // Take the higher value for stars (don't lose progress)
+            // Batch all settings writes: read local values first, then write all at once
             val localStars = AppSettings.getInt(SettingsKeys.STAR_COUNT, 0)
-            val cloudStars = profile.star_count
-            AppSettings.setInt(SettingsKeys.STAR_COUNT, maxOf(localStars, cloudStars))
-
             val localSkipCards = AppSettings.getInt(SettingsKeys.SKIP_CARDS_COUNT, 0)
-            AppSettings.setInt(SettingsKeys.SKIP_CARDS_COUNT, maxOf(localSkipCards, profile.skip_cards_count))
-
-            if (profile.no_ads_purchased) {
-                AppSettings.setBoolean(SettingsKeys.NO_ADS_PURCHASED, true)
-            }
-
-            // Stats: take higher values
             val localPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0)
-            AppSettings.setInt(SettingsKeys.GAMES_PLAYED, maxOf(localPlayed, profile.games_played))
             val localWon = AppSettings.getInt(SettingsKeys.GAMES_WON, 0)
-            AppSettings.setInt(SettingsKeys.GAMES_WON, maxOf(localWon, profile.games_won))
             val localStreak = AppSettings.getInt(SettingsKeys.LONGEST_WIN_STREAK, 0)
-            AppSettings.setInt(SettingsKeys.LONGEST_WIN_STREAK, maxOf(localStreak, profile.longest_win_streak))
 
-            // Display name: use cloud value if local is empty
-            if (profile.display_name.isNotBlank()) {
-                AppSettings.setString("last_player_name", profile.display_name)
-            }
+            // Take the higher value for progress-related fields (don't lose progress)
+            AppSettings.setInt(SettingsKeys.STAR_COUNT, maxOf(localStars, profile.star_count))
+            AppSettings.setInt(SettingsKeys.SKIP_CARDS_COUNT, maxOf(localSkipCards, profile.skip_cards_count))
+            if (profile.no_ads_purchased) AppSettings.setBoolean(SettingsKeys.NO_ADS_PURCHASED, true)
+            AppSettings.setInt(SettingsKeys.GAMES_PLAYED, maxOf(localPlayed, profile.games_played))
+            AppSettings.setInt(SettingsKeys.GAMES_WON, maxOf(localWon, profile.games_won))
+            AppSettings.setInt(SettingsKeys.LONGEST_WIN_STREAK, maxOf(localStreak, profile.longest_win_streak))
+            if (profile.display_name.isNotBlank()) AppSettings.setString("last_player_name", profile.display_name)
+            AppSettings.setBoolean(SettingsKeys.SOUND_ENABLED, profile.sound_enabled)
+            AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, profile.haptic_enabled)
+            AppSettings.setString(SettingsKeys.LANGUAGE, profile.language)
 
             // Download avatar if profile has one and local cache is empty
             if (profile.avatar_url.isNotBlank()) {
@@ -350,11 +344,6 @@ object AccountManager {
                     }
                 } catch (_: Exception) {}
             }
-
-            // Preferences: use cloud values
-            AppSettings.setBoolean(SettingsKeys.SOUND_ENABLED, profile.sound_enabled)
-            AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, profile.haptic_enabled)
-            AppSettings.setString(SettingsKeys.LANGUAGE, profile.language)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sync from cloud failed", e)
         }

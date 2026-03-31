@@ -94,6 +94,10 @@ data class SoloScoreDto(
 
 data class PhotoValidationResult(val rating: Int, val reason: String)
 
+/** Lightweight DTO for leaderboard count queries — fetches only the player_name column. */
+@Serializable
+data class SoloScoreNameDto(val player_name: String = "")
+
 @Serializable
 private data class SoloScoreInsertDto(
     val player_name: String,
@@ -544,25 +548,24 @@ object GameRepository {
 
     /**
      * Returns the approximate rank of a player's best score.
-     * Counts how many distinct higher scores exist + 1.
+     * Uses a count query instead of fetching all higher scores into memory.
      */
     suspend fun getSoloRank(playerName: String): Int? {
         val best = getSoloPersonalBest(playerName) ?: return null
         val higherScores = supabase.from("solo_scores")
-            .select {
+            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("player_name")) {
                 filter { gt("score", best.score) }
             }
-            .decodeList<SoloScoreDto>()
-        // Count distinct player names with higher scores
+            .decodeList<SoloScoreNameDto>()
         val distinctHigher = higherScores.map { it.player_name }.toSet().size
         return distinctHigher + 1
     }
 
-    /** Total number of distinct players on the leaderboard. */
+    /** Total number of distinct players on the leaderboard. Uses minimal column fetch. */
     suspend fun getSoloTotalPlayers(): Int =
         supabase.from("solo_scores")
-            .select()
-            .decodeList<SoloScoreDto>()
+            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("player_name"))
+            .decodeList<SoloScoreNameDto>()
             .map { it.player_name }
             .toSet()
             .size

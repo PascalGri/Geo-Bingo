@@ -1,17 +1,16 @@
 package pg.geobingo.one.data
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateMapOf
 import pg.geobingo.one.game.GameConstants
 
 /**
  * Size-capped photo cache with Compose state integration.
+ * Uses [mutableStateMapOf] for granular recomposition (only readers of changed keys recompose).
  * Evicts oldest entries (FIFO) when [maxEntries] is exceeded.
  */
 class PhotoCache(private val maxEntries: Int = GameConstants.PHOTO_CACHE_MAX_ENTRIES) {
-    // Compose-reactive map; any mutation triggers recomposition for readers.
-    private var _photos by mutableStateOf(mapOf<String, ByteArray>())
+    // Granular Compose-reactive map; only readers of specific keys recompose on mutation.
+    private val _photos = mutableStateMapOf<String, ByteArray>()
     private val insertOrder = ArrayDeque<String>()
 
     private fun key(playerId: String, categoryId: String) = "$playerId:$categoryId"
@@ -19,12 +18,10 @@ class PhotoCache(private val maxEntries: Int = GameConstants.PHOTO_CACHE_MAX_ENT
     fun put(playerId: String, categoryId: String, bytes: ByteArray) {
         val k = key(playerId, categoryId)
         if (k !in _photos) insertOrder.addLast(k)
-        val updated = _photos.toMutableMap()
-        updated[k] = bytes
-        while (updated.size > maxEntries && insertOrder.isNotEmpty()) {
-            updated.remove(insertOrder.removeFirst())
+        _photos[k] = bytes
+        while (_photos.size > maxEntries && insertOrder.isNotEmpty()) {
+            _photos.remove(insertOrder.removeFirst())
         }
-        _photos = updated
     }
 
     fun get(playerId: String, categoryId: String): ByteArray? =
@@ -34,7 +31,7 @@ class PhotoCache(private val maxEntries: Int = GameConstants.PHOTO_CACHE_MAX_ENT
         key(playerId, categoryId) in _photos
 
     fun clear() {
-        _photos = mapOf()
+        _photos.clear()
         insertOrder.clear()
     }
 

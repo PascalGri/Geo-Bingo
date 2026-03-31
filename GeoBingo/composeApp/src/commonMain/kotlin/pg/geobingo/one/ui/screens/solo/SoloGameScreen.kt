@@ -81,59 +81,43 @@ fun SoloGameScreen(gameState: GameState) {
         }
     }
 
+    // Shared validation logic to avoid duplicating the API call code
+    fun validatePhoto(catId: String, bytes: ByteArray, fallbackOnError: Boolean) {
+        val category = solo.categories.find { it.id == catId } ?: return
+        solo.validatingCategories = solo.validatingCategories + catId
+        solo.captureTimestamps = solo.captureTimestamps + (catId to kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
+        scope.launch {
+            try {
+                val result = GameRepository.validateSoloPhoto(
+                    imageBytes = bytes,
+                    categoryName = category.name,
+                    categoryDescription = category.description,
+                )
+                solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
+                solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
+            } catch (e: Exception) {
+                AppLogger.w("SoloGame", "Photo validation failed", e)
+                if (fallbackOnError) {
+                    solo.categoryRatings = solo.categoryRatings + (catId to 5)
+                    solo.categoryReasons = solo.categoryReasons + (catId to "")
+                }
+            } finally {
+                solo.validatingCategories = solo.validatingCategories - catId
+            }
+        }
+    }
+
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null && pendingCategoryId != null) {
             val catId = pendingCategoryId!!
 
             if (isRetake) {
-                // Retake: re-validate the same category
-                val category = solo.categories.find { it.id == catId }
-                if (category != null) {
-                    solo.validatingCategories = solo.validatingCategories + catId
-                    solo.captureTimestamps = solo.captureTimestamps + (catId to kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
-                    scope.launch {
-                        try {
-                            val result = GameRepository.validateSoloPhoto(
-                                imageBytes = bytes,
-                                categoryName = category.name,
-                                categoryDescription = category.description,
-                            )
-                            solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
-                            solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
-                        } catch (e: Exception) {
-                            AppLogger.w("SoloGame", "Retake validation failed", e)
-                        } finally {
-                            solo.validatingCategories = solo.validatingCategories - catId
-                        }
-                    }
-                }
+                validatePhoto(catId, bytes, fallbackOnError = false)
                 isRetake = false
             } else if (catId !in solo.capturedCategories) {
                 solo.capturedCategories = solo.capturedCategories + catId
-                solo.captureTimestamps = solo.captureTimestamps + (catId to kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
                 if (gameState.ui.soundEnabled) SoundPlayer.playCapture()
-
-                val category = solo.categories.find { it.id == catId }
-                if (category != null) {
-                    solo.validatingCategories = solo.validatingCategories + catId
-                    scope.launch {
-                        try {
-                            val result = GameRepository.validateSoloPhoto(
-                                imageBytes = bytes,
-                                categoryName = category.name,
-                                categoryDescription = category.description,
-                            )
-                            solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
-                            solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
-                        } catch (e: Exception) {
-                            AppLogger.w("SoloGame", "Photo validation failed", e)
-                            solo.categoryRatings = solo.categoryRatings + (catId to 5)
-                            solo.categoryReasons = solo.categoryReasons + (catId to "")
-                        } finally {
-                            solo.validatingCategories = solo.validatingCategories - catId
-                        }
-                    }
-                }
+                validatePhoto(catId, bytes, fallbackOnError = true)
             }
             pendingCategoryId = null
         }
@@ -176,11 +160,13 @@ fun SoloGameScreen(gameState: GameState) {
         nav.resetTo(Screen.HOME)
     }
 
-    val minutes = solo.timeRemainingSeconds / 60
-    val seconds = solo.timeRemainingSeconds % 60
+    // Timer display values derived without triggering parent recomposition
+    val timeRemainingSeconds = solo.timeRemainingSeconds
+    val minutes = timeRemainingSeconds / 60
+    val seconds = timeRemainingSeconds % 60
     val timeText = "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
-    val isLow = solo.timeRemainingSeconds <= 30
-    val isCritical = solo.timeRemainingSeconds <= 10
+    val isLow = timeRemainingSeconds <= 30
+    val isCritical = timeRemainingSeconds <= 10
     val timeColor by animateColorAsState(
         targetValue = when {
             isCritical -> Color(0xFFEF4444)

@@ -307,7 +307,10 @@ fun GameScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(gameState.gameplay.selectedCategories.size) { index ->
+                        items(
+                            count = gameState.gameplay.selectedCategories.size,
+                            key = { gameState.gameplay.selectedCategories[it].id },
+                        ) { index ->
                             val category = gameState.gameplay.selectedCategories[index]
                             val isRevealed = index < revealedCount
                             val isNextToReveal = isBlindBingo && index == revealedCount

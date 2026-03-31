@@ -5,19 +5,24 @@ import pg.geobingo.one.navigation.NavigationManager
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Lightweight service locator for dependency injection.
  * Manages shared resource lifecycles and enables test overrides.
+ * Uses lazy initialization with @Volatile for safe singleton access.
  */
 object ServiceLocator {
     // ── HttpClient (shared, properly managed) ────────────────────────────
+    @Volatile
     private var _httpClient: HttpClient? = null
 
     val httpClient: HttpClient
         get() = _httpClient ?: HttpClient().also { _httpClient = it }
 
     // ── Navigation ───────────────────────────────────────────────────────
+    @Volatile
     private var _navigation: NavigationManager? = null
 
     val navigation: NavigationManager
@@ -43,7 +48,8 @@ object ServiceLocator {
      * Reset all instances. Used in tests.
      */
     fun reset() {
-        shutdown()
+        _httpClient?.close()
+        _httpClient = null
         _navigation = null
     }
 

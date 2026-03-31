@@ -173,13 +173,10 @@ object FriendsManager {
             val friendIds = friendships.map { if (it.user_id == myId) it.friend_id else it.user_id }
             if (friendIds.isEmpty()) return emptyList()
 
-            val profiles = friendIds.mapNotNull { fid ->
-                try {
-                    supabase.from("profiles")
-                        .select { filter { eq("id", fid) } }
-                        .decodeSingleOrNull<UserProfile>()
-                } catch (_: Exception) { null }
-            }
+            // Batch-fetch all friend profiles in a single query instead of N individual queries
+            val profiles = supabase.from("profiles")
+                .select { filter { isIn("id", friendIds) } }
+                .decodeList<UserProfile>()
 
             val profileMap = profiles.associateBy { it.id }
             friendships.mapNotNull { fs ->
@@ -210,14 +207,18 @@ object FriendsManager {
                 .decodeList<FriendshipDto>()
                 .filter { it.requested_by != myId }
 
+            if (friendships.isEmpty()) return emptyList()
+
+            // Batch-fetch all requester profiles in a single query
+            val requesterIds = friendships.map { it.requested_by }
+            val profiles = supabase.from("profiles")
+                .select { filter { isIn("id", requesterIds) } }
+                .decodeList<UserProfile>()
+            val profileMap = profiles.associateBy { it.id }
+
             friendships.mapNotNull { fs ->
-                val requesterId = fs.requested_by
-                try {
-                    val profile = supabase.from("profiles")
-                        .select { filter { eq("id", requesterId) } }
-                        .decodeSingleOrNull<UserProfile>()
-                    if (profile != null) fs to profile else null
-                } catch (_: Exception) { null }
+                val profile = profileMap[fs.requested_by]
+                if (profile != null) fs to profile else null
             }
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to get pending requests", e)
@@ -255,13 +256,18 @@ object FriendsManager {
                 .select { filter { eq("to_user_id", myId); eq("status", "pending") } }
                 .decodeList<GameInviteDto>()
 
+            if (invites.isEmpty()) return emptyList()
+
+            // Batch-fetch all sender profiles in a single query
+            val senderIds = invites.map { it.from_user_id }.distinct()
+            val profiles = supabase.from("profiles")
+                .select { filter { isIn("id", senderIds) } }
+                .decodeList<UserProfile>()
+            val profileMap = profiles.associateBy { it.id }
+
             invites.mapNotNull { invite ->
-                try {
-                    val profile = supabase.from("profiles")
-                        .select { filter { eq("id", invite.from_user_id) } }
-                        .decodeSingleOrNull<UserProfile>()
-                    if (profile != null) invite to profile else null
-                } catch (_: Exception) { null }
+                val profile = profileMap[invite.from_user_id]
+                if (profile != null) invite to profile else null
             }
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to get pending invites", e)

@@ -10,19 +10,42 @@ import pg.geobingo.one.network.VoteDto
 /**
  * Encapsulates all scoring logic: player scores, speed bonuses, rankings.
  * Reads from GamePlayState and ReviewState but does not mutate them.
+ * Caches expensive computations and invalidates when underlying data changes.
  */
 class ScoringManager(
     private val gameplay: GamePlayState,
     private val review: ReviewState,
 ) {
+    // Cache for first capturers per category (invalidated when captures change)
+    private var cachedFirstCapturers: Map<String, String>? = null
+    private var cachedFirstCapturersVersion = -1
+
+    // Cache for category average ratings (invalidated when votes change)
+    private var cachedCategoryRatings: MutableMap<String, Double?> = mutableMapOf()
+    private var cachedRatingsVoteCount = -1
+
+    private fun capturesVersion(): Int = review.allCaptures.size
+    private fun votesVersion(): Int = review.allVotes.size
+
     fun getFirstCapturers(): Map<String, String> {
-        if (review.allCaptures.isEmpty()) return emptyMap()
-        return gameplay.selectedCategories.mapNotNull { category ->
+        val version = capturesVersion()
+        if (cachedFirstCapturers != null && cachedFirstCapturersVersion == version) {
+            return cachedFirstCapturers!!
+        }
+        if (review.allCaptures.isEmpty()) {
+            cachedFirstCapturers = emptyMap()
+            cachedFirstCapturersVersion = version
+            return emptyMap()
+        }
+        val result = gameplay.selectedCategories.mapNotNull { category ->
             val first = review.allCaptures
                 .filter { it.category_id == category.id && it.created_at.isNotEmpty() }
                 .minByOrNull { it.created_at }
             if (first != null) category.id to first.player_id else null
         }.toMap()
+        cachedFirstCapturers = result
+        cachedFirstCapturersVersion = version
+        return result
     }
 
     fun getSpeedBonusCount(playerId: String): Int {
@@ -30,9 +53,20 @@ class ScoringManager(
     }
 
     fun getCategoryAverageRating(playerId: String, categoryId: String): Double? {
-        val votesForThis = review.allVotes.filter { it.target_player_id == playerId && it.category_id == categoryId }
-        if (votesForThis.isEmpty()) return null
-        return votesForThis.map { it.rating }.average()
+        val voteCount = votesVersion()
+        if (cachedRatingsVoteCount != voteCount) {
+            // Votes changed — rebuild entire ratings cache in a single pass
+            cachedCategoryRatings.clear()
+            cachedRatingsVoteCount = voteCount
+            if (review.allVotes.isNotEmpty()) {
+                // Group all votes by (target_player_id, category_id) and compute averages
+                val grouped = review.allVotes.groupBy { "${it.target_player_id}:${it.category_id}" }
+                for ((key, votes) in grouped) {
+                    cachedCategoryRatings[key] = votes.map { it.rating }.average()
+                }
+            }
+        }
+        return cachedCategoryRatings["$playerId:$categoryId"]
     }
 
     fun getPlayerAverageRating(playerId: String): Double? {
@@ -55,9 +89,9 @@ class ScoringManager(
         val starScore: Int
         if (review.allVotes.isNotEmpty()) {
             var sum = 0.0
+            val capturedCategories = gameplay.captures[playerId] ?: emptySet()
             for (category in gameplay.selectedCategories) {
-                val capturesForPlayer = review.allCaptures.filter { it.player_id == playerId && it.category_id == category.id }
-                if (capturesForPlayer.isEmpty()) continue
+                if (category.id !in capturedCategories) continue
                 val avg = getCategoryAverageRating(playerId, category.id) ?: continue
                 sum += avg
             }

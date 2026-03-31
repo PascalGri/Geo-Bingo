@@ -69,24 +69,19 @@ fun App() {
     val nav = remember { ServiceLocator.navigation }
     val isConnected by rememberConnectivityState()
 
-    // Initialize language from saved preference
+    // One-time app initialization: language, consent, billing, analytics, sync, push, daily bonus
     LaunchedEffect(Unit) {
+        // Language
         val savedLang = AppSettings.getString(SettingsKeys.LANGUAGE, "de")
         val lang = Language.entries.find { it.code == savedLang } ?: Language.DE
         S.switchLanguage(lang)
-    }
 
-    // Consent einmalig beim App-Start anfordern, danach Ads vorladen
-    LaunchedEffect(Unit) {
+        // Consent + Ads
         if (AdManager.isAdSupported) {
-            ConsentManager.requestConsent {
-                AdManager.preloadAds()
-            }
+            ConsentManager.requestConsent { AdManager.preloadAds() }
         }
-    }
 
-    // Initialize billing + restore purchases
-    LaunchedEffect(Unit) {
+        // Billing
         if (BillingManager.isBillingSupported) {
             BillingManager.initialize()
             BillingManager.restorePurchases(
@@ -98,40 +93,30 @@ fun App() {
                 onError = {},
             )
         }
-    }
 
-    // Track app open
-    LaunchedEffect(Unit) {
+        // Analytics + push
         Analytics.track(Analytics.APP_OPENED)
-    }
+        pg.geobingo.one.network.PushService.registerToken()
 
-    // Auto-sync with cloud when logged in
-    LaunchedEffect(Unit) {
+        // Cloud sync
         val userId = AccountManager.currentUserId
         if (userId != null) {
             AccountManager.syncLocalToCloud(userId)
         }
-    }
 
-    // Online presence heartbeat (update last_seen every 2 minutes)
-    LaunchedEffect(Unit) {
-        while (true) {
-            FriendsManager.updateLastSeen()
-            kotlinx.coroutines.delay(120_000L)
-        }
-    }
-
-    // Register push notification token
-    LaunchedEffect(Unit) {
-        pg.geobingo.one.network.PushService.registerToken()
-    }
-
-    // Daily login bonus + daily challenge reset
-    LaunchedEffect(Unit) {
+        // Daily login bonus + daily challenge reset
         gameState.stars.resetDailyChallengeIfNewDay()
         val bonusGranted = gameState.stars.checkDailyLoginBonus()
         if (bonusGranted) {
             gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +5 ${S.current.stars}"
+        }
+    }
+
+    // Online presence heartbeat (update last_seen every 2 minutes, only when logged in)
+    LaunchedEffect(Unit) {
+        while (true) {
+            if (AccountManager.isLoggedIn) FriendsManager.updateLastSeen()
+            kotlinx.coroutines.delay(120_000L)
         }
     }
 
