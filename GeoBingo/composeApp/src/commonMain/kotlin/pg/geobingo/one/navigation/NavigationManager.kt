@@ -33,7 +33,7 @@ class NavigationManager(initialScreen: Screen) {
      */
     fun goBack(): Boolean {
         if (_backStack.size <= 1) return false
-        _backStack.removeLast()
+        _backStack.removeAt(_backStack.lastIndex)
         return true
     }
 
@@ -42,7 +42,7 @@ class NavigationManager(initialScreen: Screen) {
      * Useful for transitions like GAME -> VOTE_TRANSITION -> REVIEW.
      */
     fun replaceCurrent(screen: Screen) {
-        if (_backStack.isNotEmpty()) _backStack.removeLast()
+        if (_backStack.isNotEmpty()) _backStack.removeAt(_backStack.lastIndex)
         _backStack.add(screen)
     }
 
@@ -63,7 +63,7 @@ class NavigationManager(initialScreen: Screen) {
         val index = _backStack.lastIndexOf(screen)
         if (index >= 0) {
             while (_backStack.size > index + 1) {
-                _backStack.removeLast()
+                _backStack.removeAt(_backStack.lastIndex)
             }
             return true
         }

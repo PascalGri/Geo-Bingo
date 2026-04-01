@@ -20,7 +20,7 @@ class PhotoCache(private val maxEntries: Int = GameConstants.PHOTO_CACHE_MAX_ENT
         if (k !in _photos) insertOrder.addLast(k)
         _photos[k] = bytes
         while (_photos.size > maxEntries && insertOrder.isNotEmpty()) {
-            _photos.remove(insertOrder.removeFirst())
+            _photos.remove(insertOrder.removeAt(0))
         }
     }
 
