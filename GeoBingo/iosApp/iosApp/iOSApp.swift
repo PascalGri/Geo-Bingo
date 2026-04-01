@@ -52,6 +52,10 @@ struct iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     init() {
+        // Disable verbose logging in release builds
+        #if !DEBUG
+        AppLogger.shared.minLevel = LogLevel.error
+        #endif
         // ATT muss VOR UMP/AdMob-Consent aufgerufen werden (Apple-Anforderung seit iOS 14.5)
         requestTrackingAuthorization()
         // StoreKit 2 Bridge initialisieren

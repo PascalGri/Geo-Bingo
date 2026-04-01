@@ -2,6 +2,8 @@ package pg.geobingo.one.network
 
 import androidx.compose.ui.graphics.Color
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Count
+import io.github.jan.supabase.postgrest.result.PostgrestResult
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.Serializable
 import pg.geobingo.one.data.CATEGORY_DESCRIPTIONS
@@ -342,7 +344,7 @@ object GameRepository {
     suspend fun uploadPhoto(gameId: String, playerId: String, categoryId: String, bytes: ByteArray): String {
         val path = "$gameId/$playerId/$categoryId.jpg"
         supabase.storage.from("photos").upload(path, bytes) { upsert = true }
-        return supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
+        return supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
     }
 
     suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray, latitude: Double? = null, longitude: Double? = null) {
@@ -364,7 +366,7 @@ object GameRepository {
         // 2. Network download
         return try {
             val path = "$gameId/$playerId/$categoryId.jpg"
-            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
+            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
             val bytes = httpClient.get(url).readRawBytes()
             // 3. Cache locally for future access
             try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (e: Exception) {
@@ -429,8 +431,12 @@ object GameRepository {
 
     suspend fun getVoteSubmissionCount(gameId: String, categoryId: String): Int =
         supabase.from("vote_submissions")
-            .select { filter { eq("game_id", gameId); eq("category_id", categoryId) } }
-            .decodeList<VoteSubmissionDto>().size
+            .select {
+                head = true
+                count(Count.EXACT)
+                filter { eq("game_id", gameId); eq("category_id", categoryId) }
+            }
+            .countOrNull()?.toInt() ?: 0
 
     suspend fun getVotes(gameId: String): List<VoteDto> =
         supabase.from("votes").select { filter { eq("game_id", gameId) } }.decodeList()
@@ -466,8 +472,12 @@ object GameRepository {
 
     suspend fun getEndVoteCount(gameId: String): Int =
         supabase.from("vote_submissions")
-            .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.END_VOTE) } }
-            .decodeList<VoteSubmissionDto>().size
+            .select {
+                head = true
+                count(Count.EXACT)
+                filter { eq("game_id", gameId); eq("category_id", VoteKeys.END_VOTE) }
+            }
+            .countOrNull()?.toInt() ?: 0
 
     suspend fun signalAllCaptured(gameId: String, playerId: String) {
         supabase.from("vote_submissions").insert(
@@ -475,10 +485,16 @@ object GameRepository {
         )
     }
 
-    suspend fun hasAllCapturedSignal(gameId: String): Boolean =
-        supabase.from("vote_submissions")
-            .select { filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) } }
-            .decodeList<VoteSubmissionDto>().isNotEmpty()
+    suspend fun hasAllCapturedSignal(gameId: String): Boolean {
+        val count = supabase.from("vote_submissions")
+            .select {
+                head = true
+                count(Count.EXACT)
+                filter { eq("game_id", gameId); eq("category_id", VoteKeys.ALL_CAPTURED) }
+            }
+            .countOrNull() ?: 0
+        return count > 0
+    }
 
     // ── Solo Photo Validation ─────────────────────────────────────────
 

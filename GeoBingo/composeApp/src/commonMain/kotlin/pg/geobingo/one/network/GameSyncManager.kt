@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.util.AppLogger
+import kotlin.math.pow
 
 /**
  * Consolidates Realtime subscriptions + fallback polling into unified flows.
@@ -51,7 +52,23 @@ class GameSyncManager(
         if (realtime == null) return
 
         scope.launch {
-            realtime.subscribe()
+            var attempt = 0
+            while (isActive) {
+                try {
+                    realtime.subscribe()
+                    break // success
+                } catch (e: Exception) {
+                    attempt++
+                    val delayMs = (GameConstants.RETRY_INITIAL_DELAY_MS * GameConstants.RETRY_BACKOFF_FACTOR.pow(attempt - 1))
+                        .toLong().coerceAtMost(GameConstants.RETRY_MAX_DELAY_MS)
+                    AppLogger.w("Sync", "Realtime subscribe failed (attempt $attempt), retrying in ${delayMs}ms", e)
+                    if (attempt >= GameConstants.RETRY_MAX_ATTEMPTS) {
+                        AppLogger.e("Sync", "Realtime subscribe gave up after $attempt attempts")
+                        break
+                    }
+                    delay(delayMs)
+                }
+            }
         }
 
         realtimeJobs = listOf(

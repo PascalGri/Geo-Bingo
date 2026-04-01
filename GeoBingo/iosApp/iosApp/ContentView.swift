@@ -12,7 +12,7 @@ struct ComposeView: UIViewControllerRepresentable {
 
 struct ContentView: View {
     // Polling-Timer: prüft ob Kotlin Ad-Requests gestellt hat
-    let adPollTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+    let adPollTimer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ComposeView()

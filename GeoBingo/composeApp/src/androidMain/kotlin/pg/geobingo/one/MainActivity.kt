@@ -8,10 +8,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.google.android.gms.ads.MobileAds
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import pg.geobingo.one.platform.DeepLinkHandler
 import pg.geobingo.one.platform.appContext
 import pg.geobingo.one.platform.currentActivity
 import pg.geobingo.one.util.Analytics
+import pg.geobingo.one.util.AppLogger
+import pg.geobingo.one.util.LogLevel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,6 +23,17 @@ class MainActivity : ComponentActivity() {
         appContext = applicationContext
         currentActivity = this
         Analytics.platform = "android"
+
+        // Only log errors in release builds
+        if (!pg.geobingo.one.BuildConfig.DEBUG) {
+            AppLogger.minLevel = LogLevel.ERROR
+        }
+
+        // Forward AppLogger errors to Firebase Crashlytics
+        AppLogger.crashReporter = { message, throwable ->
+            FirebaseCrashlytics.getInstance().log(message)
+            throwable?.let { FirebaseCrashlytics.getInstance().recordException(it) }
+        }
 
         MobileAds.initialize(this)
 

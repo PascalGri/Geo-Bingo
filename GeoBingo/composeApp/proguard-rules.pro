@@ -30,3 +30,24 @@
 # Keep data classes used with Supabase
 -keep class pg.geobingo.one.network.*Dto { *; }
 -keep class pg.geobingo.one.network.*Dto$* { *; }
+
+# OkHttp (Ktor engine dependency)
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Google Play Services
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Google Mobile Ads
+-keep class com.google.android.ump.** { *; }
+-keep class com.google.ads.** { *; }
+-dontwarn com.google.ads.**
+
+# Google Billing
+-keep class com.android.vending.billing.** { *; }

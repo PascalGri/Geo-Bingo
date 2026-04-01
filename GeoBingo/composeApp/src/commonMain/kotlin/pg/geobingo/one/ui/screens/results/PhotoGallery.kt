@@ -66,10 +66,12 @@ internal fun GalleryPhotoItem(
 
     LaunchedEffect(capture.id) {
         loading = true
-        // downloadPhoto now has built-in cache-first strategy
         val bytes = GameRepository.downloadPhoto(gameId, capture.player_id, capture.category_id)
         photoBytes = bytes
-        photo = if (bytes != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { bytes.toImageBitmap() } else null
+        // Decode on background thread to avoid UI jank
+        photo = if (bytes != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            bytes.toImageBitmap()
+        } else null
         loading = false
     }
 

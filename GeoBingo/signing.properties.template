@@ -1,0 +1,6 @@
+# Copy this file to signing.properties and fill in your keystore details.
+# signing.properties is git-ignored and must NOT be committed.
+storeFile=path/to/your/keystore.jks
+storePassword=your-store-password
+keyAlias=your-key-alias
+keyPassword=your-key-password
