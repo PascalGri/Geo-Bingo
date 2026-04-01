@@ -15,14 +15,14 @@ import kotlinx.coroutines.sync.withLock
  */
 object ServiceLocator {
     // ── HttpClient (shared, properly managed) ────────────────────────────
-    @Volatile
+    @kotlin.concurrent.Volatile
     private var _httpClient: HttpClient? = null
 
     val httpClient: HttpClient
         get() = _httpClient ?: HttpClient().also { _httpClient = it }
 
     // ── Navigation ───────────────────────────────────────────────────────
-    @Volatile
+    @kotlin.concurrent.Volatile
     private var _navigation: NavigationManager? = null
 
     val navigation: NavigationManager
