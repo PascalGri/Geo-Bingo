@@ -227,7 +227,7 @@ class GameViewModel(
         if (realtime == null) return
         realtimeGameJob = viewModelScope.launch {
             realtime.gameUpdates.collect { game ->
-                if (game.status == "voting" && nav.currentScreen == Screen.GAME) {
+                if (game.status == "voting" && nav.currentScreen == Screen.GAME && gameState.gameplay.isGameRunning) {
                     gameState.gameplay.isGameRunning = false
                     gameState.review.reviewCategoryIndex = game.review_category_index
                     nav.replaceCurrent(Screen.VOTE_TRANSITION)
@@ -244,7 +244,7 @@ class GameViewModel(
                     try {
                         val count = GameRepository.getEndVoteCount(gameId)
                         gameState.review.endVoteCount = count
-                        if (count >= gameState.gameplay.players.size && gameState.gameplay.players.isNotEmpty()) {
+                        if (count >= gameState.gameplay.players.size && gameState.gameplay.players.isNotEmpty() && gameState.gameplay.isGameRunning) {
                             gameState.gameplay.isGameRunning = false
                             GameRepository.endGameAsVoting(gameId)
                             gameState.review.reviewCategoryIndex = 0
@@ -264,7 +264,7 @@ class GameViewModel(
         realtimeCaptureJob = viewModelScope.launch {
             realtime.captureInserts.collect { capture ->
                 if (capture.player_id != gameState.session.myPlayerId) {
-                    gameState.updateCaptures(capture.player_id, capture.category_id)
+                    gameState.updateCapturesSafe(capture.player_id, capture.category_id)
                 }
             }
         }
@@ -275,7 +275,7 @@ class GameViewModel(
     private fun startFallbackPolling(gameId: String, realtime: pg.geobingo.one.network.GameRealtimeManager?) {
         pollingJob = viewModelScope.launch {
             var interval = GameConstants.POLLING_INITIAL_INTERVAL_MS
-            while (true) {
+            while (gameState.gameplay.isGameRunning) {
                 delay(interval)
                 try {
                     val game = GameRepository.getGameById(gameId)
@@ -305,7 +305,7 @@ class GameViewModel(
             allCaptures.forEach { capture ->
                 captureMap[capture.player_id] = (captureMap[capture.player_id] ?: emptySet()) + capture.category_id
             }
-            gameState.mergeCaptures(captureMap)
+            gameState.mergeCapturesSafe(captureMap)
         } catch (e: Exception) { AppLogger.w("GameVM", "Capture polling failed", e) }
 
         val count = GameRepository.getEndVoteCount(gameId)

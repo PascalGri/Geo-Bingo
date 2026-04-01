@@ -84,14 +84,16 @@ internal fun GalleryPhotoItem(
             containerColor = Color(0xFF0A0A0A),
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        bitmap = photo!!,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.FillWidth,
-                    )
+                    photo?.let { bmp ->
+                        Image(
+                            bitmap = bmp,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.FillWidth,
+                        )
+                    }
                     if (player != null || category != null) {
                         Spacer(Modifier.height(8.dp))
                         if (player != null) {
@@ -105,8 +107,8 @@ internal fun GalleryPhotoItem(
                     if (capture.latitude != null && capture.longitude != null) {
                         Spacer(Modifier.height(10.dp))
                         StaticMapPreview(
-                            latitude = capture.latitude!!,
-                            longitude = capture.longitude!!,
+                            latitude = capture.latitude,
+                            longitude = capture.longitude,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(150.dp)
@@ -121,7 +123,7 @@ internal fun GalleryPhotoItem(
                         TextButton(onClick = {
                             scope.launch {
                                 val filename = "${player?.name ?: "foto"}_${category?.name ?: ""}.jpg"
-                                val ok = saveImageToDevice(photoBytes!!, filename)
+                                val ok = saveImageToDevice(photoBytes ?: return@launch, filename)
                                 saveSuccess = ok
                             }
                         }) {
@@ -149,7 +151,7 @@ internal fun GalleryPhotoItem(
             }
             photo != null -> {
                 Image(
-                    bitmap = photo!!,
+                    bitmap = photo ?: return,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
@@ -260,7 +262,7 @@ internal fun StaticMapPreview(
     Box(modifier = modifier.background(ColorSurface)) {
         when {
             loading -> ShimmerPlaceholder(modifier = Modifier.fillMaxSize())
-            tileImages != null && tileImages!!.isNotEmpty() -> {
+            !tileImages.isNullOrEmpty() -> {
                 // Draw tile grid using Canvas, centering the pin location
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val tileSize = 256f
@@ -271,7 +273,7 @@ internal fun StaticMapPreview(
                     val originX = centerX - pinOffset.first
                     val originY = centerY - pinOffset.second
 
-                    for ((bitmap, offset) in tileImages!!) {
+                    for ((bitmap, offset) in tileImages.orEmpty()) {
                         val (dx, dy) = offset
                         val dstLeft = originX + dx * tileSize
                         val dstTop = originY + dy * tileSize

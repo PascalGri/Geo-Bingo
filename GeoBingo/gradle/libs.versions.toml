@@ -9,7 +9,6 @@ androidx-core = "1.15.0"
 androidx-espresso = "3.6.1"
 androidx-lifecycle = "2.8.4"
 androidx-testExt = "1.2.1"
-composeHotReload = "1.0.0-alpha01"
 composeMultiplatform = "1.7.3"
 junit = "4.13.2"
 kotlin = "2.1.0"
@@ -64,7 +63,6 @@ firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx"
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

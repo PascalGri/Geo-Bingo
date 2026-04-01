@@ -200,9 +200,13 @@ object AccountManager {
             }
             // Clear local data
             AppSettings.setString("last_player_name", "")
-            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar cleanup failed during account deletion", e)
+            }
             // Sign out locally
-            try { supabase.auth.signOut() } catch (_: Exception) {}
+            try { supabase.auth.signOut() } catch (e: Exception) {
+                AppLogger.w(TAG, "Sign out failed during account deletion", e)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Account deletion failed", e)

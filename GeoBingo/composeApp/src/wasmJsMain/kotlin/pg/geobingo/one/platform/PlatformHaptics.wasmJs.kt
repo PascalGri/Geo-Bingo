@@ -3,7 +3,7 @@ package pg.geobingo.one.platform
 @JsFun("""(ms) => {
     try {
         if (navigator.vibrate) { navigator.vibrate(ms); }
-    } catch(e) {}
+    } catch(e) { console.warn('vibrateJs failed:', e); }
 }""")
 private external fun vibrateJs(ms: Int)
 

@@ -692,7 +692,7 @@ internal fun AuthDialog(
                 )
 
                 if (errorMsg != null) {
-                    Text(errorMsg!!, style = MaterialTheme.typography.bodySmall, color = ColorError)
+                    Text(errorMsg ?: "", style = MaterialTheme.typography.bodySmall, color = ColorError)
                 }
 
                 // Toggle sign in / sign up + forgot password
@@ -993,7 +993,7 @@ internal fun ChangePasswordDialog(
                     leadingIcon = { Icon(Icons.Default.Lock, null, tint = ColorPrimary) },
                 )
                 if (errorMsg != null) {
-                    Text(errorMsg!!, style = MaterialTheme.typography.bodySmall, color = ColorError)
+                    Text(errorMsg ?: "", style = MaterialTheme.typography.bodySmall, color = ColorError)
                 }
             }
         },

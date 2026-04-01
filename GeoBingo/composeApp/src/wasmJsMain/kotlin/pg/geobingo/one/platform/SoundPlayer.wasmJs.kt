@@ -32,7 +32,7 @@ external fun getOrCreateAudioContext(): JsAny
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000.0);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + duration / 1000.0);
-    } catch(e) {}
+    } catch(e) { console.warn('playWebTone failed:', e); }
 }""")
 external fun playWebTone(freq: Float, duration: Float, type: String, volume: Float)
 
@@ -65,14 +65,14 @@ external fun playWebTone(freq: Float, duration: Float, type: String, volume: Flo
         gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur2 / 1000.0);
         osc2.start(ctx.currentTime + delay);
         osc2.stop(ctx.currentTime + delay + dur2 / 1000.0);
-    } catch(e) {}
+    } catch(e) { console.warn('playWebToneSequence failed:', e); }
 }""")
 external fun playWebToneSequence(freq1: Float, dur1: Float, freq2: Float, dur2: Float, type: String, volume: Float)
 
 @JsFun("""(ms) => {
     try {
         if (navigator.vibrate) { navigator.vibrate(ms); }
-    } catch(e) {}
+    } catch(e) { console.warn('vibrateWeb failed:', e); }
 }""")
 external fun vibrateWeb(ms: Int)
 

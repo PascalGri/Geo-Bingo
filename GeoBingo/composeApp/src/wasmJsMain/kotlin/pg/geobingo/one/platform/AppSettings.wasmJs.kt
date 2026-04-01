@@ -1,9 +1,9 @@
 package pg.geobingo.one.platform
 
-@JsFun("(key, value) => { try { localStorage.setItem(key, value); } catch(e) {} }")
+@JsFun("(key, value) => { try { localStorage.setItem(key, value); } catch(e) { console.warn('localStorage.setItem failed:', e); } }")
 private external fun localStorageSet(key: String, value: String)
 
-@JsFun("(key) => { try { return localStorage.getItem(key); } catch(e) { return null; } }")
+@JsFun("(key) => { try { return localStorage.getItem(key); } catch(e) { console.warn('localStorage.getItem failed:', e); return null; } }")
 private external fun localStorageGet(key: String): String?
 
 actual object AppSettings {

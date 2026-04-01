@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konto löschen — KatchIt!</title>
+    <meta name="description" content="So löschen Sie Ihr KatchIt!-Konto und alle zugehörigen Daten.">
+    <link rel="canonical" href="https://katchit.app/account-loeschen.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #050508;
+            color: #F0ECFF;
+            line-height: 1.7;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        a { color: #D946EF; text-decoration: none; }
+        a:hover { text-decoration: underline; color: #E879F9; }
+        .back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 32px; color: #CBB8F0; font-size: 14px; }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 { font-size: 18px; font-weight: 600; margin-top: 28px; margin-bottom: 8px; color: #D946EF; }
+        p, li { font-size: 15px; color: #CBB8F0; margin-bottom: 8px; }
+        ul { padding-left: 20px; margin-bottom: 12px; }
+        ol { padding-left: 20px; margin-bottom: 12px; }
+        ol li { margin-bottom: 12px; }
+        .step-box {
+            background: #1A1025;
+            border: 1px solid #2E1F50;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .step-num {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #F43F5E, #D946EF);
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        .step-title { font-weight: 600; color: #F0ECFF; font-size: 15px; }
+        .step-desc { color: #CBB8F0; font-size: 14px; margin-top: 6px; padding-left: 36px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #2E1F50; font-size: 14px; color: #CBB8F0; }
+        th { color: #D946EF; font-weight: 600; }
+        .contact-box {
+            background: #1A1025;
+            border: 1px solid #2E1F50;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back">&larr; Zurück zu KatchIt!</a>
+        <h1>Konto löschen</h1>
+
+        <p>
+            Sie können Ihr KatchIt!-Konto jederzeit direkt in der App löschen. Bei der Löschung werden alle Ihre Daten unwiderruflich von unseren Servern entfernt.
+        </p>
+
+        <h2>So löschen Sie Ihr Konto</h2>
+
+        <div class="step-box">
+            <div>
+                <span class="step-num">1</span>
+                <span class="step-title">Einstellungen öffnen</span>
+            </div>
+            <p class="step-desc">Tippen Sie auf das Zahnrad-Symbol oben rechts auf dem Startbildschirm.</p>
+        </div>
+
+        <div class="step-box">
+            <div>
+                <span class="step-num">2</span>
+                <span class="step-title">Konto-Bereich aufrufen</span>
+            </div>
+            <p class="step-desc">Scrollen Sie zum Bereich "Konto" in den Einstellungen.</p>
+        </div>
+
+        <div class="step-box">
+            <div>
+                <span class="step-num">3</span>
+                <span class="step-title">"Konto löschen" wählen</span>
+            </div>
+            <p class="step-desc">Tippen Sie auf "Konto löschen" und bestätigen Sie die Löschung im Dialogfenster.</p>
+        </div>
+
+        <h2>Welche Daten werden gelöscht?</h2>
+        <table>
+            <tr><th>Datentyp</th><th>Aktion</th></tr>
+            <tr><td>E-Mail-Adresse</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Anzeigename</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Profilbild / Avatar</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Spielstatistiken (Sterne, Erfolge)</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Freundesliste</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Kaufhistorie (In-App-Käufe)</td><td>Vollständig gelöscht</td></tr>
+            <tr><td>Authentifizierungsdaten</td><td>Vollständig gelöscht</td></tr>
+        </table>
+
+        <p style="margin-top: 16px;">
+            Die Löschung erfolgt sofort und unwiderruflich. Nach der Löschung werden Sie automatisch abgemeldet. Ein gelöschtes Konto kann nicht wiederhergestellt werden.
+        </p>
+
+        <h2>Aufbewahrungsdauer</h2>
+        <p>
+            Es gibt keine zusätzliche Aufbewahrungsdauer. Alle oben genannten Daten werden sofort und vollständig von unseren Servern (Supabase, EU-Frankfurt) entfernt, sobald Sie die Löschung bestätigen.
+        </p>
+
+        <h2>Konto löschen ohne App-Zugang</h2>
+        <p>
+            Falls Sie keinen Zugriff mehr auf die App haben, können Sie die Löschung Ihres Kontos auch per E-Mail anfordern:
+        </p>
+
+        <div class="contact-box">
+            <p style="margin-bottom: 4px; font-weight: 600; color: #F0ECFF;">Schreiben Sie uns an</p>
+            <a href="mailto:support@katchit.app" style="font-size: 18px;">support@katchit.app</a>
+            <p style="margin-top: 8px; font-size: 13px;">Bitte geben Sie die E-Mail-Adresse an, mit der Sie sich registriert haben. Die Löschung erfolgt innerhalb von 7 Werktagen.</p>
+        </div>
+
+        <p style="margin-top: 32px; font-size: 13px; color: #5A3D8A;">
+            Weitere Informationen zum Umgang mit Ihren Daten finden Sie in unserer <a href="/datenschutz.html">Datenschutzerklärung</a>.
+        </p>
+    </div>
+</body>
+</html>

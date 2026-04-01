@@ -108,8 +108,8 @@ fun SoloGameScreen(gameState: GameState) {
     }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
-        if (bytes != null && pendingCategoryId != null) {
-            val catId = pendingCategoryId!!
+        val catId = pendingCategoryId
+        if (bytes != null && catId != null) {
 
             if (isRetake) {
                 validatePhoto(catId, bytes, fallbackOnError = false)

@@ -170,7 +170,7 @@ internal fun DarkSinglePhotoVotingScreen(
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)).background(ColorSurfaceVariant), contentAlignment = Alignment.Center) {
                     if (photoLoading) ShimmerPlaceholder(modifier = Modifier.fillMaxSize(), cornerRadius = 14.dp)
-                    else if (photo != null) Image(bitmap = photo!!, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else if (photo != null) Image(bitmap = photo ?: return@Box, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     else Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)
                         Text(S.current.noPhotoFound, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
