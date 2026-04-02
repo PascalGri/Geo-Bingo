@@ -21,7 +21,9 @@ actual object SoundPlayer {
                 audio.src = uri
                 audio.volume = 0.5
                 audioCache[name] = audio
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                println("[W] [SoundPlayer] Preload failed: $name: ${e.message}")
+            }
         }
     }
 
@@ -31,6 +33,8 @@ actual object SoundPlayer {
             val clone = cached.cloneNode(false) as HTMLAudioElement
             clone.volume = 0.5
             clone.play()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("[W] [SoundPlayer] Play failed: $fileName: ${e.message}")
+        }
     }
 }

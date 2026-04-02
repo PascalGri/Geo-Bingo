@@ -51,6 +51,7 @@ import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
+import pg.geobingo.one.util.AppLogger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -179,7 +180,9 @@ private fun HistoryEntryCard(
             try {
                 val bytes = LocalPhotoStore.loadAvatar(hp.id)
                 if (bytes != null) loaded[hp.id] = bytes
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("History", "Avatar load failed: ${hp.id}", e)
+            }
         }
         if (loaded.isNotEmpty()) avatarBytes = loaded
     }
@@ -220,7 +223,9 @@ private fun HistoryEntryCard(
                                 )
                             }
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        AppLogger.w("History", "Photo load failed: ${cat.id}/${hp.id}", e)
+                    }
                 }
             }
             photos = loadedPhotos
@@ -261,7 +266,10 @@ private fun HistoryEntryCard(
                             val hour = local.hour.toString().padStart(2, '0')
                             val minute = local.minute.toString().padStart(2, '0')
                             "$day.$month.${local.year}  $hour:$minute"
-                        } catch (_: Exception) { "" }
+                        } catch (e: Exception) {
+                            AppLogger.w("History", "Date parse failed", e)
+                            ""
+                        }
                         if (dateText.isNotEmpty()) {
                             Text(
                                 dateText,
@@ -552,7 +560,8 @@ private fun tryLoadCategoriesFromMeta(gameId: String): List<pg.geobingo.one.game
             result.add(pg.geobingo.one.game.HistoryCategory(id = match.groupValues[1], name = match.groupValues[2]))
         }
         result
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        AppLogger.w("History", "Category meta parse failed", e)
         emptyList()
     }
 }

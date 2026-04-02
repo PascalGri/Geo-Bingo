@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -32,6 +33,10 @@ fun ActivityFeedScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var activities by remember { mutableStateOf<List<GameRepository.ActivityDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var loadingMore by remember { mutableStateOf(false) }
+    var hasMore by remember { mutableStateOf(true) }
+    var allIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    val pageSize = 30
 
     LaunchedEffect(Unit) {
         if (!AccountManager.isLoggedIn) { loading = false; return@LaunchedEffect }
@@ -39,8 +44,10 @@ fun ActivityFeedScreen(gameState: GameState) {
             val friends = FriendsManager.getFriends()
             val friendIds = friends.map { it.userId }
             val myId = AccountManager.currentUserId
-            val allIds = if (myId != null) friendIds + myId else friendIds
-            activities = GameRepository.getFriendsActivity(allIds)
+            allIds = if (myId != null) friendIds + myId else friendIds
+            val page = GameRepository.getFriendsActivity(allIds, limit = pageSize)
+            activities = page
+            hasMore = page.size >= pageSize
         } catch (e: Exception) {
             AppLogger.w("Activity", "Load failed", e)
         }
@@ -82,7 +89,32 @@ fun ActivityFeedScreen(gameState: GameState) {
                 }
             }
         } else {
+            val listState = rememberLazyListState()
+
+            // Detect when scrolled near the bottom and load more
+            val shouldLoadMore by remember {
+                derivedStateOf {
+                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    val totalItems = listState.layoutInfo.totalItemsCount
+                    lastVisible >= totalItems - 3 && !loadingMore && hasMore
+                }
+            }
+            LaunchedEffect(shouldLoadMore) {
+                if (shouldLoadMore && activities.isNotEmpty()) {
+                    loadingMore = true
+                    try {
+                        val page = GameRepository.getFriendsActivity(allIds, limit = pageSize, offset = activities.size)
+                        activities = activities + page
+                        hasMore = page.size >= pageSize
+                    } catch (e: Exception) {
+                        AppLogger.w("Activity", "Load more failed", e)
+                    }
+                    loadingMore = false
+                }
+            }
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -120,6 +152,14 @@ fun ActivityFeedScreen(gameState: GameState) {
                                     color = ColorOnSurfaceVariant,
                                 )
                             }
+                        }
+                    }
+                }
+
+                if (loadingMore) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = FeedGradient.first(), modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         }
                     }
                 }

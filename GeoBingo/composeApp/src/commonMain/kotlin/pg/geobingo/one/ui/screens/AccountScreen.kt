@@ -214,7 +214,9 @@ private fun AccountProfileSection(
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             avatarBytes = bytes
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
+                pg.geobingo.one.util.AppLogger.w("Account", "Avatar save failed", e)
+            }
         }
     }
 

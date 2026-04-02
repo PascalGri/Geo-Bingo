@@ -588,7 +588,9 @@ fun LobbyScreen(gameState: GameState) {
                                     scope.launch {
                                         try {
                                             onlineFriends = FriendsManager.getFriends()
-                                        } catch (_: Exception) {}
+                                        } catch (e: Exception) {
+                                            pg.geobingo.one.util.AppLogger.w("Lobby", "Friends load failed", e)
+                                        }
                                         friendsLoading = false
                                     }
                                 },

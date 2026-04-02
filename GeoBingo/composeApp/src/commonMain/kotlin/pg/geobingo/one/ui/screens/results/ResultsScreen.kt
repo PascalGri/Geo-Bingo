@@ -262,7 +262,9 @@ fun ResultsScreen(gameState: GameState) {
         // Auto-sync to cloud if logged in
         val userId = pg.geobingo.one.network.AccountManager.currentUserId
         if (userId != null) {
-            try { pg.geobingo.one.network.AccountManager.syncLocalToCloud(userId) } catch (_: Exception) {}
+            try { pg.geobingo.one.network.AccountManager.syncLocalToCloud(userId) } catch (e: Exception) {
+                pg.geobingo.one.util.AppLogger.w("Results", "Cloud sync failed", e)
+            }
         }
     }
 

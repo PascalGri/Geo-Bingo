@@ -61,6 +61,10 @@ data class FriendInfo(
 object FriendsManager {
     private const val TAG = "FriendsManager"
 
+    private val friendsCache = ResponseCache<List<FriendInfo>>(ttlMs = 25_000L)
+    private val pendingRequestsCache = ResponseCache<List<Pair<FriendshipDto, UserProfile>>>(ttlMs = 10_000L)
+    private val pendingInvitesCache = ResponseCache<List<Pair<GameInviteDto, UserProfile>>>(ttlMs = 10_000L)
+
     /** Generate a unique 8-char friend code for the current user. */
     suspend fun ensureFriendCode(): String? {
         val userId = AccountManager.currentUserId ?: return null
@@ -129,6 +133,7 @@ object FriendsManager {
             // Send push notification
             val myName = AppSettings.getString("last_player_name", "Player")
             PushService.sendPushToUser(target.id, S.current.friendRequestReceived, myName)
+            pendingRequestsCache.invalidate()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to send friend request", e)
@@ -142,6 +147,8 @@ object FriendsManager {
             supabase.from("friendships").update({ set("status", "accepted") }) {
                 filter { eq("id", friendshipId) }
             }
+            friendsCache.invalidate()
+            pendingRequestsCache.invalidate()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to accept friend request", e)
@@ -155,6 +162,8 @@ object FriendsManager {
             supabase.from("friendships").delete {
                 filter { eq("id", friendshipId) }
             }
+            friendsCache.invalidate()
+            pendingRequestsCache.invalidate()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to remove friendship", e)
@@ -165,64 +174,68 @@ object FriendsManager {
     /** Get all accepted friends with their profile info and online status. */
     suspend fun getFriends(): List<FriendInfo> {
         val myId = AccountManager.currentUserId ?: return emptyList()
-        return try {
-            val friendships = supabase.from("friendships")
-                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "accepted") } }
-                .decodeList<FriendshipDto>()
+        return friendsCache.getOrFetch {
+            try {
+                val friendships = supabase.from("friendships")
+                    .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "accepted") } }
+                    .decodeList<FriendshipDto>()
 
-            val friendIds = friendships.map { if (it.user_id == myId) it.friend_id else it.user_id }
-            if (friendIds.isEmpty()) return emptyList()
+                val friendIds = friendships.map { if (it.user_id == myId) it.friend_id else it.user_id }
+                if (friendIds.isEmpty()) return@getOrFetch emptyList()
 
-            // Batch-fetch all friend profiles in a single query instead of N individual queries
-            val profiles = supabase.from("profiles")
-                .select { filter { isIn("id", friendIds) } }
-                .decodeList<UserProfile>()
+                // Batch-fetch all friend profiles in a single query instead of N individual queries
+                val profiles = supabase.from("profiles")
+                    .select { filter { isIn("id", friendIds) } }
+                    .decodeList<UserProfile>()
 
-            val profileMap = profiles.associateBy { it.id }
-            friendships.mapNotNull { fs ->
-                val friendId = if (fs.user_id == myId) fs.friend_id else fs.user_id
-                val profile = profileMap[friendId] ?: return@mapNotNull null
-                FriendInfo(
-                    userId = friendId,
-                    displayName = profile.display_name.ifBlank { "Player" },
-                    avatarUrl = profile.avatar_url,
-                    isOnline = isRecentlyOnline(profile.last_seen),
-                    lastSeen = profile.last_seen,
-                    friendshipId = fs.id,
-                )
-            }.sortedByDescending { it.isOnline }
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to get friends", e)
-            emptyList()
+                val profileMap = profiles.associateBy { it.id }
+                friendships.mapNotNull { fs ->
+                    val friendId = if (fs.user_id == myId) fs.friend_id else fs.user_id
+                    val profile = profileMap[friendId] ?: return@mapNotNull null
+                    FriendInfo(
+                        userId = friendId,
+                        displayName = profile.display_name.ifBlank { "Player" },
+                        avatarUrl = profile.avatar_url,
+                        isOnline = isRecentlyOnline(profile.last_seen),
+                        lastSeen = profile.last_seen,
+                        friendshipId = fs.id,
+                    )
+                }.sortedByDescending { it.isOnline }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Failed to get friends", e)
+                emptyList()
+            }
         }
     }
 
     /** Get pending friend requests (incoming). */
     suspend fun getPendingRequests(): List<Pair<FriendshipDto, UserProfile>> {
         val myId = AccountManager.currentUserId ?: return emptyList()
-        return try {
-            // Incoming: where I'm involved but not the requester, and status is pending
-            val friendships = supabase.from("friendships")
-                .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "pending") } }
-                .decodeList<FriendshipDto>()
-                .filter { it.requested_by != myId }
+        return pendingRequestsCache.getOrFetch {
+            try {
+                // Incoming: where I'm involved but not the requester, and status is pending
+                val friendships = supabase.from("friendships")
+                    .select { filter { or { eq("user_id", myId); eq("friend_id", myId) }; eq("status", "pending") } }
+                    .decodeList<FriendshipDto>()
+                    .filter { it.requested_by != myId }
 
-            if (friendships.isEmpty()) return emptyList()
+                if (friendships.isEmpty()) return@getOrFetch emptyList()
 
-            // Batch-fetch all requester profiles in a single query
-            val requesterIds = friendships.map { it.requested_by }
-            val profiles = supabase.from("profiles")
-                .select { filter { isIn("id", requesterIds) } }
-                .decodeList<UserProfile>()
-            val profileMap = profiles.associateBy { it.id }
+                // Batch-fetch all requester profiles in a single query
+                val requesterIds = friendships.map { it.requested_by }
+                val profiles = supabase.from("profiles")
+                    .select { filter { isIn("id", requesterIds) } }
+                    .decodeList<UserProfile>()
+                val profileMap = profiles.associateBy { it.id }
 
-            friendships.mapNotNull { fs ->
-                val profile = profileMap[fs.requested_by]
-                if (profile != null) fs to profile else null
+                friendships.mapNotNull { fs ->
+                    val profile = profileMap[fs.requested_by]
+                    if (profile != null) fs to profile else null
+                }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Failed to get pending requests", e)
+                emptyList()
             }
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to get pending requests", e)
-            emptyList()
         }
     }
 
@@ -241,6 +254,7 @@ object FriendsManager {
                 "${S.current.gameInviteFrom} $myName",
                 mapOf("game_code" to gameCode),
             )
+            pendingInvitesCache.invalidate()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to send game invite", e)
@@ -251,27 +265,29 @@ object FriendsManager {
     /** Get pending game invites for the current user. */
     suspend fun getPendingInvites(): List<Pair<GameInviteDto, UserProfile>> {
         val myId = AccountManager.currentUserId ?: return emptyList()
-        return try {
-            val invites = supabase.from("game_invites")
-                .select { filter { eq("to_user_id", myId); eq("status", "pending") } }
-                .decodeList<GameInviteDto>()
+        return pendingInvitesCache.getOrFetch {
+            try {
+                val invites = supabase.from("game_invites")
+                    .select { filter { eq("to_user_id", myId); eq("status", "pending") } }
+                    .decodeList<GameInviteDto>()
 
-            if (invites.isEmpty()) return emptyList()
+                if (invites.isEmpty()) return@getOrFetch emptyList()
 
-            // Batch-fetch all sender profiles in a single query
-            val senderIds = invites.map { it.from_user_id }.distinct()
-            val profiles = supabase.from("profiles")
-                .select { filter { isIn("id", senderIds) } }
-                .decodeList<UserProfile>()
-            val profileMap = profiles.associateBy { it.id }
+                // Batch-fetch all sender profiles in a single query
+                val senderIds = invites.map { it.from_user_id }.distinct()
+                val profiles = supabase.from("profiles")
+                    .select { filter { isIn("id", senderIds) } }
+                    .decodeList<UserProfile>()
+                val profileMap = profiles.associateBy { it.id }
 
-            invites.mapNotNull { invite ->
-                val profile = profileMap[invite.from_user_id]
-                if (profile != null) invite to profile else null
+                invites.mapNotNull { invite ->
+                    val profile = profileMap[invite.from_user_id]
+                    if (profile != null) invite to profile else null
+                }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Failed to get pending invites", e)
+                emptyList()
             }
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to get pending invites", e)
-            emptyList()
         }
     }
 
@@ -281,6 +297,7 @@ object FriendsManager {
             supabase.from("game_invites").update({ set("status", if (accept) "accepted" else "declined") }) {
                 filter { eq("id", inviteId) }
             }
+            pendingInvitesCache.invalidate()
         } catch (e: Exception) {
             AppLogger.w(TAG, "Failed to respond to invite", e)
         }

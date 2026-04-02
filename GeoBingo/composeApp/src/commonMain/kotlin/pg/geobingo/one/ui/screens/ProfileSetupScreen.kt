@@ -42,7 +42,9 @@ fun ProfileSetupScreen(gameState: GameState) {
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             avatarBytes = bytes
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
+                pg.geobingo.one.util.AppLogger.w("ProfileSetup", "Avatar save failed", e)
+            }
         }
     }
 
@@ -99,7 +101,9 @@ fun ProfileSetupScreen(gameState: GameState) {
                 onTakePhoto = { photoCapturer.launch() },
                 onClear = {
                     avatarBytes = null
-                    try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+                    try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
+                        pg.geobingo.one.util.AppLogger.w("ProfileSetup", "Avatar clear failed", e)
+                    }
                 },
             )
 

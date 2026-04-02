@@ -66,6 +66,7 @@ import pg.geobingo.one.ui.screens.solo.SoloStartTransitionScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
 import pg.geobingo.one.ui.theme.OfflineBanner
 import pg.geobingo.one.util.Analytics
+import pg.geobingo.one.util.AppLogger
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -122,10 +123,14 @@ fun App() {
             SoundEffect.entries.map { it.fileName }.distinct().forEach { file ->
                 try {
                     soundData[file] = Res.readBytes("files/$file")
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLogger.w("App", "Sound load failed: $file", e)
+                }
             }
             SoundPlayer.preload(soundData)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.w("App", "Sound preload failed", e)
+        }
     }
 
     // Online presence heartbeat (update last_seen every 2 minutes, only when logged in)
@@ -174,7 +179,9 @@ fun App() {
                             pendingFriendBanner = requests.first()
                         }
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLogger.w("App", "Invite/friend poll failed", e)
+                }
             }
         }
     }

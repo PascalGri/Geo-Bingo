@@ -62,159 +62,408 @@ fun ModeSelectScreen(gameState: GameState) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    AnimatedGradientText(
-                        text = S.current.gameMode,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        gradientColors = GradientPrimary,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
-                    }
-                },
-                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
+            ModeSelectTopBar(
+                gameState = gameState,
+                onBack = { nav.goBack() },
+                onNavigate = { nav.navigateTo(it) },
             )
         },
         containerColor = ColorBackground,
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ModeSelectContent(
+            padding = padding,
+            staggered = { i -> Modifier.staggered(i) },
+            soloExpanded = soloExpanded,
+            soloOutdoor = soloOutdoor,
+            soloCategoryCount = soloCategoryCount,
+            onToggleSoloExpand = { soloExpanded = !soloExpanded },
+            onSelectSoloOutdoor = { soloOutdoor = it },
+            onSelectSoloCategoryCount = { soloCategoryCount = it },
+            onConfirmSolo = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
+                val duration = if (soloCategoryCount == 10) 600 else 300
+                gameState.solo.isOutdoor = soloOutdoor
+                gameState.solo.categoryCount = soloCategoryCount
+                gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
+                gameState.solo.totalDurationSeconds = duration
+                gameState.solo.timeRemainingSeconds = duration
+                gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                nav.navigateTo(Screen.SOLO_START_TRANSITION)
+            },
+            aiJudgeExpanded = aiJudgeExpanded,
+            aiJudgeOutdoor = aiJudgeOutdoor,
+            onToggleAiJudgeExpand = { aiJudgeExpanded = !aiJudgeExpanded },
+            onSelectAiJudgeOutdoor = { aiJudgeOutdoor = it },
+            onConfirmAiJudge = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
+                gameState.session.gameMode = GameMode.AI_JUDGE
+                gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
+                nav.navigateTo(Screen.CREATE_GAME)
+            },
+            quickStartExpanded = quickStartExpanded,
+            quickStartOutdoor = quickStartOutdoor,
+            onToggleQuickStartExpand = { quickStartExpanded = !quickStartExpanded },
+            onSelectQuickStartOutdoor = { quickStartOutdoor = it },
+            onConfirmQuickStart = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "QUICK_START"))
+                gameState.session.gameMode = GameMode.QUICK_START
+                gameState.session.quickStartOutdoor = quickStartOutdoor
+                gameState.session.quickStartDurationMinutes = 15
+                gameState.gameplay.gameDurationMinutes = 15
+                nav.navigateTo(Screen.CREATE_GAME)
+            },
+            onClassicClick = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "CLASSIC"))
+                gameState.session.gameMode = GameMode.CLASSIC
+                nav.navigateTo(Screen.CREATE_GAME)
+            },
+            onBlindBingoClick = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "BLIND_BINGO"))
+                gameState.session.gameMode = GameMode.BLIND_BINGO
+                nav.navigateTo(Screen.CREATE_GAME)
+            },
+            onWeirdCoreClick = {
+                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "WEIRD_CORE"))
+                gameState.session.gameMode = GameMode.WEIRD_CORE
+                nav.navigateTo(Screen.CREATE_GAME)
+            },
+        )
+    }
+}
+
+// ── Top Bar ─────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModeSelectTopBar(
+    gameState: GameState,
+    onBack: () -> Unit,
+    onNavigate: (Screen) -> Unit,
+) {
+    TopAppBar(
+        title = {
+            AnimatedGradientText(
+                text = S.current.gameMode,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                gradientColors = GradientPrimary,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
+            }
+        },
+        actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = onNavigate) },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
+    )
+}
+
+// ── Main Content ────────────────────────────────────────────────────────
+
+@Composable
+private fun ModeSelectContent(
+    padding: PaddingValues,
+    staggered: (Int) -> Modifier,
+    soloExpanded: Boolean,
+    soloOutdoor: Boolean,
+    soloCategoryCount: Int,
+    onToggleSoloExpand: () -> Unit,
+    onSelectSoloOutdoor: (Boolean) -> Unit,
+    onSelectSoloCategoryCount: (Int) -> Unit,
+    onConfirmSolo: () -> Unit,
+    aiJudgeExpanded: Boolean,
+    aiJudgeOutdoor: Boolean,
+    onToggleAiJudgeExpand: () -> Unit,
+    onSelectAiJudgeOutdoor: (Boolean) -> Unit,
+    onConfirmAiJudge: () -> Unit,
+    quickStartExpanded: Boolean,
+    quickStartOutdoor: Boolean,
+    onToggleQuickStartExpand: () -> Unit,
+    onSelectQuickStartOutdoor: (Boolean) -> Unit,
+    onConfirmQuickStart: () -> Unit,
+    onClassicClick: () -> Unit,
+    onBlindBingoClick: () -> Unit,
+    onWeirdCoreClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            S.current.howDoYouWantToPlay,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = ColorOnSurface,
+            modifier = staggered(0),
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Solo Challenge (top) ─────────────────────────────────────
+        SoloChallengeCard(
+            expanded = soloExpanded,
+            outdoor = soloOutdoor,
+            categoryCount = soloCategoryCount,
+            onToggleExpand = onToggleSoloExpand,
+            onSelectOutdoor = onSelectSoloOutdoor,
+            onSelectCategoryCount = onSelectSoloCategoryCount,
+            onConfirm = onConfirmSolo,
+            modifier = staggered(1),
+        )
+
+        // ── Multiplayer ──────────────────────────────────────────────
+        MultiplayerSectionHeader()
+
+        AiJudgeCard(
+            expanded = aiJudgeExpanded,
+            outdoor = aiJudgeOutdoor,
+            onToggleExpand = onToggleAiJudgeExpand,
+            onSelectOutdoor = onSelectAiJudgeOutdoor,
+            onConfirm = onConfirmAiJudge,
+            modifier = staggered(1),
+        )
+
+        QuickStartCard(
+            expanded = quickStartExpanded,
+            outdoor = quickStartOutdoor,
+            onToggleExpand = onToggleQuickStartExpand,
+            onSelectOutdoor = onSelectQuickStartOutdoor,
+            onConfirm = onConfirmQuickStart,
+            modifier = staggered(2),
+        )
+
+        ModeCard(
+            mode = GameMode.CLASSIC,
+            title = S.current.modeClassic,
+            subtitle = S.current.modeClassicSubtitle,
+            description = S.current.modeClassicDesc,
+            icon = Icons.Default.GridView,
+            gradientColors = GradientPrimary,
+            modifier = staggered(3),
+            onClick = onClassicClick,
+        )
+
+        ModeCard(
+            mode = GameMode.BLIND_BINGO,
+            title = S.current.modeBlindBingo,
+            subtitle = S.current.modeBlindBingoSubtitle,
+            description = S.current.modeBlindBingoDesc,
+            icon = Icons.Default.VisibilityOff,
+            gradientColors = GradientCool,
+            modifier = staggered(4),
+            onClick = onBlindBingoClick,
+        )
+
+        ModeCard(
+            mode = GameMode.WEIRD_CORE,
+            title = S.current.modeWeirdCore,
+            subtitle = S.current.modeWeirdCoreSubtitle,
+            description = S.current.modeWeirdCoreDesc,
+            icon = Icons.Default.QuestionMark,
+            gradientColors = GradientWeird,
+            modifier = staggered(5),
+            onClick = onWeirdCoreClick,
+        )
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ── Multiplayer Section Header ──────────────────────────────────────────
+
+@Composable
+private fun MultiplayerSectionHeader() {
+    HorizontalDivider(
+        color = ColorOutlineVariant,
+        modifier = Modifier.padding(vertical = 8.dp),
+    )
+    Text(
+        "Multiplayer",
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = ColorOnSurfaceVariant,
+    )
+    Spacer(Modifier.height(4.dp))
+}
+
+// ── Shared: Gradient Icon Box ───────────────────────────────────────────
+
+@Composable
+private fun GradientIconBox(
+    icon: ImageVector,
+    gradientColors: List<Color>,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = gradientColors,
+                    start = Offset(0f, 0f),
+                    end = Offset(200f, 200f),
+                )
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(28.dp),
+            tint = Color.White,
+        )
+    }
+}
+
+// ── Shared: Outdoor / Indoor Toggle ─────────────────────────────────────
+
+@Composable
+private fun OutdoorIndoorToggle(
+    outdoor: Boolean,
+    gradientColors: List<Color>,
+    onSelectOutdoor: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+        // Outdoor
+        ToggleOptionButton(
+            selected = outdoor,
+            icon = Icons.Default.WbSunny,
+            label = S.current.outdoor,
+            gradientColors = gradientColors,
+            onClick = { onSelectOutdoor(true) },
+            modifier = btnModifier,
+        )
+        // Indoor
+        ToggleOptionButton(
+            selected = !outdoor,
+            icon = Icons.Default.House,
+            label = S.current.indoor,
+            gradientColors = gradientColors,
+            onClick = { onSelectOutdoor(false) },
+            modifier = btnModifier,
+        )
+    }
+}
+
+// ── Shared: Toggle Option Button ────────────────────────────────────────
+
+@Composable
+private fun ToggleOptionButton(
+    selected: Boolean,
+    icon: ImageVector,
+    label: String,
+    gradientColors: List<Color>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(
+                if (selected) Brush.linearGradient(gradientColors)
+                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+            )
+            .border(
+                width = 1.dp,
+                color = if (selected) Color.Transparent else ColorOutline,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Spacer(Modifier.height(8.dp))
-
+            Icon(icon, null, modifier = Modifier.size(16.dp), tint = if (selected) Color.White else ColorOnSurfaceVariant)
             Text(
-                S.current.howDoYouWantToPlay,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
-                modifier = Modifier.staggered(0),
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            // ── Solo Challenge (top) ─────────────────────────────────────
-            SoloChallengeCard(
-                expanded = soloExpanded,
-                outdoor = soloOutdoor,
-                categoryCount = soloCategoryCount,
-                onToggleExpand = { soloExpanded = !soloExpanded },
-                onSelectOutdoor = { soloOutdoor = it },
-                onSelectCategoryCount = { soloCategoryCount = it },
-                onConfirm = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
-                    val duration = if (soloCategoryCount == 10) 600 else 300
-                    gameState.solo.isOutdoor = soloOutdoor
-                    gameState.solo.categoryCount = soloCategoryCount
-                    gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
-                    gameState.solo.totalDurationSeconds = duration
-                    gameState.solo.timeRemainingSeconds = duration
-                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
-                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
-                },
-                modifier = Modifier.staggered(1),
-            )
-
-            // ── Multiplayer ──────────────────────────────────────────────
-            HorizontalDivider(
-                color = ColorOutlineVariant,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-            Text(
-                "Multiplayer",
+                label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = ColorOnSurfaceVariant,
+                color = if (selected) Color.White else ColorOnSurfaceVariant,
             )
-            Spacer(Modifier.height(4.dp))
-
-            AiJudgeCard(
-                expanded = aiJudgeExpanded,
-                outdoor = aiJudgeOutdoor,
-                onToggleExpand = { aiJudgeExpanded = !aiJudgeExpanded },
-                onSelectOutdoor = { aiJudgeOutdoor = it },
-                onConfirm = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
-                    gameState.session.gameMode = GameMode.AI_JUDGE
-                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-                modifier = Modifier.staggered(1),
-            )
-
-            QuickStartCard(
-                expanded = quickStartExpanded,
-                outdoor = quickStartOutdoor,
-                onToggleExpand = { quickStartExpanded = !quickStartExpanded },
-                onSelectOutdoor = { quickStartOutdoor = it },
-                onConfirm = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "QUICK_START"))
-                    gameState.session.gameMode = GameMode.QUICK_START
-                    gameState.session.quickStartOutdoor = quickStartOutdoor
-                    gameState.session.quickStartDurationMinutes = 15
-                    gameState.gameplay.gameDurationMinutes = 15
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-                modifier = Modifier.staggered(2),
-            )
-
-            ModeCard(
-                mode = GameMode.CLASSIC,
-                title = S.current.modeClassic,
-                subtitle = S.current.modeClassicSubtitle,
-                description = S.current.modeClassicDesc,
-                icon = Icons.Default.GridView,
-                gradientColors = GradientPrimary,
-                modifier = Modifier.staggered(3),
-                onClick = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "CLASSIC"))
-                    gameState.session.gameMode = GameMode.CLASSIC
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-            )
-
-            ModeCard(
-                mode = GameMode.BLIND_BINGO,
-                title = S.current.modeBlindBingo,
-                subtitle = S.current.modeBlindBingoSubtitle,
-                description = S.current.modeBlindBingoDesc,
-                icon = Icons.Default.VisibilityOff,
-                gradientColors = GradientCool,
-                modifier = Modifier.staggered(4),
-                onClick = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "BLIND_BINGO"))
-                    gameState.session.gameMode = GameMode.BLIND_BINGO
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-            )
-
-            ModeCard(
-                mode = GameMode.WEIRD_CORE,
-                title = S.current.modeWeirdCore,
-                subtitle = S.current.modeWeirdCoreSubtitle,
-                description = S.current.modeWeirdCoreDesc,
-                icon = Icons.Default.QuestionMark,
-                gradientColors = GradientWeird,
-                modifier = Modifier.staggered(5),
-                onClick = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "WEIRD_CORE"))
-                    gameState.session.gameMode = GameMode.WEIRD_CORE
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-            )
-
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
+
+// ── Shared: Gradient Confirm Button ─────────────────────────────────────
+
+@Composable
+private fun GradientConfirmButton(
+    text: String,
+    gradientColors: List<Color>,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.linearGradient(gradientColors))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
+    }
+}
+
+// ── Shared: Expandable Card Options Section ─────────────────────────────
+
+@Composable
+private fun ExpandableCardOptionsSection(
+    outdoor: Boolean,
+    gradientColors: List<Color>,
+    locationLabel: String,
+    onSelectOutdoor: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    extraContent: (@Composable () -> Unit)? = null,
+) {
+    Spacer(Modifier.height(16.dp))
+    HorizontalDivider(color = ColorOutlineVariant)
+    Spacer(Modifier.height(14.dp))
+
+    Text(
+        locationLabel,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = ColorOnSurfaceVariant,
+    )
+    Spacer(Modifier.height(10.dp))
+
+    OutdoorIndoorToggle(
+        outdoor = outdoor,
+        gradientColors = gradientColors,
+        onSelectOutdoor = onSelectOutdoor,
+    )
+
+    extraContent?.invoke()
+
+    Spacer(Modifier.height(12.dp))
+
+    GradientConfirmButton(
+        text = S.current.letsGo,
+        gradientColors = gradientColors,
+        onClick = onConfirm,
+    )
+}
+
+// ── Quick Start Card ────────────────────────────────────────────────────
 
 @Composable
 private fun QuickStartCard(
@@ -255,26 +504,7 @@ private fun QuickStartCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = gradientColors,
-                                start = Offset(0f, 0f),
-                                end = Offset(200f, 200f),
-                            )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.White,
-                    )
-                }
+                GradientIconBox(icon = Icons.Default.Bolt, gradientColors = gradientColors)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         S.current.modeQuickStart,
@@ -305,105 +535,19 @@ private fun QuickStartCard(
             }
 
             if (expanded) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = ColorOutlineVariant)
-                Spacer(Modifier.height(14.dp))
-
-                Text(
-                    S.current.whereDoYouPlay,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
+                ExpandableCardOptionsSection(
+                    outdoor = outdoor,
+                    gradientColors = gradientColors,
+                    locationLabel = S.current.whereDoYouPlay,
+                    onSelectOutdoor = onSelectOutdoor,
+                    onConfirm = onConfirm,
                 )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    // Draußen
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(true) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.outdoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                    // Drinnen
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (!outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (!outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(false) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.indoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(gradientColors))
-                        .clickable { onConfirm() }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        S.current.letsGo,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
             }
         }
     }
 }
+
+// ── Mode Card (non-expandable) ──────────────────────────────────────────
 
 @Composable
 private fun ModeCard(
@@ -446,27 +590,7 @@ private fun ModeCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            // Icon box
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = gradientColors,
-                            start = Offset(0f, 0f),
-                            end = Offset(200f, 200f),
-                        )
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = Color.White,
-                )
-            }
+            GradientIconBox(icon = icon, gradientColors = gradientColors)
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -615,26 +739,7 @@ private fun AiJudgeCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = gradientColors,
-                                start = Offset(0f, 0f),
-                                end = Offset(200f, 200f),
-                            )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.White,
-                    )
-                }
+                GradientIconBox(icon = Icons.Default.AutoAwesome, gradientColors = gradientColors)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -668,99 +773,13 @@ private fun AiJudgeCard(
             }
 
             if (expanded) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = ColorOutlineVariant)
-                Spacer(Modifier.height(14.dp))
-
-                Text(
-                    S.current.whereDoYouPlay,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
+                ExpandableCardOptionsSection(
+                    outdoor = outdoor,
+                    gradientColors = gradientColors,
+                    locationLabel = S.current.whereDoYouPlay,
+                    onSelectOutdoor = onSelectOutdoor,
+                    onConfirm = onConfirm,
                 )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(true) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.outdoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (!outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (!outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(false) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.indoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(gradientColors))
-                        .clickable { onConfirm() }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        S.current.letsGo,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
             }
         }
     }
@@ -811,26 +830,7 @@ private fun SoloChallengeCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = gradientColors,
-                                start = Offset(0f, 0f),
-                                end = Offset(200f, 200f),
-                            )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = Color.White,
-                    )
-                }
+                GradientIconBox(icon = Icons.Default.Person, gradientColors = gradientColors)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -864,164 +864,65 @@ private fun SoloChallengeCard(
             }
 
             if (expanded) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = ColorOutlineVariant)
-                Spacer(Modifier.height(14.dp))
-
-                // Outdoor/Indoor toggle
-                Text(
-                    S.current.whereDoYouPlaySolo,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
+                ExpandableCardOptionsSection(
+                    outdoor = outdoor,
+                    gradientColors = gradientColors,
+                    locationLabel = S.current.whereDoYouPlaySolo,
+                    onSelectOutdoor = onSelectOutdoor,
+                    onConfirm = onConfirm,
+                    extraContent = {
+                        Spacer(Modifier.height(14.dp))
+                        SoloCategoryCountToggle(
+                            categoryCount = categoryCount,
+                            gradientColors = gradientColors,
+                            onSelectCategoryCount = onSelectCategoryCount,
+                        )
+                    },
                 )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(true) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.outdoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = btnModifier
-                            .background(
-                                if (!outdoor) Brush.linearGradient(gradientColors)
-                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (!outdoor) Color.Transparent else ColorOutline,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { onSelectOutdoor(false) }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
-                            Text(
-                                S.current.indoor,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                // Category count toggle (5 or 10)
-                Text(
-                    S.current.soloCategoryCountLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ColorOnSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val catBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                    listOf(5 to "5 ${S.current.categories}", 10 to "10 ${S.current.categories}").forEach { (count, label) ->
-                        val selected = categoryCount == count
-                        Box(
-                            modifier = catBtnModifier
-                                .background(
-                                    if (selected) Brush.linearGradient(gradientColors)
-                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (selected) Color.Transparent else ColorOutline,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
-                                .clickable { onSelectCategoryCount(count) }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    if (count == 5) Icons.Default.GridView else Icons.Default.GridOn,
-                                    null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (selected) Color.White else ColorOnSurfaceVariant,
-                                )
-                                Text(
-                                    label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (selected) Color.White else ColorOnSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (categoryCount == 10) "10 Min. | ${S.current.outdoor}/${S.current.indoor}"
-                    else "5 Min. | ${S.current.outdoor}/${S.current.indoor}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(gradientColors))
-                        .clickable { onConfirm() }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        S.current.letsGo,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
             }
         }
     }
 }
 
+// ── Solo Category Count Toggle ──────────────────────────────────────────
+
+@Composable
+private fun SoloCategoryCountToggle(
+    categoryCount: Int,
+    gradientColors: List<Color>,
+    onSelectCategoryCount: (Int) -> Unit,
+) {
+    Text(
+        S.current.soloCategoryCountLabel,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = ColorOnSurfaceVariant,
+    )
+    Spacer(Modifier.height(10.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        val catBtnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+        listOf(5 to "5 ${S.current.categories}", 10 to "10 ${S.current.categories}").forEach { (count, label) ->
+            val selected = categoryCount == count
+            ToggleOptionButton(
+                selected = selected,
+                icon = if (count == 5) Icons.Default.GridView else Icons.Default.GridOn,
+                label = label,
+                gradientColors = gradientColors,
+                onClick = { onSelectCategoryCount(count) },
+                modifier = catBtnModifier,
+            )
+        }
+    }
+
+    Spacer(Modifier.height(6.dp))
+    Text(
+        if (categoryCount == 10) "10 Min. | ${S.current.outdoor}/${S.current.indoor}"
+        else "5 Min. | ${S.current.outdoor}/${S.current.indoor}",
+        style = MaterialTheme.typography.labelSmall,
+        color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
+    )
+}

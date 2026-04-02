@@ -106,7 +106,9 @@ object ActiveSession {
                     gameState.gameplay.teamModeEnabled = true
                     gameState.gameplay.teamAssignments = teams
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("ActiveSession", "Team assignment load failed", e)
+            }
 
             when (game.status) {
                 "lobby" -> {

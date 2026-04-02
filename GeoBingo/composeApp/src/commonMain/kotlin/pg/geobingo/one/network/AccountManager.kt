@@ -244,7 +244,9 @@ object AccountManager {
                 filter { eq("id", userId) }
             }
             // Cache locally
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar local cache failed", e)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar upload failed", e)
@@ -257,13 +259,17 @@ object AccountManager {
             val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
             try {
                 supabase.storage.from("photos").delete("avatars/$userId.jpg")
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar storage delete failed", e)
+            }
             supabase.postgrest["profiles"].update({
                 set("avatar_url", "")
             }) {
                 filter { eq("id", userId) }
             }
-            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar local clear failed", e)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar removal failed", e)
@@ -277,13 +283,17 @@ object AccountManager {
         try {
             val cached = LocalPhotoStore.loadAvatar("profile")
             if (cached != null && cached.isNotEmpty()) return cached
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Avatar local cache read failed", e)
+        }
         // Download from storage
         return try {
             val path = "avatars/$userId.jpg"
             val url = supabase.storage.from("photos").createSignedUrl(path, pg.geobingo.one.game.GameConstants.AVATAR_URL_EXPIRY)
             val bytes: ByteArray = ServiceLocator.httpClient.get(url).body()
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar download cache failed", e)
+            }
             bytes
         } catch (e: Exception) {
             AppLogger.d(TAG, "Profile avatar download failed", e)
@@ -346,7 +356,9 @@ object AccountManager {
                     if (cached == null || cached.isEmpty()) {
                         downloadProfileAvatar()
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLogger.w(TAG, "Avatar sync failed", e)
+                }
             }
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sync from cloud failed", e)

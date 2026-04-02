@@ -69,7 +69,9 @@ fun FriendsScreen(gameState: GameState) {
                 try {
                     val bytes = FriendsManager.downloadFriendAvatar(friend.userId)
                     if (bytes != null) avatarMap[friend.userId] = bytes
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLogger.w("Friends", "Avatar download failed: ${friend.userId}", e)
+                }
             }
             friendAvatars = avatarMap
         } catch (e: Exception) {
@@ -87,7 +89,9 @@ fun FriendsScreen(gameState: GameState) {
                 friends = FriendsManager.getFriends()
                 pendingRequests = FriendsManager.getPendingRequests()
                 pendingInvites = FriendsManager.getPendingInvites()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("Friends", "Refresh failed", e)
+            }
         }
     }
 
@@ -114,7 +118,9 @@ fun FriendsScreen(gameState: GameState) {
                         },
                     )
                     // Refresh
-                    try { pendingRequests = FriendsManager.getPendingRequests() } catch (_: Exception) {}
+                    try { pendingRequests = FriendsManager.getPendingRequests() } catch (e: Exception) {
+                        AppLogger.w("Friends", "Refresh pending requests failed", e)
+                    }
                 }
             },
         )

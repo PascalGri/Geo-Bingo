@@ -50,7 +50,7 @@ fun SelfiePicker(
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(
-                        bitmap = imageBitmap!!,
+                        bitmap = imageBitmap ?: return@Box,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,

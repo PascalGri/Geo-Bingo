@@ -121,4 +121,7 @@ actual fun rememberPhotoCapturer(onResult: (ByteArray?) -> Unit): PhotoCapturer 
 
 actual fun ByteArray.toImageBitmap(): ImageBitmap? = try {
     Image.makeFromEncoded(this).toComposeImageBitmap()
-} catch (_: Exception) { null }
+} catch (e: Exception) {
+    println("[W] [PhotoCapture] toImageBitmap failed: ${e.message}")
+    null
+}

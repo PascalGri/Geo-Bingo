@@ -17,6 +17,7 @@ actual suspend fun saveImageToDevice(bytes: ByteArray, filename: String): Boolea
     val image = UIImage(data = data) ?: return false
     UIImageWriteToSavedPhotosAlbum(image, null, null, null)
     true
-} catch (_: Exception) {
+} catch (e: Exception) {
+    println("[W] [ImageSaver] Save failed: ${e.message}")
     false
 }

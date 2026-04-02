@@ -63,7 +63,9 @@ fun GameChatOverlay(
             if (!expanded) unreadCount++
             // Auto-scroll to bottom
             if (expanded && messages.isNotEmpty()) {
-                try { listState.animateScrollToItem(messages.size - 1) } catch (_: Exception) {}
+                try { listState.animateScrollToItem(messages.size - 1) } catch (e: Exception) {
+                    AppLogger.d("Chat", "Auto-scroll failed", e)
+                }
             }
         }
     }
@@ -73,7 +75,9 @@ fun GameChatOverlay(
         if (expanded) {
             unreadCount = 0
             if (messages.isNotEmpty()) {
-                try { listState.animateScrollToItem(messages.size - 1) } catch (_: Exception) {}
+                try { listState.animateScrollToItem(messages.size - 1) } catch (e: Exception) {
+                    AppLogger.d("Chat", "Scroll on expand failed", e)
+                }
             }
         }
     }

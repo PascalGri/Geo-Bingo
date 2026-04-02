@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +47,18 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
 
+    // Pagination state per variant: raw offset tracks how many raw rows have been fetched from DB
+    var rawOffset5Outdoor by remember { mutableStateOf(0) }
+    var rawOffset5Indoor by remember { mutableStateOf(0) }
+    var rawOffset10Outdoor by remember { mutableStateOf(0) }
+    var rawOffset10Indoor by remember { mutableStateOf(0) }
+    var hasMore5Outdoor by remember { mutableStateOf(true) }
+    var hasMore5Indoor by remember { mutableStateOf(true) }
+    var hasMore10Outdoor by remember { mutableStateOf(true) }
+    var hasMore10Indoor by remember { mutableStateOf(true) }
+    var loadingMore by remember { mutableStateOf(false) }
+    val pageSize = 100 // fetch in chunks from DB, then deduplicate + filter client-side
+
     val currentUserId = AccountManager.currentUserId
     val playerName = gameState.solo.playerName
 
@@ -55,18 +68,40 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         selectedCatCount == 1 && selectedEnvironment == 0 -> scores10Outdoor
         else -> scores10Indoor
     }
+    val hasMore = when {
+        selectedCatCount == 0 && selectedEnvironment == 0 -> hasMore5Outdoor
+        selectedCatCount == 0 && selectedEnvironment == 1 -> hasMore5Indoor
+        selectedCatCount == 1 && selectedEnvironment == 0 -> hasMore10Outdoor
+        else -> hasMore10Indoor
+    }
+
+    /** Load a page of scores for the given outdoor flag and append to the correct variant lists. */
+    suspend fun loadPage(isOutdoor: Boolean, offset: Int): Int {
+        val raw = GameRepository.getSoloLeaderboard(pageSize, isOutdoor = isOutdoor, offset = offset)
+        val raw5 = raw.filter { it.categories_count <= 5 }
+        val raw10 = raw.filter { it.categories_count > 5 }
+        if (isOutdoor) {
+            scores5Outdoor = deduplicateScores(scores5Outdoor + raw5)
+            scores10Outdoor = deduplicateScores(scores10Outdoor + raw10)
+            rawOffset5Outdoor = offset + raw.size
+            rawOffset10Outdoor = offset + raw.size
+        } else {
+            scores5Indoor = deduplicateScores(scores5Indoor + raw5)
+            scores10Indoor = deduplicateScores(scores10Indoor + raw10)
+            rawOffset5Indoor = offset + raw.size
+            rawOffset10Indoor = offset + raw.size
+        }
+        return raw.size
+    }
 
     LaunchedEffect(Unit) {
         try {
-            // Fetch all scores and partition by categories_count
-            val rawOutdoor = GameRepository.getSoloLeaderboard(300, isOutdoor = true)
-            val rawIndoor = GameRepository.getSoloLeaderboard(300, isOutdoor = false)
-
-            // Split by category count: <= 5 goes to 5-cat, > 5 goes to 10-cat
-            scores5Outdoor = deduplicateScores(rawOutdoor.filter { it.categories_count <= 5 }).take(50)
-            scores10Outdoor = deduplicateScores(rawOutdoor.filter { it.categories_count > 5 }).take(50)
-            scores5Indoor = deduplicateScores(rawIndoor.filter { it.categories_count <= 5 }).take(50)
-            scores10Indoor = deduplicateScores(rawIndoor.filter { it.categories_count > 5 }).take(50)
+            val outdoorCount = loadPage(isOutdoor = true, offset = 0)
+            val indoorCount = loadPage(isOutdoor = false, offset = 0)
+            hasMore5Outdoor = outdoorCount >= pageSize
+            hasMore10Outdoor = outdoorCount >= pageSize
+            hasMore5Indoor = indoorCount >= pageSize
+            hasMore10Indoor = indoorCount >= pageSize
             loading = false
         } catch (e: Exception) {
             AppLogger.w("Leaderboard", "Failed to load", e)
@@ -222,7 +257,40 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                         }
                     }
                 } else {
+                    val listState = rememberLazyListState()
+
+                    // Detect when scrolled near the bottom and load more
+                    val shouldLoadMore by remember {
+                        derivedStateOf {
+                            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                            val totalItems = listState.layoutInfo.totalItemsCount
+                            lastVisible >= totalItems - 3 && !loadingMore && hasMore
+                        }
+                    }
+                    LaunchedEffect(shouldLoadMore, selectedEnvironment, selectedCatCount) {
+                        if (shouldLoadMore && scores.isNotEmpty()) {
+                            loadingMore = true
+                            try {
+                                val isOutdoor = selectedEnvironment == 0
+                                val currentOffset = if (isOutdoor) rawOffset5Outdoor else rawOffset5Indoor
+                                val count = loadPage(isOutdoor = isOutdoor, offset = currentOffset)
+                                val noMore = count < pageSize
+                                if (isOutdoor) {
+                                    hasMore5Outdoor = !noMore
+                                    hasMore10Outdoor = !noMore
+                                } else {
+                                    hasMore5Indoor = !noMore
+                                    hasMore10Indoor = !noMore
+                                }
+                            } catch (e: Exception) {
+                                AppLogger.w("Leaderboard", "Load more failed", e)
+                            }
+                            loadingMore = false
+                        }
+                    }
+
                     LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -232,6 +300,14 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                                 score = score,
                                 isCurrentPlayer = isOwnScore(score, currentUserId, playerName),
                             )
+                        }
+
+                        if (loadingMore) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = ColorPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                }
+                            }
                         }
                     }
                 }

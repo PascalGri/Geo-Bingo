@@ -50,7 +50,7 @@ fun PlayerAvatarView(
     ) {
         if (imageBitmap != null) {
             Image(
-                bitmap = imageBitmap!!,
+                bitmap = imageBitmap ?: return,
                 contentDescription = "Foto ${player.name}",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -91,7 +91,7 @@ fun PlayerAvatarViewRaw(
     ) {
         if (imageBitmap != null) {
             Image(
-                bitmap = imageBitmap!!,
+                bitmap = imageBitmap ?: return,
                 contentDescription = "Foto $name",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

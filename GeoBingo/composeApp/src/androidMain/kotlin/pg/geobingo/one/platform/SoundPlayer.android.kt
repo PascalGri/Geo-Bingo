@@ -24,7 +24,9 @@ actual object SoundPlayer {
                 file.writeBytes(bytes)
                 val id = soundPool.load(file.absolutePath, 1)
                 soundIds[name] = id
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                println("[W] [SoundPlayer] Preload failed: $name: ${e.message}")
+            }
         }
     }
 

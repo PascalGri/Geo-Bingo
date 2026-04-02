@@ -49,7 +49,6 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun SettingsScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     SystemBackHandler { nav.goBack() }
     val uriHandler = LocalUriHandler.current
@@ -84,189 +83,253 @@ fun SettingsScreen(gameState: GameState) {
                 .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Account section - links to dedicated account screen
-            SettingsSection(title = S.current.account) {
-                val isLoggedIn = AccountManager.isLoggedIn
-                if (isLoggedIn) {
-                    val name = AppSettings.getString("last_player_name", "")
-                    val avatarBytes = LocalPhotoStore.loadAvatar("profile")
-                    SettingsClickRow(
-                        icon = Icons.Default.Person,
-                        title = name.ifBlank { S.current.account },
-                        subtitle = AccountManager.currentUser?.email ?: "",
-                        onClick = { nav.navigateTo(Screen.ACCOUNT) },
-                    )
-                } else {
-                    SettingsClickRow(
-                        icon = Icons.Default.PersonAdd,
-                        title = S.current.signIn,
-                        subtitle = S.current.syncDataDesc,
-                        onClick = { nav.navigateTo(Screen.ACCOUNT) },
-                    )
-                }
-            }
+            AccountQuickSection(
+                onNavigate = { nav.navigateTo(it) },
+            )
 
-            // Sound & Haptic section
-            SettingsSection(title = S.current.general) {
-                SettingsToggleRow(
-                    icon = Icons.AutoMirrored.Filled.VolumeUp,
-                    title = S.current.soundEffects,
-                    subtitle = S.current.soundEffectsDesc,
-                    checked = gameState.ui.soundEnabled,
-                    onCheckedChange = { gameState.ui.updateSoundEnabled(it) },
-                )
-                HorizontalDivider(color = ColorOutlineVariant)
-                SettingsToggleRow(
-                    icon = Icons.Default.Vibration,
-                    title = S.current.hapticFeedback,
-                    subtitle = S.current.hapticFeedbackDesc,
-                    checked = gameState.ui.hapticEnabled,
-                    onCheckedChange = { gameState.ui.updateHapticEnabled(it) },
-                )
-            }
+            SoundAndHapticSection(
+                soundEnabled = gameState.ui.soundEnabled,
+                onSoundEnabledChange = { gameState.ui.updateSoundEnabled(it) },
+                hapticEnabled = gameState.ui.hapticEnabled,
+                onHapticEnabledChange = { gameState.ui.updateHapticEnabled(it) },
+            )
 
-            // Advertising section
-            if (AdManager.isAdSupported) {
-                SettingsSection(title = S.current.advertising) {
-                    if (gameState.stars.noAdsPurchased) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorSuccess, modifier = Modifier.size(22.dp))
-                            Text(S.current.adsRemoved, style = MaterialTheme.typography.bodyMedium, color = ColorSuccess, fontWeight = FontWeight.Medium)
-                        }
-                    } else {
-                        var purchaseLoading by remember { mutableStateOf(false) }
-                        SettingsClickRow(
-                            icon = Icons.Default.RemoveCircle,
-                            title = S.current.removeAds,
-                            subtitle = "${S.current.removeAdsPrice} - ${S.current.removeAdsDesc}",
-                            onClick = {
-                                if (!purchaseLoading) {
-                                    purchaseLoading = true
-                                    BillingManager.purchaseProduct(
-                                        productId = "pg.geobingo.one.no_ads",
-                                        onSuccess = {
-                                            gameState.stars.updateNoAdsPurchased(true)
-                                            purchaseLoading = false
-                                        },
-                                        onError = {
-                                            purchaseLoading = false
-                                        },
-                                    )
-                                }
-                            },
-                        )
-                    }
-                    HorizontalDivider(color = ColorOutlineVariant)
-                    SettingsClickRow(
-                        icon = Icons.Default.Campaign,
-                        title = S.current.adSettings,
-                        subtitle = S.current.adSettingsDesc,
-                        onClick = { ConsentManager.showPrivacyOptionsForm {} },
-                    )
-                    HorizontalDivider(color = ColorOutlineVariant)
-                    SettingsClickRow(
-                        icon = Icons.Default.Refresh,
-                        title = S.current.restorePurchases,
-                        onClick = {
-                            BillingManager.restorePurchases(
-                                onRestored = { products ->
-                                    if ("pg.geobingo.one.no_ads" in products) {
-                                        gameState.stars.updateNoAdsPurchased(true)
-                                    }
-                                },
-                                onError = {},
-                            )
-                        },
-                    )
-                }
-            }
+            AdvertisingSection(gameState = gameState)
 
-            // Language section
-            SettingsSection(title = S.current.language) {
-                var showLangDialog by remember { mutableStateOf(false) }
-                SettingsClickRow(
-                    icon = Icons.Default.Language,
-                    title = S.current.language,
-                    subtitle = S.language.displayName,
-                    onClick = { showLangDialog = true },
-                )
-                if (showLangDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLangDialog = false },
-                        containerColor = ColorSurface,
-                        title = { Text(S.current.language, color = ColorOnSurface) },
-                        text = {
-                            Column {
-                                Language.entries.forEach { lang ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                S.switchLanguage(lang)
-                                                AppSettings.setString(SettingsKeys.LANGUAGE, lang.code)
-                                                showLangDialog = false
-                                            }
-                                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        RadioButton(
-                                            selected = S.language == lang,
-                                            onClick = null,
-                                            colors = RadioButtonDefaults.colors(selectedColor = ColorPrimary),
-                                        )
-                                        Text(lang.displayName, color = ColorOnSurface, style = MaterialTheme.typography.bodyLarge)
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showLangDialog = false }) {
-                                Text(S.current.close, color = ColorPrimary)
-                            }
-                        },
-                    )
-                }
-            }
+            LanguageSection()
 
-            // Support section
-            SettingsSection(title = S.current.support) {
-                SettingsClickRow(
-                    icon = Icons.Default.Email,
-                    title = S.current.contact,
-                    subtitle = "support@katchit.app",
-                    onClick = { uriHandler.openUri("mailto:support@katchit.app") },
-                )
-            }
+            SupportSection(
+                onContactClick = { uriHandler.openUri("mailto:support@katchit.app") },
+            )
 
-            // Legal section
-            SettingsSection(title = S.current.legal) {
-                SettingsClickRow(
-                    icon = Icons.Default.Description,
-                    title = S.current.impressum,
-                    onClick = { uriHandler.openUri("https://katchit.app/impressum.html") },
-                )
-                HorizontalDivider(color = ColorOutlineVariant)
-                SettingsClickRow(
-                    icon = Icons.Default.Shield,
-                    title = S.current.privacyPolicy,
-                    onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") },
-                )
-            }
+            LegalSection(
+                onImpressumClick = { uriHandler.openUri("https://katchit.app/impressum.html") },
+                onPrivacyClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") },
+            )
 
-            // Version
-            Text(
-                "KatchIt! v1.1",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorOutline,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
+            VersionFooter(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+    }
+}
+
+// ── Account Quick Section (navigate to account screen) ──────────────────────
+
+@Composable
+private fun AccountQuickSection(
+    onNavigate: (Screen) -> Unit,
+) {
+    SettingsSection(title = S.current.account) {
+        val isLoggedIn = AccountManager.isLoggedIn
+        if (isLoggedIn) {
+            val name = AppSettings.getString("last_player_name", "")
+            val avatarBytes = LocalPhotoStore.loadAvatar("profile")
+            SettingsClickRow(
+                icon = Icons.Default.Person,
+                title = name.ifBlank { S.current.account },
+                subtitle = AccountManager.currentUser?.email ?: "",
+                onClick = { onNavigate(Screen.ACCOUNT) },
+            )
+        } else {
+            SettingsClickRow(
+                icon = Icons.Default.PersonAdd,
+                title = S.current.signIn,
+                subtitle = S.current.syncDataDesc,
+                onClick = { onNavigate(Screen.ACCOUNT) },
             )
         }
     }
+}
+
+// ── Sound & Haptic Section ──────────────────────────────────────────────────
+
+@Composable
+private fun SoundAndHapticSection(
+    soundEnabled: Boolean,
+    onSoundEnabledChange: (Boolean) -> Unit,
+    hapticEnabled: Boolean,
+    onHapticEnabledChange: (Boolean) -> Unit,
+) {
+    SettingsSection(title = S.current.general) {
+        SettingsToggleRow(
+            icon = Icons.AutoMirrored.Filled.VolumeUp,
+            title = S.current.soundEffects,
+            subtitle = S.current.soundEffectsDesc,
+            checked = soundEnabled,
+            onCheckedChange = onSoundEnabledChange,
+        )
+        HorizontalDivider(color = ColorOutlineVariant)
+        SettingsToggleRow(
+            icon = Icons.Default.Vibration,
+            title = S.current.hapticFeedback,
+            subtitle = S.current.hapticFeedbackDesc,
+            checked = hapticEnabled,
+            onCheckedChange = onHapticEnabledChange,
+        )
+    }
+}
+
+// ── Advertising Section ─────────────────────────────────────────────────────
+
+@Composable
+private fun AdvertisingSection(gameState: GameState) {
+    if (AdManager.isAdSupported) {
+        SettingsSection(title = S.current.advertising) {
+            if (gameState.stars.noAdsPurchased) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorSuccess, modifier = Modifier.size(22.dp))
+                    Text(S.current.adsRemoved, style = MaterialTheme.typography.bodyMedium, color = ColorSuccess, fontWeight = FontWeight.Medium)
+                }
+            } else {
+                var purchaseLoading by remember { mutableStateOf(false) }
+                SettingsClickRow(
+                    icon = Icons.Default.RemoveCircle,
+                    title = S.current.removeAds,
+                    subtitle = "${S.current.removeAdsPrice} - ${S.current.removeAdsDesc}",
+                    onClick = {
+                        if (!purchaseLoading) {
+                            purchaseLoading = true
+                            BillingManager.purchaseProduct(
+                                productId = "pg.geobingo.one.no_ads",
+                                onSuccess = {
+                                    gameState.stars.updateNoAdsPurchased(true)
+                                    purchaseLoading = false
+                                },
+                                onError = {
+                                    purchaseLoading = false
+                                },
+                            )
+                        }
+                    },
+                )
+            }
+            HorizontalDivider(color = ColorOutlineVariant)
+            SettingsClickRow(
+                icon = Icons.Default.Campaign,
+                title = S.current.adSettings,
+                subtitle = S.current.adSettingsDesc,
+                onClick = { ConsentManager.showPrivacyOptionsForm {} },
+            )
+            HorizontalDivider(color = ColorOutlineVariant)
+            SettingsClickRow(
+                icon = Icons.Default.Refresh,
+                title = S.current.restorePurchases,
+                onClick = {
+                    BillingManager.restorePurchases(
+                        onRestored = { products ->
+                            if ("pg.geobingo.one.no_ads" in products) {
+                                gameState.stars.updateNoAdsPurchased(true)
+                            }
+                        },
+                        onError = {},
+                    )
+                },
+            )
+        }
+    }
+}
+
+// ── Language Section ────────────────────────────────────────────────────────
+
+@Composable
+private fun LanguageSection() {
+    SettingsSection(title = S.current.language) {
+        var showLangDialog by remember { mutableStateOf(false) }
+        SettingsClickRow(
+            icon = Icons.Default.Language,
+            title = S.current.language,
+            subtitle = S.language.displayName,
+            onClick = { showLangDialog = true },
+        )
+        if (showLangDialog) {
+            AlertDialog(
+                onDismissRequest = { showLangDialog = false },
+                containerColor = ColorSurface,
+                title = { Text(S.current.language, color = ColorOnSurface) },
+                text = {
+                    Column {
+                        Language.entries.forEach { lang ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        S.switchLanguage(lang)
+                                        AppSettings.setString(SettingsKeys.LANGUAGE, lang.code)
+                                        showLangDialog = false
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                RadioButton(
+                                    selected = S.language == lang,
+                                    onClick = null,
+                                    colors = RadioButtonDefaults.colors(selectedColor = ColorPrimary),
+                                )
+                                Text(lang.displayName, color = ColorOnSurface, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLangDialog = false }) {
+                        Text(S.current.close, color = ColorPrimary)
+                    }
+                },
+            )
+        }
+    }
+}
+
+// ── Support Section ─────────────────────────────────────────────────────────
+
+@Composable
+private fun SupportSection(onContactClick: () -> Unit) {
+    SettingsSection(title = S.current.support) {
+        SettingsClickRow(
+            icon = Icons.Default.Email,
+            title = S.current.contact,
+            subtitle = "support@katchit.app",
+            onClick = onContactClick,
+        )
+    }
+}
+
+// ── Legal Section ───────────────────────────────────────────────────────────
+
+@Composable
+private fun LegalSection(
+    onImpressumClick: () -> Unit,
+    onPrivacyClick: () -> Unit,
+) {
+    SettingsSection(title = S.current.legal) {
+        SettingsClickRow(
+            icon = Icons.Default.Description,
+            title = S.current.impressum,
+            onClick = onImpressumClick,
+        )
+        HorizontalDivider(color = ColorOutlineVariant)
+        SettingsClickRow(
+            icon = Icons.Default.Shield,
+            title = S.current.privacyPolicy,
+            onClick = onPrivacyClick,
+        )
+    }
+}
+
+// ── Version Footer ──────────────────────────────────────────────────────────
+
+@Composable
+private fun VersionFooter(modifier: Modifier = Modifier) {
+    Text(
+        "KatchIt! v1.1",
+        style = MaterialTheme.typography.bodySmall,
+        color = ColorOutline,
+        modifier = modifier.padding(top = 8.dp),
+    )
 }
 
 // ── Profile Section (editable name + avatar) ─────────────────────────────────
@@ -294,7 +357,9 @@ private fun ProfileSection(
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             avatarBytes = bytes
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
+                pg.geobingo.one.util.AppLogger.w("Settings", "Avatar save failed", e)
+            }
         }
     }
 

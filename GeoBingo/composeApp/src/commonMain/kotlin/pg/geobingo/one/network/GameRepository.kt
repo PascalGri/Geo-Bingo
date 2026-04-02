@@ -199,6 +199,8 @@ object GameRepository {
     /** Uses the shared HttpClient from ServiceLocator for proper lifecycle management. */
     private val httpClient get() = ServiceLocator.httpClient
 
+    private val soloLeaderboardCaches = mutableMapOf<String, ResponseCache<List<SoloScoreDto>>>()
+
     suspend fun createGame(code: String, durationSeconds: Int, jokerMode: Boolean = false, gameMode: String = "CLASSIC"): GameDto =
         supabase.from("games").insert(
             GameInsertDto(code = code, duration_s = durationSeconds, joker_mode = jokerMode, game_mode = gameMode)
@@ -590,8 +592,8 @@ object GameRepository {
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
 
-    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null): SoloScoreDto =
-        supabase.from("solo_scores").insert(
+    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null): SoloScoreDto {
+        val result = supabase.from("solo_scores").insert(
             SoloScoreInsertDto(
                 player_name = playerName,
                 user_id = userId,
@@ -601,16 +603,24 @@ object GameRepository {
                 duration_seconds = durationSeconds,
                 is_outdoor = isOutdoor,
             )
-        ) { select() }.decodeSingle()
+        ) { select() }.decodeSingle<SoloScoreDto>()
+        soloLeaderboardCaches.values.forEach { it.invalidate() }
+        return result
+    }
 
-    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null): List<SoloScoreDto> =
-        supabase.from("solo_scores")
-            .select {
-                if (isOutdoor != null) filter { eq("is_outdoor", isOutdoor) }
-                order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-                limit(limit.toLong())
-            }
-            .decodeList()
+    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null, offset: Int = 0): List<SoloScoreDto> {
+        val cacheKey = "$limit:$isOutdoor:$offset"
+        val cache = soloLeaderboardCaches.getOrPut(cacheKey) { ResponseCache(ttlMs = 60_000L) }
+        return cache.getOrFetch {
+            supabase.from("solo_scores")
+                .select {
+                    if (isOutdoor != null) filter { eq("is_outdoor", isOutdoor) }
+                    order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                    range(offset.toLong(), (offset + limit - 1).toLong())
+                }
+                .decodeList()
+        }
+    }
 
     suspend fun getSoloPersonalBest(playerName: String): SoloScoreDto? =
         supabase.from("solo_scores")
@@ -712,13 +722,13 @@ object GameRepository {
         }
     }
 
-    suspend fun getFriendsActivity(friendIds: List<String>, limit: Int = 30): List<ActivityDto> {
+    suspend fun getFriendsActivity(friendIds: List<String>, limit: Int = 30, offset: Int = 0): List<ActivityDto> {
         if (friendIds.isEmpty()) return emptyList()
         return supabase.from("activity_feed")
             .select {
                 filter { isIn("user_id", friendIds) }
                 order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-                limit(limit.toLong())
+                range(offset.toLong(), (offset + limit - 1).toLong())
             }
             .decodeList()
     }

@@ -28,7 +28,9 @@ actual object SoundPlayer {
             try {
                 val b64 = Base64.encode(bytes)
                 dataUris[name] = "data:audio/mpeg;base64,$b64"
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                println("[W] [SoundPlayer] Preload failed: $name: ${e.message}")
+            }
         }
     }
 

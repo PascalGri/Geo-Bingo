@@ -24,7 +24,9 @@ actual object SoundPlayer {
                 }
                 data.writeToFile(filePath, atomically = true)
                 soundPaths[name] = filePath
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                println("[W] [SoundPlayer] Preload failed: $name: ${e.message}")
+            }
         }
     }
 
@@ -35,6 +37,8 @@ actual object SoundPlayer {
             val player = AVAudioPlayer(contentsOfURL = url, error = null)
             player?.prepareToPlay()
             player?.play()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("[W] [SoundPlayer] Play failed: $fileName: ${e.message}")
+        }
     }
 }
