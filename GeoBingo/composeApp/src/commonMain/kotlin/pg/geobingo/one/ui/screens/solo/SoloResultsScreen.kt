@@ -185,7 +185,7 @@ fun SoloResultsScreen(gameState: GameState) {
             )
         },
         bottomBar = {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 OutlinedButton(
                     onClick = { nav.navigateTo(Screen.SOLO_LEADERBOARD) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),

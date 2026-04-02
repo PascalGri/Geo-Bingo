@@ -142,8 +142,8 @@ fun GameScreen(gameState: GameState) {
             gameState = gameState,
             finishCountdownSeconds = vm.finishCountdownSeconds,
             uploadSuccessCategory = vm.uploadSuccessCategory,
-            onJokerClick = { jokerDialogVisible = true },
-            onVoteToEnd = { vm.voteToEnd() },
+            onJokerClick = { feedback.tap(); jokerDialogVisible = true },
+            onVoteToEnd = { feedback.vote(); vm.voteToEnd() },
             onCameraClick = { playerId, catId ->
                 val isRetake = gameState.isCaptured(playerId, catId)
                 if (isRetake) {
@@ -157,6 +157,7 @@ fun GameScreen(gameState: GameState) {
                         showMiniShop = true
                     }
                 } else {
+                    feedback.categorySelect()
                     photoTargetPlayerId = playerId
                     photoTargetCategoryId = catId
                     photoCapturer.launch()

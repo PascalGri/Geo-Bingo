@@ -97,6 +97,10 @@ fun SoloGameScreen(gameState: GameState) {
                 )
                 solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
                 solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
+                if (gameState.ui.soundEnabled) {
+                    if (result.rating >= 3) SoundPlayer.play(SoundEffect.PhotoValidated)
+                    else SoundPlayer.play(SoundEffect.PhotoRejected)
+                }
             } catch (e: Exception) {
                 AppLogger.w("SoloGame", "Photo validation failed", e)
                 if (fallbackOnError) {
@@ -384,6 +388,7 @@ fun SoloGameScreen(gameState: GameState) {
                         speed = if (isCaptured) solo.getCaptureSpeed(category.id) else null,
                         onClick = {
                             if (!isCaptured && !isValidating) {
+                                if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.CategorySelect)
                                 pendingCategoryId = category.id
                                 isRetake = false
                                 photoCapturer.launch()

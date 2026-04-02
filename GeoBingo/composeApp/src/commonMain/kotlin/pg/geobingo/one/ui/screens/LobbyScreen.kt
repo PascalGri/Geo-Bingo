@@ -235,7 +235,7 @@ fun LobbyScreen(gameState: GameState) {
         },
         bottomBar = {
             if (gameState.session.isHost) {
-                Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
+                Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.navigationBarsPadding().graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
                     Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp)) {
                         // Lobby timeout warning (visible when < 60s remaining and still waiting for players)
                         if (lobbyTimeoutSeconds in 1..59 && gameState.gameplay.lobbyPlayers.size < 2) {

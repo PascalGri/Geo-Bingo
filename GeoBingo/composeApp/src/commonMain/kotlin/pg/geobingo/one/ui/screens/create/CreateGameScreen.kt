@@ -142,7 +142,7 @@ fun CreateGameScreen(gameState: GameState) {
             Surface(
                 shadowElevation = 8.dp,
                 color = ColorSurface,
-                modifier = Modifier.graphicsLayer {
+                modifier = Modifier.navigationBarsPadding().graphicsLayer {
                     translationY = bottomBarOffset.value
                     alpha = bottomBarAlpha.value
                 },

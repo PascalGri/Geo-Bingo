@@ -201,6 +201,7 @@ fun HomeScreen(gameState: GameState) {
             Surface(color = Color.Transparent) {
                 Column(
                     modifier = Modifier
+                        .navigationBarsPadding()
                         .padding(horizontal = Spacing.screenHorizontal)
                         .padding(bottom = 24.dp, top = 8.dp)
                         .fillMaxWidth(),

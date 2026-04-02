@@ -281,7 +281,7 @@ fun ResultsScreen(gameState: GameState) {
             )
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
+            Surface(shadowElevation = 8.dp, color = ColorSurface, modifier = Modifier.navigationBarsPadding().graphicsLayer { translationY = btnOffset.value; alpha = btnAlpha.value }) {
                 var rematchLoading by remember { mutableStateOf(false) }
                 var showRematchDialog by remember { mutableStateOf(false) }
 

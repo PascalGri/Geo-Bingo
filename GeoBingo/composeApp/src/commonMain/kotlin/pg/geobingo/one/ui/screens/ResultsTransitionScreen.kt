@@ -49,7 +49,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
         feedback.countdownTick()
         delay(1000L)
         countdown = 0
-        feedback.success()
+        feedback.resultsReveal()
         nav.replaceCurrent(Screen.RESULTS)
     }
 

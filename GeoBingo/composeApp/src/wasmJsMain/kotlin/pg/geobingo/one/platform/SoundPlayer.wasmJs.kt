@@ -3,14 +3,21 @@ package pg.geobingo.one.platform
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@JsFun("""(dataUri) => {
+@JsFun("""(dataUri, key) => {
     try {
-        var a = new Audio(dataUri);
-        a.volume = 0.5;
-        a.play().catch(function(){});
+        if (!window._sndCache) window._sndCache = {};
+        if (!window._sndCache[key]) {
+            var a = new Audio(dataUri);
+            a.volume = 0.5;
+            window._sndCache[key] = a;
+        }
+        var src = window._sndCache[key];
+        var clone = src.cloneNode();
+        clone.volume = 0.5;
+        clone.play().catch(function(){});
     } catch(e) { console.warn('playSound failed:', e); }
 }""")
-external fun playAudioDataUri(dataUri: JsString)
+external fun playAudioCached(dataUri: JsString, key: JsString)
 
 actual object SoundPlayer {
     private val dataUris = mutableMapOf<String, String>()
@@ -27,6 +34,6 @@ actual object SoundPlayer {
 
     actual fun playFile(fileName: String) {
         val uri = dataUris[fileName] ?: return
-        playAudioDataUri(uri.toJsString())
+        playAudioCached(uri.toJsString(), fileName.toJsString())
     }
 }
