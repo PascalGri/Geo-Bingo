@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════
    KatchIt! — Web Layout
-   App + AdSense Banner Slots
 ═══════════════════════════════════════════ */
 
 *, *::before, *::after {
@@ -27,7 +26,6 @@ body {
 #app {
     flex: 1;
     width: 100%;
-    /* Fallback height ohne Ads */
     height: 100dvh;
     overflow: hidden;
     position: relative;
@@ -85,119 +83,6 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 13px;
     color: #CBB8F0;
-}
-
-/* ── Ad Slots ───────────────────────────── */
-.ad-slot {
-    display: none; /* versteckt bis Consent gegeben */
-    width: 100%;
-    background: #0C0B15;
-    text-align: center;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.ad-slot.ad-visible {
-    display: block;
-}
-
-/* Top Banner */
-.ad-slot-top {
-    /* Mobile: 50px */
-    min-height: 50px;
-    border-bottom: 1px solid #1E1535;
-}
-
-/* Bottom Banner — sticky */
-.ad-slot-bottom {
-    min-height: 50px;
-    border-top: 1px solid #1E1535;
-    position: sticky;
-    bottom: 0;
-    z-index: 100;
-}
-
-/* Desktop: größere Slots */
-@media (min-width: 768px) {
-    .ad-slot-top {
-        min-height: 90px;
-    }
-    .ad-slot-bottom {
-        min-height: 90px;
-    }
-}
-
-/* ── DSGVO Consent Banner ───────────────── */
-#consent-banner {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 9999;
-    background: #0C0B15;
-    border-top: 1px solid #3A2A5C;
-    padding: 12px 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-#consent-banner-inner {
-    max-width: 720px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-}
-
-@media (min-width: 540px) {
-    #consent-banner-inner {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-}
-
-#consent-text {
-    font-size: 13px;
-    color: #CBB8F0;
-    line-height: 1.5;
-    flex: 1;
-}
-
-#consent-buttons {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-#consent-decline {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid #3A2A5C;
-    background: transparent;
-    color: #CBB8F0;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-#consent-decline:hover {
-    background: #15132A;
-}
-
-#consent-accept {
-    padding: 8px 20px;
-    border-radius: 20px;
-    border: none;
-    background: #D946EF;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-#consent-accept:hover {
-    background: #C026D3;
 }
 
 /* ── Legal Footer ─────────────────────────── */
