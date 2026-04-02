@@ -6,19 +6,19 @@
   ],
   "headers": [
     {
-      "source": "/.well-known/:path*",
-      "headers": [
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
-      ]
-    },
-    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
+    {
+      "source": "/.well-known/:path*",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
       ]
     },
     {
