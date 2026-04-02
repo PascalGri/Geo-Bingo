@@ -136,6 +136,20 @@ fun ModeSelectScreen(gameState: GameState) {
             )
             Spacer(Modifier.height(4.dp))
 
+            AiJudgeCard(
+                expanded = aiJudgeExpanded,
+                outdoor = aiJudgeOutdoor,
+                onToggleExpand = { aiJudgeExpanded = !aiJudgeExpanded },
+                onSelectOutdoor = { aiJudgeOutdoor = it },
+                onConfirm = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
+                    gameState.session.gameMode = GameMode.AI_JUDGE
+                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
+                    nav.navigateTo(Screen.CREATE_GAME)
+                },
+                modifier = Modifier.staggered(1),
+            )
+
             QuickStartCard(
                 expanded = quickStartExpanded,
                 outdoor = quickStartOutdoor,
@@ -149,7 +163,7 @@ fun ModeSelectScreen(gameState: GameState) {
                     gameState.gameplay.gameDurationMinutes = 15
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
-                modifier = Modifier.staggered(1),
+                modifier = Modifier.staggered(2),
             )
 
             ModeCard(
@@ -159,7 +173,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = S.current.modeClassicDesc,
                 icon = Icons.Default.GridView,
                 gradientColors = GradientPrimary,
-                modifier = Modifier.staggered(2),
+                modifier = Modifier.staggered(3),
                 onClick = {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "CLASSIC"))
                     gameState.session.gameMode = GameMode.CLASSIC
@@ -174,7 +188,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = S.current.modeBlindBingoDesc,
                 icon = Icons.Default.VisibilityOff,
                 gradientColors = GradientCool,
-                modifier = Modifier.staggered(3),
+                modifier = Modifier.staggered(4),
                 onClick = {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "BLIND_BINGO"))
                     gameState.session.gameMode = GameMode.BLIND_BINGO
@@ -189,26 +203,12 @@ fun ModeSelectScreen(gameState: GameState) {
                 description = S.current.modeWeirdCoreDesc,
                 icon = Icons.Default.QuestionMark,
                 gradientColors = GradientWeird,
-                modifier = Modifier.staggered(4),
+                modifier = Modifier.staggered(5),
                 onClick = {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "WEIRD_CORE"))
                     gameState.session.gameMode = GameMode.WEIRD_CORE
                     nav.navigateTo(Screen.CREATE_GAME)
                 },
-            )
-
-            AiJudgeCard(
-                expanded = aiJudgeExpanded,
-                outdoor = aiJudgeOutdoor,
-                onToggleExpand = { aiJudgeExpanded = !aiJudgeExpanded },
-                onSelectOutdoor = { aiJudgeOutdoor = it },
-                onConfirm = {
-                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
-                    gameState.session.gameMode = GameMode.AI_JUDGE
-                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
-                    nav.navigateTo(Screen.CREATE_GAME)
-                },
-                modifier = Modifier.staggered(5),
             )
 
             Spacer(Modifier.height(24.dp))
