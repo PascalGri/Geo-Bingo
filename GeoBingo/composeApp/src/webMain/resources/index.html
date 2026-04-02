@@ -51,15 +51,30 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --pink: #F43F5E;
+            --purple: #D946EF;
+            --violet: #A855F7;
+            --bg: #050508;
+            --surface: rgba(26, 16, 37, 0.6);
+            --surface-hover: rgba(26, 16, 37, 1);
+            --border: #2E1F50;
+            --text: #F0ECFF;
+            --text-muted: #CBB8F0;
+            --text-dim: #9D7FD4;
+            --text-faint: #7A5FA8;
+            --text-ghost: #5A3D8A;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #050508;
-            color: #F0ECFF;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -111,6 +126,92 @@
             66% { transform: translate(-20px, 15px) scale(0.95); }
         }
 
+        /* ── Reveal animations ──────────────────────────────── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+        .reveal-delay-5 { transition-delay: 0.5s; }
+
+        /* ── Navbar ─────────────────────────────────────────── */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(5, 5, 8, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .navbar.scrolled {
+            border-bottom-color: var(--border);
+            background: rgba(5, 5, 8, 0.95);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+
+        .nav-logo span {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(217, 70, 239, 0.3);
+        }
+
+        .nav-cta svg {
+            width: 16px;
+            height: 16px;
+        }
+
         /* ── Hero ───────────────────────────────────────────── */
         .hero {
             display: flex;
@@ -118,10 +219,43 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: 100px 20px 60px;
             text-align: center;
             position: relative;
             z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 100px;
+            background: rgba(217, 70, 239, 0.1);
+            border: 1px solid rgba(217, 70, 239, 0.2);
+            color: var(--purple);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            animation: badge-pulse 3s ease-in-out infinite;
+        }
+
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: dot-blink 2s ease-in-out infinite;
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(217, 70, 239, 0); }
+            50% { box-shadow: 0 0 0 8px rgba(217, 70, 239, 0.05); }
+        }
+
+        @keyframes dot-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
         .hero-icon {
@@ -141,30 +275,32 @@
         }
 
         .hero-title {
-            font-size: 64px;
-            font-weight: 800;
-            letter-spacing: -2px;
-            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            font-size: 72px;
+            font-weight: 900;
+            letter-spacing: -3px;
+            background: linear-gradient(135deg, var(--pink), var(--purple), var(--violet));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
+            line-height: 1;
         }
 
         .hero-tagline {
-            font-size: 22px;
-            color: #CBB8F0;
-            font-weight: 400;
+            font-size: 24px;
+            color: var(--text-muted);
+            font-weight: 500;
             margin-bottom: 16px;
-            max-width: 500px;
+            max-width: 580px;
             line-height: 1.5;
         }
 
         .hero-sub {
-            font-size: 15px;
-            color: #7A5FA8;
-            margin-bottom: 44px;
-            max-width: 420px;
+            font-size: 16px;
+            color: var(--text-faint);
+            margin-bottom: 48px;
+            max-width: 460px;
+            line-height: 1.6;
         }
 
         /* ── Buttons ────────────────────────────────────────── */
@@ -173,7 +309,7 @@
             flex-direction: column;
             gap: 12px;
             width: 100%;
-            max-width: 360px;
+            max-width: 380px;
             position: relative;
             z-index: 1;
         }
@@ -204,7 +340,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #F43F5E, #D946EF);
+            background: linear-gradient(135deg, var(--pink), var(--purple));
             color: white;
             font-size: 18px;
             padding: 20px 28px;
@@ -226,15 +362,15 @@
         }
 
         .btn-store {
-            background: rgba(26, 16, 37, 0.8);
+            background: var(--surface);
             backdrop-filter: blur(10px);
-            border: 1px solid #2E1F50;
-            color: #F0ECFF;
+            border: 1px solid var(--border);
+            color: var(--text);
         }
 
         .btn-store:hover {
-            border-color: #D946EF;
-            background: rgba(26, 16, 37, 1);
+            border-color: var(--purple);
+            background: var(--surface-hover);
         }
 
         .btn-icon {
@@ -254,12 +390,47 @@
         }
 
         .divider-text {
-            color: #5A3D8A;
+            color: var(--text-ghost);
             font-size: 12px;
             margin: 8px 0;
             text-transform: uppercase;
             letter-spacing: 3px;
             font-weight: 500;
+        }
+
+        /* ── Floating photo cards (hero decoration) ─────────── */
+        .floating-cards {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .float-card {
+            position: absolute;
+            width: 80px;
+            height: 100px;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            animation: float-card 12s ease-in-out infinite;
+            opacity: 0.4;
+        }
+
+        .float-card:nth-child(1) { top: 15%; left: 8%; animation-delay: 0s; }
+        .float-card:nth-child(2) { top: 25%; right: 10%; animation-delay: -3s; }
+        .float-card:nth-child(3) { bottom: 25%; left: 12%; animation-delay: -6s; }
+        .float-card:nth-child(4) { bottom: 20%; right: 8%; animation-delay: -9s; }
+        .float-card:nth-child(5) { top: 45%; left: 5%; animation-delay: -4s; }
+        .float-card:nth-child(6) { top: 50%; right: 5%; animation-delay: -7s; }
+
+        @keyframes float-card {
+            0%, 100% { transform: translateY(0) rotate(-3deg); opacity: 0.4; }
+            50% { transform: translateY(-20px) rotate(3deg); opacity: 0.6; }
         }
 
         /* ── Scroll indicator ───────────────────────────────── */
@@ -272,7 +443,7 @@
             flex-direction: column;
             align-items: center;
             gap: 6px;
-            color: #5A3D8A;
+            color: var(--text-ghost);
             font-size: 12px;
             animation: bounce 2s ease-in-out infinite;
         }
@@ -280,7 +451,7 @@
         .scroll-hint svg {
             width: 20px;
             height: 20px;
-            stroke: #5A3D8A;
+            stroke: var(--text-ghost);
         }
 
         @keyframes bounce {
@@ -288,94 +459,323 @@
             50% { transform: translateX(-50%) translateY(8px); }
         }
 
-        /* ── Section divider ────────────────────────────────── */
+        /* ── Section common ─────────────────────────────────── */
         .section-divider {
             height: 1px;
             max-width: 200px;
             margin: 0 auto;
-            background: linear-gradient(90deg, transparent, #D946EF, transparent);
+            background: linear-gradient(90deg, transparent, var(--purple), transparent);
             opacity: 0.3;
         }
 
-        /* ── How it works ───────────────────────────────────── */
         .section {
-            padding: 100px 20px;
-            max-width: 900px;
+            padding: 120px 20px;
+            max-width: 1000px;
             margin: 0 auto;
             position: relative;
             z-index: 1;
         }
 
+        .section-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--purple);
+            margin-bottom: 16px;
+        }
+
+        .section-eyebrow::before {
+            content: '';
+            width: 24px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--pink), var(--purple));
+            border-radius: 2px;
+        }
+
         .section-title {
-            font-size: 36px;
-            font-weight: 800;
+            font-size: 44px;
+            font-weight: 900;
             text-align: center;
             margin-bottom: 16px;
-            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            background: linear-gradient(135deg, var(--pink), var(--purple), var(--violet));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -0.5px;
+            letter-spacing: -1px;
+            line-height: 1.1;
         }
 
         .section-subtitle {
             text-align: center;
-            color: #7A5FA8;
-            font-size: 16px;
-            margin-bottom: 56px;
+            color: var(--text-faint);
+            font-size: 17px;
+            margin-bottom: 64px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
         }
 
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
+        /* ── Stats bar ──────────────────────────────────────── */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            padding: 48px 20px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
         }
 
-        .step {
-            background: rgba(26, 16, 37, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid #2E1F50;
-            border-radius: 20px;
-            padding: 32px 24px;
+        .stat {
             text-align: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        /* ── How it works (timeline) ────────────────────────── */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            position: relative;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 28px;
+            top: 48px;
+            bottom: 48px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--pink), var(--purple), var(--violet));
+            opacity: 0.3;
+        }
+
+        .timeline-step {
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+            padding: 28px 0;
             position: relative;
         }
 
-        .step:hover {
-            border-color: #D946EF;
-            transform: translateY(-4px);
-            box-shadow: 0 16px 48px rgba(217, 70, 239, 0.1);
-        }
-
-        .step-num {
-            display: inline-flex;
+        .timeline-dot {
+            flex-shrink: 0;
+            width: 58px;
+            height: 58px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #F43F5E, #D946EF);
             color: white;
-            font-weight: 800;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-weight: 900;
+            font-size: 22px;
+            box-shadow: 0 0 30px rgba(217, 70, 239, 0.2);
+            z-index: 1;
         }
 
-        .step h3 {
-            font-size: 18px;
+        .timeline-content {
+            flex: 1;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .timeline-content:hover {
+            border-color: var(--purple);
+            transform: translateX(4px);
+            box-shadow: 0 8px 32px rgba(217, 70, 239, 0.08);
+        }
+
+        .timeline-content h3 {
+            font-size: 20px;
             font-weight: 700;
-            color: #F0ECFF;
-            margin-bottom: 10px;
+            color: var(--text);
+            margin-bottom: 8px;
         }
 
-        .step p {
-            font-size: 14px;
-            color: #9D7FD4;
+        .timeline-content p {
+            font-size: 15px;
+            color: var(--text-dim);
             line-height: 1.7;
         }
 
-        /* ── Features ───────────────────────────────────────── */
+        .timeline-content .step-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(46, 31, 80, 0.5);
+            font-size: 13px;
+            color: var(--text-faint);
+        }
+
+        .timeline-content .step-detail svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--purple);
+            flex-shrink: 0;
+        }
+
+        /* ── Gameplay showcase ──────────────────────────────── */
+        .showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .showcase-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 36px 28px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .showcase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--pink), var(--purple));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .showcase-card:hover {
+            border-color: var(--purple);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(217, 70, 239, 0.1);
+        }
+
+        .showcase-card:hover::before {
+            opacity: 1;
+        }
+
+        .showcase-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), rgba(168, 85, 247, 0.12));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .showcase-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--purple);
+        }
+
+        .showcase-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .showcase-card p {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+
+        .showcase-card .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .showcase-card .tag {
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: rgba(217, 70, 239, 0.08);
+            border: 1px solid rgba(217, 70, 239, 0.15);
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .showcase-wide {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Category carousel ──────────────────────────────── */
+        .category-scroll {
+            display: flex;
+            gap: 14px;
+            overflow: hidden;
+            mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+            padding: 20px 0;
+        }
+
+        .category-track {
+            display: flex;
+            gap: 14px;
+            animation: scroll-categories 30s linear infinite;
+        }
+
+        .category-chip {
+            flex-shrink: 0;
+            padding: 12px 22px;
+            border-radius: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+
+        .category-chip:hover {
+            border-color: var(--purple);
+            color: var(--text);
+        }
+
+        @keyframes scroll-categories {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* ── Features grid ──────────────────────────────────── */
         .features {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -386,80 +786,232 @@
             background: rgba(13, 10, 20, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid #1E1535;
-            border-radius: 18px;
-            padding: 28px 22px;
+            border-radius: 20px;
+            padding: 32px 24px;
             text-align: center;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
 
         .feature:hover {
             border-color: rgba(217, 70, 239, 0.4);
-            transform: translateY(-2px);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(217, 70, 239, 0.06);
         }
 
         .feature-icon {
-            font-size: 32px;
-            margin-bottom: 14px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 18px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(168, 85, 247, 0.1));
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 56px;
-            height: 56px;
-            margin-left: auto;
-            margin-right: auto;
-            border-radius: 16px;
-            background: linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(168, 85, 247, 0.1));
-            color: #D946EF;
-            font-weight: 800;
-            letter-spacing: -1px;
+        }
+
+        .feature-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: var(--purple);
         }
 
         .feature h3 {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
-            color: #F0ECFF;
-            margin-bottom: 8px;
+            color: var(--text);
+            margin-bottom: 10px;
         }
 
         .feature p {
             font-size: 13px;
-            color: #9D7FD4;
-            line-height: 1.6;
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+
+        /* ── Use cases section ──────────────────────────────── */
+        .usecases {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .usecase {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .usecase:hover {
+            border-color: var(--purple);
+            transform: translateY(-3px);
+        }
+
+        .usecase-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), rgba(168, 85, 247, 0.12));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+
+        .usecase-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke: var(--purple);
+        }
+
+        .usecase h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .usecase p {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        /* ── FAQ accordion ──────────────────────────────────── */
+        .faq-list {
+            max-width: 680px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .faq-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .faq-item:hover, .faq-item.open {
+            border-color: rgba(217, 70, 239, 0.3);
+        }
+
+        .faq-question {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            transition: color 0.2s;
+        }
+
+        .faq-question:hover {
+            color: var(--purple);
+        }
+
+        .faq-chevron {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-faint);
+            flex-shrink: 0;
+            transition: transform 0.3s;
+        }
+
+        .faq-item.open .faq-chevron {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s;
+        }
+
+        .faq-item.open .faq-answer {
+            max-height: 300px;
+        }
+
+        .faq-answer-inner {
+            padding: 0 24px 20px;
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.7;
         }
 
         /* ── CTA ────────────────────────────────────────────── */
         .cta {
             text-align: center;
-            padding: 100px 20px;
+            padding: 120px 20px;
             position: relative;
             z-index: 1;
         }
 
+        .cta-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(217, 70, 239, 0.08), transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
         .cta-title {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--pink), var(--purple), var(--violet));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            letter-spacing: -1px;
+            position: relative;
         }
 
         .cta-sub {
-            font-size: 17px;
-            color: #9D7FD4;
-            margin-bottom: 36px;
+            font-size: 18px;
+            color: var(--text-dim);
+            margin-bottom: 40px;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            position: relative;
         }
 
         .cta .btn-primary {
             display: inline-flex;
-            max-width: 320px;
+            max-width: 360px;
+            position: relative;
+        }
+
+        .cta-note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--text-ghost);
+            position: relative;
         }
 
         /* ── Footer ─────────────────────────────────────────── */
         footer {
             border-top: 1px solid #1E1535;
-            padding: 36px 20px;
+            padding: 48px 20px;
             text-align: center;
             position: relative;
             z-index: 1;
@@ -474,14 +1026,14 @@
         }
 
         .footer-links a {
-            color: #7A5FA8;
+            color: var(--text-faint);
             text-decoration: none;
             font-size: 14px;
             transition: color 0.2s;
         }
 
         .footer-links a:hover {
-            color: #D946EF;
+            color: var(--purple);
         }
 
         .footer-copy {
@@ -491,21 +1043,32 @@
 
         /* ── Responsive ─────────────────────────────────────── */
         @media (max-width: 768px) {
-            .hero-title { font-size: 48px; letter-spacing: -1px; }
-            .hero-tagline { font-size: 19px; }
+            .hero-title { font-size: 52px; letter-spacing: -2px; }
+            .hero-tagline { font-size: 20px; }
             .hero-icon { width: 110px; height: 110px; border-radius: 26px; }
-            .section-title { font-size: 28px; }
-            .section { padding: 72px 20px; }
-            .steps { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
+            .section-title { font-size: 32px; }
+            .section { padding: 80px 20px; }
+            .showcase { grid-template-columns: 1fr; }
+            .showcase-wide { grid-column: 1; }
             .features { grid-template-columns: 1fr 1fr; }
+            .usecases { grid-template-columns: 1fr 1fr; }
+            .float-card { display: none; }
+            .stats-bar { gap: 28px; }
+            .stat-number { font-size: 36px; }
+            .timeline::before { left: 24px; }
+            .timeline-dot { width: 48px; height: 48px; font-size: 18px; border-radius: 14px; }
         }
 
         @media (max-width: 480px) {
-            .hero-title { font-size: 40px; }
-            .hero-tagline { font-size: 17px; }
+            .hero-title { font-size: 42px; }
+            .hero-tagline { font-size: 18px; }
             .hero-icon { width: 96px; height: 96px; border-radius: 22px; }
-            .features { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
+            .features { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+            .usecases { grid-template-columns: 1fr; max-width: 320px; margin-left: auto; margin-right: auto; }
             .scroll-hint { display: none; }
+            .cta-title { font-size: 36px; }
+            .timeline-step { gap: 16px; }
+            .nav-cta span { display: none; }
         }
     </style>
 </head>
@@ -517,12 +1080,50 @@
     <div class="bg-orb bg-orb-2"></div>
     <div class="bg-orb bg-orb-3"></div>
 
+    <!-- ── NAVBAR ──────────────────────────────────────────── -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="nav-logo">
+            <img src="icon-192.png" alt="KatchIt!">
+            <span>KatchIt!</span>
+        </a>
+        <a href="/play.html" class="nav-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Jetzt spielen</span>
+        </a>
+    </nav>
+
     <!-- ── HERO ────────────────────────────────────────────── -->
     <section class="hero">
+        <div class="floating-cards">
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D946EF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D946EF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="float-card">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+        </div>
+
+        <div class="hero-badge reveal visible">
+            <span class="dot"></span>
+            Kostenlos spielen — Kein Account nötig
+        </div>
+
         <img src="icon-512.png" alt="KatchIt! App Icon" class="hero-icon">
         <h1 class="hero-title">KatchIt!</h1>
-        <p class="hero-tagline">Das Foto-Spiel mit Freunden.<br>Fotografiere, bewerte, gewinne.</p>
-        <p class="hero-sub">Multiplayer-Fotospiel für Gruppen, Partys und Abenteuer. Kostenlos.</p>
+        <p class="hero-tagline">Das Multiplayer-Fotospiel für<br>Gruppen, Partys und Abenteuer.</p>
+        <p class="hero-sub">Erhalte kreative Foto-Aufgaben, renne los, fotografiere und bewerte gemeinsam die besten Bilder. Direkt im Browser oder als App.</p>
 
         <div class="buttons">
             <a href="/play.html" class="btn btn-primary">
@@ -550,27 +1151,176 @@
         </div>
     </section>
 
+    <!-- ── STATS ───────────────────────────────────────────── -->
+    <div class="stats-bar reveal">
+        <div class="stat">
+            <div class="stat-number" data-target="100">100+</div>
+            <div class="stat-label">Kategorien</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">2–20</div>
+            <div class="stat-label">Spieler pro Runde</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Plattformen</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">0 EUR</div>
+            <div class="stat-label">Komplett kostenlos</div>
+        </div>
+    </div>
+
     <div class="section-divider"></div>
 
     <!-- ── SO FUNKTIONIERT'S ───────────────────────────────── -->
     <section class="section">
-        <h2 class="section-title">So funktioniert's</h2>
-        <p class="section-subtitle">In drei Schritten zum Spielspaß</p>
-        <div class="steps">
-            <div class="step">
-                <div class="step-num">1</div>
-                <h3>Runde erstellen</h3>
-                <p>Erstelle ein Spiel und teile den Code mit deinen Freunden. 2 bis 20 Spieler, auch in Teams.</p>
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">Anleitung</span>
+        </div>
+        <h2 class="section-title reveal">So funktioniert's</h2>
+        <p class="section-subtitle reveal">Drei einfache Schritte zum Spielspass</p>
+
+        <div class="timeline">
+            <div class="timeline-step reveal">
+                <div class="timeline-dot">1</div>
+                <div class="timeline-content">
+                    <h3>Runde erstellen & Freunde einladen</h3>
+                    <p>Erstelle ein Spiel mit wenigen Klicks. Teile den 6-stelligen Code oder den Link mit deinen Freunden — sie treten sofort bei.</p>
+                    <div class="step-detail">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Solo, Duo oder als Team — 2 bis 20 Spieler
+                    </div>
+                </div>
             </div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <h3>Fotos machen</h3>
-                <p>Jeder bekommt die gleichen Kategorien. Lauft los und fotografiert passende Motive.</p>
+
+            <div class="timeline-step reveal reveal-delay-1">
+                <div class="timeline-dot">2</div>
+                <div class="timeline-content">
+                    <h3>Loslaufen & Fotos machen</h3>
+                    <p>Alle bekommen die gleichen Foto-Kategorien auf ihr Bingo-Board. Jetzt heisst es: Rausgehen, Motive finden und knipsen!</p>
+                    <div class="step-detail">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                        Zeitdruck macht's spannend — 10 bis 60 Minuten
+                    </div>
+                </div>
             </div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <h3>Bewerten & Gewinnen</h3>
-                <p>Bewertet gegenseitig eure Fotos mit Sternen. Wer die kreativsten Fotos hat, gewinnt!</p>
+
+            <div class="timeline-step reveal reveal-delay-2">
+                <div class="timeline-dot">3</div>
+                <div class="timeline-content">
+                    <h3>Gegenseitig bewerten & Gewinnen</h3>
+                    <p>Schaut euch gegenseitig die Fotos an und bewertet mit Sternen. Die kreativsten und lustigsten Aufnahmen gewinnen!</p>
+                    <div class="step-detail">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Alle Fotos werden in einer Galerie mit Karte gespeichert
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ── KATEGORIE-KARUSSELL ─────────────────────────────── -->
+    <section class="section" style="padding-bottom: 60px;">
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">Kategorien</span>
+        </div>
+        <h2 class="section-title reveal">Über 100 kreative Foto-Aufgaben</h2>
+        <p class="section-subtitle reveal">Von simpel bis absurd — für jeden Ort und jede Stimmung</p>
+
+        <div class="category-scroll reveal">
+            <div class="category-track">
+                <span class="category-chip">Etwas Rotes</span>
+                <span class="category-chip">Street Art</span>
+                <span class="category-chip">Ein Tier</span>
+                <span class="category-chip">Symmetrie</span>
+                <span class="category-chip">Etwas Lustiges</span>
+                <span class="category-chip">Natur pur</span>
+                <span class="category-chip">Vintage</span>
+                <span class="category-chip">Schatten</span>
+                <span class="category-chip">Spiegelung</span>
+                <span class="category-chip">Architektur</span>
+                <span class="category-chip">Essens-Kunst</span>
+                <span class="category-chip">Mini-Welt</span>
+                <span class="category-chip">Bewegung</span>
+                <span class="category-chip">Textur</span>
+                <span class="category-chip">Lichtspiel</span>
+                <span class="category-chip">Verborgenes</span>
+                <!-- Duplicated for seamless loop -->
+                <span class="category-chip">Etwas Rotes</span>
+                <span class="category-chip">Street Art</span>
+                <span class="category-chip">Ein Tier</span>
+                <span class="category-chip">Symmetrie</span>
+                <span class="category-chip">Etwas Lustiges</span>
+                <span class="category-chip">Natur pur</span>
+                <span class="category-chip">Vintage</span>
+                <span class="category-chip">Schatten</span>
+                <span class="category-chip">Spiegelung</span>
+                <span class="category-chip">Architektur</span>
+                <span class="category-chip">Essens-Kunst</span>
+                <span class="category-chip">Mini-Welt</span>
+                <span class="category-chip">Bewegung</span>
+                <span class="category-chip">Textur</span>
+                <span class="category-chip">Lichtspiel</span>
+                <span class="category-chip">Verborgenes</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ── SPIELMODI SHOWCASE ──────────────────────────────── -->
+    <section class="section">
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">Spielmodi</span>
+        </div>
+        <h2 class="section-title reveal">Mehrere Wege zu spielen</h2>
+        <p class="section-subtitle reveal">Ob alleine, mit Freunden oder in Teams — es wird nie langweilig</p>
+
+        <div class="showcase">
+            <div class="showcase-card reveal">
+                <div class="showcase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3>Multiplayer</h3>
+                <p>Spiele mit 2 bis 20 Freunden gleichzeitig. Jeder bekommt das gleiche Bingo-Board und muss die Kategorien abfotografieren. Wer die besten Fotos macht, gewinnt!</p>
+                <div class="tag-row">
+                    <span class="tag">2–20 Spieler</span>
+                    <span class="tag">Echtzeit</span>
+                    <span class="tag">Online & Lokal</span>
+                </div>
+            </div>
+
+            <div class="showcase-card reveal reveal-delay-1">
+                <div class="showcase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <h3>Solo mit KI-Bewertung</h3>
+                <p>Keine Mitspieler? Kein Problem! Spiele allein gegen die Zeit und lass eine KI deine Fotos in Echtzeit bewerten. Schaffe es, alle Kategorien zu meistern!</p>
+                <div class="tag-row">
+                    <span class="tag">Solo-Modus</span>
+                    <span class="tag">KI-Bewertung</span>
+                    <span class="tag">Echtzeit</span>
+                </div>
+            </div>
+
+            <div class="showcase-card showcase-wide reveal reveal-delay-2">
+                <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+                    <div class="showcase-icon" style="flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <h3>Team-Modus</h3>
+                        <p>Bildet Teams und tretet gegeneinander an. Perfekt für grosse Gruppen bei Partys, Teambuilding oder Schulausflügen. Koordiniert euch und schlagt die anderen Teams!</p>
+                    </div>
+                    <div class="tag-row" style="flex-shrink:0;">
+                        <span class="tag">Teams</span>
+                        <span class="tag">Teambuilding</span>
+                        <span class="tag">Partys</span>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -579,38 +1329,177 @@
 
     <!-- ── FEATURES ────────────────────────────────────────── -->
     <section class="section">
-        <h2 class="section-title">Features</h2>
-        <p class="section-subtitle">Alles was du für den perfekten Spieleabend brauchst</p>
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">Features</span>
+        </div>
+        <h2 class="section-title reveal">Alles was du brauchst</h2>
+        <p class="section-subtitle reveal">Durchdachte Details für den perfekten Spieleabend</p>
+
         <div class="features">
-            <div class="feature">
-                <div class="feature-icon">2-20</div>
-                <h3>Multiplayer</h3>
-                <p>Spiele mit 2 bis 20 Freunden gleichzeitig, lokal oder über das Internet.</p>
+            <div class="feature reveal">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <h3>Cross-Platform</h3>
+                <p>Spiele direkt im Browser, auf Android oder iOS. Alle Plattformen spielen zusammen.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">AI</div>
-                <h3>Solo mit KI</h3>
-                <p>Spiele allein gegen die Zeit. Eine KI bewertet deine Fotos in Echtzeit.</p>
+
+            <div class="feature reveal reveal-delay-1">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                </div>
+                <h3>Flexible Spielzeit</h3>
+                <p>Wähle zwischen 10 und 60 Minuten. Quick-Runden in der Pause oder ein langes Abenteuer in der Stadt.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">VS</div>
-                <h3>Team-Modus</h3>
-                <p>Bildet Teams und tretet in Gruppen gegeneinander an.</p>
+
+            <div class="feature reveal reveal-delay-2">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Kein Account nötig</h3>
+                <p>Sofort losspielen, ganz ohne Registrierung. Optional Account erstellen für Statistiken.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">?!</div>
-                <h3>100+ Kategorien</h3>
-                <p>Von „Etwas Rotes" bis „Street Art" — Indoor, Outdoor, Stadt oder Natur.</p>
+
+            <div class="feature reveal reveal-delay-1">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <h3>Foto-Galerie mit Karte</h3>
+                <p>Nach dem Spiel: Alle Fotos auf einer Karte sehen, wo sie aufgenommen wurden.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">+1</div>
+
+            <div class="feature reveal reveal-delay-2">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                </div>
                 <h3>Joker-Karte</h3>
-                <p>Erfinde deine eigene Kategorie und überrasche die anderen.</p>
+                <p>Erfinde deine eigene Kategorie und überrasche die anderen Spieler.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">&lt;/&gt;</div>
-                <h3>Foto-Galerie</h3>
-                <p>Sieh nach jedem Spiel alle Fotos mit Standort auf einer Karte.</p>
+
+            <div class="feature reveal reveal-delay-3">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </div>
+                <h3>Indoor & Outdoor</h3>
+                <p>Kategorien für drinnen und draussen. Spiele überall — zu Hause, in der Stadt oder in der Natur.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ── USE CASES ───────────────────────────────────────── -->
+    <section class="section">
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">Anlässe</span>
+        </div>
+        <h2 class="section-title reveal">Perfekt für jeden Anlass</h2>
+        <p class="section-subtitle reveal">KatchIt! macht jedes Treffen zu einem Abenteuer</p>
+
+        <div class="usecases">
+            <div class="usecase reveal">
+                <div class="usecase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3>Freundestreffen</h3>
+                <p>Macht den Nachmittag zum kreativen Wettbewerb</p>
+            </div>
+
+            <div class="usecase reveal reveal-delay-1">
+                <div class="usecase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <h3>Partys</h3>
+                <p>Icebreaker und Partyspiel in einem</p>
+            </div>
+
+            <div class="usecase reveal reveal-delay-2">
+                <div class="usecase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+                <h3>Teambuilding</h3>
+                <p>Kreatives Teamevent für Firmen und Vereine</p>
+            </div>
+
+            <div class="usecase reveal reveal-delay-3">
+                <div class="usecase-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                </div>
+                <h3>Schulausflüge</h3>
+                <p>Lernen und Spass verbinden — für alle Altersgruppen</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ── FAQ ──────────────────────────────────────────────── -->
+    <section class="section">
+        <div class="reveal" style="text-align:center;">
+            <span class="section-eyebrow" style="justify-content:center;">FAQ</span>
+        </div>
+        <h2 class="section-title reveal">Häufige Fragen</h2>
+        <p class="section-subtitle reveal">Alles was du wissen musst</p>
+
+        <div class="faq-list">
+            <div class="faq-item reveal">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Ist KatchIt! wirklich kostenlos?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">Ja, KatchIt! ist komplett kostenlos spielbar. Es gibt keine versteckten Kosten, kein Pay-to-Win und keine Abo-Fallen. Alle Spielmodi und Kategorien sind frei zugänglich.</div>
+                </div>
+            </div>
+
+            <div class="faq-item reveal reveal-delay-1">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Brauche ich einen Account?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">Nein! Du kannst sofort losspielen, ohne dich zu registrieren. Wenn du möchtest, kannst du optional einen Account erstellen, um deine Statistiken und Spielhistorie zu speichern.</div>
+                </div>
+            </div>
+
+            <div class="faq-item reveal reveal-delay-2">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Wie treten meine Freunde dem Spiel bei?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">Wenn du ein Spiel erstellst, bekommst du einen 6-stelligen Code und einen Einladungslink. Teile einfach den Code oder Link — deine Freunde können direkt im Browser beitreten, ohne etwas installieren zu müssen.</div>
+                </div>
+            </div>
+
+            <div class="faq-item reveal reveal-delay-3">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Kann ich auch alleine spielen?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">Ja! Im Solo-Modus spielst du allein gegen die Zeit. Eine KI bewertet deine Fotos automatisch in Echtzeit — so kannst du auch ohne Mitspieler den vollen Spielspass erleben.</div>
+                </div>
+            </div>
+
+            <div class="faq-item reveal reveal-delay-4">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Auf welchen Geräten läuft KatchIt!?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">KatchIt! läuft direkt im Browser auf jedem Smartphone, Tablet oder Computer. Zusätzlich gibt es bald native Apps für Android (Google Play) und iOS (App Store) — alle Plattformen spielen nahtlos zusammen.</div>
+                </div>
+            </div>
+
+            <div class="faq-item reveal reveal-delay-5">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Werden meine Fotos gespeichert?
+                    <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="faq-answer">
+                    <div class="faq-answer-inner">Fotos werden nur für die Dauer des Spiels gespeichert, damit alle Spieler sie sehen und bewerten können. Nach dem Spiel kannst du deine Fotos in der Galerie ansehen. Alle Daten werden gemäss unserer Datenschutzerklärung behandelt.</div>
+                </div>
             </div>
         </div>
     </section>
@@ -619,12 +1508,14 @@
 
     <!-- ── CTA ─────────────────────────────────────────────── -->
     <section class="cta">
-        <h2 class="cta-title">Bereit?</h2>
-        <p class="cta-sub">Kein Account nötig. Einfach starten und losspielen.</p>
-        <a href="/play.html" class="btn btn-primary">
+        <div class="cta-glow"></div>
+        <h2 class="cta-title reveal">Bereit für das Abenteuer?</h2>
+        <p class="cta-sub reveal">Erstelle in Sekunden eine Runde und lade deine Freunde ein. Kein Download, kein Account — einfach losspielen.</p>
+        <a href="/play.html" class="btn btn-primary reveal reveal-delay-1">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Jetzt im Browser spielen
         </a>
+        <p class="cta-note reveal reveal-delay-2">Kostenlos. Kein Account nötig. Direkt starten.</p>
     </section>
 
     <!-- ── FOOTER ──────────────────────────────────────────── -->
@@ -637,6 +1528,26 @@
         </div>
         <p class="footer-copy">KatchIt! — Made in Stuttgart</p>
     </footer>
+
+    <!-- ── JAVASCRIPT ──────────────────────────────────────── -->
+    <script>
+        // Scroll-triggered reveal animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
+        }, { passive: true });
+    </script>
 
 </body>
 </html>
