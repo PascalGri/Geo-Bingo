@@ -1,15 +1,6 @@
 package pg.geobingo.one.platform
 
 actual object SoundPlayer {
-    actual fun playCapture() {}
-    actual fun playVote() {}
-    actual fun playCountdownTick() {}
-    actual fun playGameStart() {}
-    actual fun playGameEnd() {}
-    actual fun playSuccess() {}
-    actual fun playTap() {}
-    actual fun playTimerWarning() {}
-    actual fun playResultsReveal() {}
-    actual fun playSpeedBonus() {}
-    actual fun playError() {}
+    actual fun preload(sounds: Map<String, ByteArray>) {}
+    actual fun playFile(fileName: String) {}
 }

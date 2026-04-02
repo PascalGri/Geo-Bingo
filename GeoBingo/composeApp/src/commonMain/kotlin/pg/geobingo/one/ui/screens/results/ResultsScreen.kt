@@ -39,6 +39,9 @@ import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.util.Analytics
+import pg.geobingo.one.platform.SoundEffect
+import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.platform.play
 import pg.geobingo.one.ui.theme.*
 
 internal fun formatRating(value: Double): String {
@@ -60,6 +63,7 @@ fun ResultsScreen(gameState: GameState) {
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(600)
         showConfetti = true
+        if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Confetti)
     }
 
     val modeGradient = when (gameState.session.gameMode) {

@@ -36,6 +36,9 @@ import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.platform.SoundEffect
+import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.platform.play
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.util.AppLogger
@@ -157,6 +160,7 @@ fun SoloResultsScreen(gameState: GameState) {
         if (allCaptured) {
             kotlinx.coroutines.delay(600)
             showConfetti = true
+            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Confetti)
         }
     }
 

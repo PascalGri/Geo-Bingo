@@ -1,0 +1,26 @@
+package pg.geobingo.one.platform
+
+enum class SoundEffect(val fileName: String) {
+    Tap("tap.mp3"),
+    Toggle("tap.mp3"),
+    Swipe("swipe.mp3"),
+    CategorySelect("categoryselect.mp3"),
+    Capture("capture.mp3"),
+    PhotoValidated("validated.mp3"),
+    PhotoRejected("rejected.mp3"),
+    CountdownTick("countdown.mp3"),
+    GameStart("gamestart.mp3"),
+    GameEnd("gameend.mp3"),
+    TimerWarning("countdown.mp3"),
+    Success("success.mp3"),
+    SpeedBonus("power_up.mp3"),
+    ResultsReveal("results.mp3"),
+    ChallengeComplete("success.mp3"),
+    Confetti("confetti.mp3"),
+    PlayerJoined("playerjoined.mp3"),
+    FriendRequest("playerjoined.mp3"),
+    Vote("vote.mp3"),
+    PurchaseSuccess("validated.mp3"),
+    PowerUp("power_up.mp3"),
+    Error("error.mp3"),
+}

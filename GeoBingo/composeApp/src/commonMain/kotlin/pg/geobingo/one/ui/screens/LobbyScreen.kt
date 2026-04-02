@@ -101,7 +101,10 @@ fun LobbyScreen(gameState: GameState) {
     // Sync: player joined (realtime + polling via SyncManager)
     LaunchedEffect(gameId) {
         sync.playerJoined.collect {
-            try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Player reload failed", e) }
+            try {
+                gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId)
+                feedback.playerJoined()
+            } catch (e: Exception) { AppLogger.w("Lobby", "Player reload failed", e) }
         }
     }
 

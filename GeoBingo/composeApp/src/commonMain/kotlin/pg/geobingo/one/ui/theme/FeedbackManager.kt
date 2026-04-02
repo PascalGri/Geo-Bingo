@@ -5,8 +5,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.platform.SoundEffect
 import pg.geobingo.one.platform.SoundPlayer
 import pg.geobingo.one.platform.PlatformHaptics
+import pg.geobingo.one.platform.play
 
 class FeedbackManager(
     private val gameState: GameState,
@@ -19,59 +21,45 @@ class FeedbackManager(
         }
     }
 
-    fun tap() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playTap()
+    private fun sound(effect: SoundEffect) {
+        if (gameState.ui.soundEnabled) SoundPlayer.play(effect)
     }
 
-    fun capture() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playCapture()
-    }
+    // UI feedback
+    fun tap() { hapticTick(); sound(SoundEffect.Tap) }
+    fun toggle() { hapticTick(); sound(SoundEffect.Toggle) }
+    fun swipe() { sound(SoundEffect.Swipe) }
+    fun categorySelect() { hapticTick(); sound(SoundEffect.CategorySelect) }
 
-    fun vote() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playVote()
-    }
+    // Camera/photo
+    fun capture() { hapticTick(); sound(SoundEffect.Capture) }
+    fun photoValidated() { hapticTick(); sound(SoundEffect.PhotoValidated) }
+    fun photoRejected() { hapticTick(); sound(SoundEffect.PhotoRejected) }
 
-    fun countdownTick() {
-        if (gameState.ui.soundEnabled) SoundPlayer.playCountdownTick()
-    }
+    // Game flow
+    fun countdownTick() { sound(SoundEffect.CountdownTick) }
+    fun gameStart() { hapticTick(); sound(SoundEffect.GameStart) }
+    fun gameEnd() { hapticTick(); sound(SoundEffect.GameEnd) }
+    fun timerWarning() { hapticTick(); sound(SoundEffect.TimerWarning) }
 
-    fun gameStart() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playGameStart()
-    }
+    // Achievements
+    fun success() { hapticTick(); sound(SoundEffect.Success) }
+    fun speedBonus() { hapticTick(); sound(SoundEffect.SpeedBonus) }
+    fun resultsReveal() { hapticTick(); sound(SoundEffect.ResultsReveal) }
+    fun challengeComplete() { hapticTick(); sound(SoundEffect.ChallengeComplete) }
+    fun confetti() { sound(SoundEffect.Confetti) }
 
-    fun gameEnd() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playGameEnd()
-    }
+    // Social
+    fun playerJoined() { sound(SoundEffect.PlayerJoined) }
+    fun friendRequest() { sound(SoundEffect.FriendRequest) }
+    fun vote() { hapticTick(); sound(SoundEffect.Vote) }
 
-    fun success() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playSuccess()
-    }
+    // Shop/items
+    fun purchaseSuccess() { hapticTick(); sound(SoundEffect.PurchaseSuccess) }
+    fun powerUp() { hapticTick(); sound(SoundEffect.PowerUp) }
 
-    fun timerWarning() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playTimerWarning()
-    }
-
-    fun error() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playError()
-    }
-
-    fun resultsReveal() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playResultsReveal()
-    }
-
-    fun speedBonus() {
-        hapticTick()
-        if (gameState.ui.soundEnabled) SoundPlayer.playSpeedBonus()
-    }
+    // Error
+    fun error() { hapticTick(); sound(SoundEffect.Error) }
 }
 
 @Composable

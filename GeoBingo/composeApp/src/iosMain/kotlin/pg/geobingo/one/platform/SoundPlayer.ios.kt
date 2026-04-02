@@ -1,33 +1,40 @@
 package pg.geobingo.one.platform
 
-import platform.AudioToolbox.AudioServicesPlaySystemSound
-import platform.AudioToolbox.kSystemSoundID_Vibrate
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+import platform.AVFAudio.AVAudioPlayer
+import platform.Foundation.NSData
+import platform.Foundation.NSTemporaryDirectory
+import platform.Foundation.NSURL
+import platform.Foundation.create
+import platform.Foundation.writeToFile
 
+@OptIn(ExperimentalForeignApi::class)
 actual object SoundPlayer {
-    // iOS system sound IDs
-    private const val SOUND_TAP: UInt = 1104u        // Tock
-    private const val SOUND_CAPTURE: UInt = 1108u     // Camera shutter-like
-    private const val SOUND_VOTE: UInt = 1105u        // Tap
-    private const val SOUND_TICK: UInt = 1103u        // Tink
-    private const val SOUND_SUCCESS: UInt = 1025u     // Positive
-    private const val SOUND_START: UInt = 1025u       // Positive
-    private const val SOUND_END: UInt = 1026u         // Tri-tone
+    private val soundPaths = mutableMapOf<String, String>()
 
-    private fun play(soundId: UInt) {
-        try {
-            AudioServicesPlaySystemSound(soundId)
-        } catch (_: Exception) {}
+    actual fun preload(sounds: Map<String, ByteArray>) {
+        val tmpDir = NSTemporaryDirectory()
+        for ((name, bytes) in sounds) {
+            try {
+                val filePath = "${tmpDir}snd_$name"
+                val data = bytes.usePinned { pinned ->
+                    NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())
+                }
+                data.writeToFile(filePath, atomically = true)
+                soundPaths[name] = filePath
+            } catch (_: Exception) {}
+        }
     }
 
-    actual fun playCapture() = play(SOUND_CAPTURE)
-    actual fun playVote() = play(SOUND_VOTE)
-    actual fun playCountdownTick() = play(SOUND_TICK)
-    actual fun playGameStart() = play(SOUND_START)
-    actual fun playGameEnd() = play(SOUND_END)
-    actual fun playSuccess() = play(SOUND_SUCCESS)
-    actual fun playTap() = play(SOUND_TAP)
-    actual fun playTimerWarning() = play(1029u)  // Alarm (ascending)
-    actual fun playResultsReveal() = play(1025u) // Positive tri-tone
-    actual fun playSpeedBonus() = play(1115u)    // Short positive chirp
-    actual fun playError() = play(1073u)         // Negative/Error beep
+    actual fun playFile(fileName: String) {
+        val filePath = soundPaths[fileName] ?: return
+        try {
+            val url = NSURL.fileURLWithPath(filePath)
+            val player = AVAudioPlayer(contentsOfURL = url, error = null)
+            player?.prepareToPlay()
+            player?.play()
+        } catch (_: Exception) {}
+    }
 }

@@ -42,7 +42,9 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.platform.SoundEffect
 import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.platform.play
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.ui.components.MiniShopPopup
@@ -116,7 +118,7 @@ fun SoloGameScreen(gameState: GameState) {
                 isRetake = false
             } else if (catId !in solo.capturedCategories) {
                 solo.capturedCategories = solo.capturedCategories + catId
-                if (gameState.ui.soundEnabled) SoundPlayer.playCapture()
+                if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Capture)
                 validatePhoto(catId, bytes, fallbackOnError = true)
             }
             pendingCategoryId = null
@@ -132,12 +134,12 @@ fun SoloGameScreen(gameState: GameState) {
             solo.timeRemainingSeconds--
             val t = solo.timeRemainingSeconds
             if (gameState.ui.soundEnabled && (t == 60 || t == 30 || t == 10)) {
-                SoundPlayer.playTimerWarning()
+                SoundPlayer.play(SoundEffect.TimerWarning)
             }
         }
         if (solo.isRunning) {
             solo.isRunning = false
-            if (gameState.ui.soundEnabled) SoundPlayer.playGameEnd()
+            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.GameEnd)
             nav.replaceCurrent(Screen.SOLO_RESULTS)
         }
     }
@@ -150,7 +152,7 @@ fun SoloGameScreen(gameState: GameState) {
             && solo.validatingCategories.isEmpty()
         ) {
             solo.isRunning = false
-            if (gameState.ui.soundEnabled) SoundPlayer.playSuccess()
+            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Success)
             nav.replaceCurrent(Screen.SOLO_RESULTS)
         }
     }
@@ -209,6 +211,7 @@ fun SoloGameScreen(gameState: GameState) {
                         val replacement = pool.firstOrNull { it.id !in existingIds }
                         if (replacement != null) {
                             solo.categories = solo.categories.map { if (it.id == catId) replacement else it }
+                            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PowerUp)
                         }
                     }
                     showSwapDialog = null
@@ -299,6 +302,7 @@ fun SoloGameScreen(gameState: GameState) {
                             trySpend(EXTRA_TIME_COST) {
                                 solo.timeRemainingSeconds += 60
                                 gameState.ui.pendingToast = "+60s"
+                                if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PowerUp)
                             }
                         },
                         label = {

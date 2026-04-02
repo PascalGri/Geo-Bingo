@@ -46,6 +46,10 @@ import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.ConsentManager
 import pg.geobingo.one.platform.SettingsKeys
+import pg.geobingo.one.platform.SoundEffect
+import pg.geobingo.one.platform.SoundPlayer
+import katchit.composeapp.generated.resources.Res
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import pg.geobingo.one.platform.rememberConnectivityState
 import pg.geobingo.one.ui.components.SyncAvatars
 import pg.geobingo.one.ui.screens.*
@@ -63,6 +67,7 @@ import pg.geobingo.one.ui.theme.KatchItTheme
 import pg.geobingo.one.ui.theme.OfflineBanner
 import pg.geobingo.one.util.Analytics
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun App() {
     val gameState = remember { GameState() }
@@ -110,6 +115,17 @@ fun App() {
         if (bonusGranted) {
             gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +5 ${S.current.stars}"
         }
+
+        // Preload sounds
+        try {
+            val soundData = mutableMapOf<String, ByteArray>()
+            SoundEffect.entries.map { it.fileName }.distinct().forEach { file ->
+                try {
+                    soundData[file] = Res.readBytes("files/$file")
+                } catch (_: Exception) {}
+            }
+            SoundPlayer.preload(soundData)
+        } catch (_: Exception) {}
     }
 
     // Online presence heartbeat (update last_seen every 2 minutes, only when logged in)

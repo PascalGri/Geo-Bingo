@@ -45,7 +45,9 @@ import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
+import pg.geobingo.one.platform.SoundEffect
 import pg.geobingo.one.platform.SoundPlayer
+import pg.geobingo.one.platform.play
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -260,7 +262,7 @@ internal fun DarkSinglePhotoVotingScreen(
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
                                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            if (soundEnabled) SoundPlayer.playTap()
+                                            if (soundEnabled) SoundPlayer.play(SoundEffect.Tap)
                                         }
                                     },
                                     onHorizontalDrag = { change, _ ->
@@ -271,7 +273,7 @@ internal fun DarkSinglePhotoVotingScreen(
                                             selectedRating = newRating
                                             animateStarSelection(newRating)
                                             if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            if (soundEnabled) SoundPlayer.playTap()
+                                            if (soundEnabled) SoundPlayer.play(SoundEffect.Tap)
                                         }
                                     },
                                 )
@@ -308,7 +310,7 @@ internal fun DarkSinglePhotoVotingScreen(
                                     }
                                     .clickable(enabled = !submitted) {
                                         if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (soundEnabled) SoundPlayer.playTap()
+                                        if (soundEnabled) SoundPlayer.play(SoundEffect.Tap)
                                         selectedRating = i
                                         animateStarSelection(i)
                                     },
@@ -336,7 +338,7 @@ internal fun DarkSinglePhotoVotingScreen(
                         onClick = {
                             if (selectedRating > 0 && !submitted) {
                                 if (hapticEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (soundEnabled) SoundPlayer.playVote()
+                                if (soundEnabled) SoundPlayer.play(SoundEffect.Vote)
                                 animateSubmission(selectedRating)
                             }
                         },

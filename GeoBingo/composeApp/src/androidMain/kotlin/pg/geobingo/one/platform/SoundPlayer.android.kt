@@ -2,77 +2,34 @@ package pg.geobingo.one.platform
 
 import android.media.AudioAttributes
 import android.media.SoundPool
+import java.io.File
 
 actual object SoundPlayer {
-    private var soundPool: SoundPool? = null
-    private var tapId = 0
-    private var captureId = 0
-    private var successId = 0
-    private var loaded = false
+    private val soundPool: SoundPool = SoundPool.Builder()
+        .setMaxStreams(4)
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
+        .build()
+    private val soundIds = mutableMapOf<String, Int>()
 
-    private fun pool(): SoundPool {
-        soundPool?.let { return it }
-        val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        val sp = SoundPool.Builder().setMaxStreams(4).setAudioAttributes(attrs).build()
-        soundPool = sp
-        // We use Android's built-in system sounds via ToneGenerator as a fallback
-        // Since SoundPool needs actual files, we'll use ToneGenerator instead
-        return sp
+    actual fun preload(sounds: Map<String, ByteArray>) {
+        val cacheDir = appContext.cacheDir
+        for ((name, bytes) in sounds) {
+            try {
+                val file = File(cacheDir, "snd_$name")
+                file.writeBytes(bytes)
+                val id = soundPool.load(file.absolutePath, 1)
+                soundIds[name] = id
+            } catch (_: Exception) {}
+        }
     }
 
-    private fun playTone(toneType: Int, durationMs: Int = 150) {
-        try {
-            val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 80)
-            tg.startTone(toneType, durationMs)
-            // Release after tone finishes
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, durationMs + 50L)
-        } catch (_: Exception) {}
-    }
-
-    actual fun playCapture() {
-        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 200)
-    }
-
-    actual fun playVote() {
-        playTone(android.media.ToneGenerator.TONE_PROP_BEEP, 100)
-    }
-
-    actual fun playCountdownTick() {
-        playTone(android.media.ToneGenerator.TONE_CDMA_PIP, 80)
-    }
-
-    actual fun playGameStart() {
-        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 300)
-    }
-
-    actual fun playGameEnd() {
-        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 400)
-    }
-
-    actual fun playSuccess() {
-        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 250)
-    }
-
-    actual fun playTap() {
-        playTone(android.media.ToneGenerator.TONE_PROP_BEEP, 50)
-    }
-
-    actual fun playTimerWarning() {
-        playTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 300)
-    }
-
-    actual fun playResultsReveal() {
-        playTone(android.media.ToneGenerator.TONE_PROP_ACK, 350)
-    }
-
-    actual fun playSpeedBonus() {
-        playTone(android.media.ToneGenerator.TONE_CDMA_ANSWER, 200)
-    }
-
-    actual fun playError() {
-        playTone(android.media.ToneGenerator.TONE_PROP_NACK, 200)
+    actual fun playFile(fileName: String) {
+        val id = soundIds[fileName] ?: return
+        soundPool.play(id, 1f, 1f, 1, 0, 1f)
     }
 }
