@@ -56,8 +56,7 @@ fun SoloResultsScreen(gameState: GameState) {
     var newAchievements by remember { mutableStateOf<List<Achievement>>(emptyList()) }
     var isNewPersonalBest by remember { mutableStateOf(false) }
 
-    // Interstitial ad state (always plays, not skippable)
-    var adShown by remember { mutableStateOf(false) }
+    // Interstitial ad state (survives navigation away and back)
 
     // Record stats, check achievements, submit score
     LaunchedEffect(Unit) {
@@ -137,17 +136,18 @@ fun SoloResultsScreen(gameState: GameState) {
         }
     }
 
-    // Interstitial after every round (not skippable, except with No-Ads purchase)
+    // Interstitial once per round (not skippable, except with No-Ads purchase)
     LaunchedEffect(Unit) {
-        if (AdManager.isAdSupported && !gameState.stars.noAdsPurchased && !adShown) {
+        if (AdManager.isAdSupported && !gameState.stars.noAdsPurchased && !gameState.ui.interstitialShown) {
             kotlinx.coroutines.delay(1200)
-            adShown = true
+            gameState.ui.interstitialShown = true
             AdManager.showInterstitialAd {}
         }
     }
 
     SystemBackHandler {
         solo.reset()
+        gameState.ui.interstitialShown = false
         nav.resetTo(Screen.HOME)
     }
 
@@ -198,6 +198,7 @@ fun SoloResultsScreen(gameState: GameState) {
                     text = S.current.newGame,
                     onClick = {
                         solo.reset()
+                        gameState.ui.interstitialShown = false
                         nav.resetTo(Screen.HOME)
                     },
                     modifier = Modifier.fillMaxWidth(),

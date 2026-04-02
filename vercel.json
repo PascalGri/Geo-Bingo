@@ -1,6 +1,9 @@
 {
   "buildCommand": null,
   "framework": null,
+  "rewrites": [
+    { "source": "/join/:code*", "destination": "/play.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

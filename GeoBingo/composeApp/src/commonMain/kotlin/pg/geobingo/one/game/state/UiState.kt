@@ -25,5 +25,6 @@ class UiState {
     var pendingToast by mutableStateOf<String?>(null)
     var pendingGameInviteCode by mutableStateOf<String?>(null)
     var consecutiveNetworkErrors by mutableStateOf(0)
+    var interstitialShown by mutableStateOf(false)
     var gameHistory by mutableStateOf(listOf<GameHistoryEntry>())
 }

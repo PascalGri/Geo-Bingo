@@ -351,6 +351,7 @@ class GameState {
         session.myPlayerId = null
         joker.jokerMode = false
         session.gameMode = GameMode.CLASSIC
+        ui.interstitialShown = false
         session.currentScreen = Screen.HOME
     }
 
