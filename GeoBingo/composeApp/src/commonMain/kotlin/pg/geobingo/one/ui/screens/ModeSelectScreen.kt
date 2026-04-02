@@ -1,6 +1,11 @@
 package pg.geobingo.one.ui.screens
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,9 +48,11 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun ModeSelectScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    val anim = rememberStaggeredAnimation(count = 5)
+    val anim = rememberStaggeredAnimation(count = 6)
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
+    var aiJudgeExpanded by remember { mutableStateOf(false) }
+    var aiJudgeOutdoor by remember { mutableStateOf(true) }
     var quickStartOutdoor by remember { mutableStateOf(true) }
     var soloExpanded by remember { mutableStateOf(false) }
     var soloOutdoor by remember { mutableStateOf(true) }
@@ -190,6 +197,19 @@ fun ModeSelectScreen(gameState: GameState) {
                 },
             )
 
+            AiJudgeCard(
+                expanded = aiJudgeExpanded,
+                outdoor = aiJudgeOutdoor,
+                onToggleExpand = { aiJudgeExpanded = !aiJudgeExpanded },
+                onSelectOutdoor = { aiJudgeOutdoor = it },
+                onConfirm = {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
+                    gameState.session.gameMode = GameMode.AI_JUDGE
+                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
+                    nav.navigateTo(Screen.CREATE_GAME)
+                },
+                modifier = Modifier.staggered(5),
+            )
 
             Spacer(Modifier.height(24.dp))
         }
@@ -394,6 +414,7 @@ private fun ModeCard(
     icon: ImageVector,
     gradientColors: List<Color>,
     modifier: Modifier = Modifier,
+    titleBadge: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val accentColor = gradientColors.first()
@@ -448,12 +469,15 @@ private fun ModeCard(
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorOnSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnSurface,
+                    )
+                    titleBadge?.invoke()
+                }
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.labelMedium,
@@ -475,6 +499,269 @@ private fun ModeCard(
                 modifier = Modifier.size(20.dp).padding(top = 2.dp),
                 tint = ColorOnSurfaceVariant,
             )
+        }
+    }
+}
+
+// ── Animated AI Badge ────────────────────────────────────────────────────
+
+@Composable
+private fun AnimatedAiBadge() {
+    val reduceMotion = LocalReduceMotion.current
+    val transition = rememberInfiniteTransition(label = "aiBadge")
+    val sparkleRotation by transition.animateFloat(
+        initialValue = -10f,
+        targetValue = 10f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "sparkleRotation",
+    )
+    val sparkleScale by transition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "sparkleScale",
+    )
+    val gradientOffset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "badgeGradient",
+    )
+
+    val bgBrush = Brush.linearGradient(
+        colors = GradientAiJudge.map { it.copy(alpha = 0.15f) },
+        start = Offset(gradientOffset, 0f),
+        end = Offset(gradientOffset + 100f, 40f),
+    )
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgBrush)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            Icons.Default.AutoAwesome,
+            contentDescription = null,
+            modifier = Modifier
+                .size(12.dp)
+                .graphicsLayer {
+                    if (!reduceMotion) {
+                        rotationZ = sparkleRotation
+                        scaleX = sparkleScale
+                        scaleY = sparkleScale
+                    }
+                },
+            tint = GradientAiJudge.first(),
+        )
+        AnimatedGradientText(
+            text = "AI",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            gradientColors = GradientAiJudge,
+            durationMillis = 3000,
+        )
+    }
+}
+
+// ── AI Judge Card ────────────────────────────────────────────────────────
+
+@Composable
+private fun AiJudgeCard(
+    expanded: Boolean,
+    outdoor: Boolean,
+    onToggleExpand: () -> Unit,
+    onSelectOutdoor: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gradientColors = GradientAiJudge
+    val accentColor = gradientColors.first()
+    val scope = rememberCoroutineScope()
+    val pressScale = remember { Animatable(1f) }
+
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = pressScale.value; scaleY = pressScale.value }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        scope.launch { pressScale.animateTo(0.97f, tween(80)) }
+                        tryAwaitRelease()
+                        scope.launch { pressScale.animateTo(1f, tween(120)) }
+                    },
+                    onTap = { onToggleExpand() },
+                )
+            },
+        cornerRadius = 18.dp,
+        borderColors = gradientColors,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.5.dp,
+        glassmorphism = false,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = gradientColors,
+                                start = Offset(0f, 0f),
+                                end = Offset(200f, 200f),
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = Color.White,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            S.current.modeAiJudge,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorOnSurface,
+                        )
+                        AnimatedAiBadge()
+                    }
+                    Text(
+                        S.current.modeAiJudgeSubtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accentColor,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        S.current.modeAiJudgeDesc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                        lineHeight = 17.sp,
+                    )
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp).padding(top = 2.dp),
+                    tint = ColorOnSurfaceVariant,
+                )
+            }
+
+            if (expanded) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = ColorOutlineVariant)
+                Spacer(Modifier.height(14.dp))
+
+                Text(
+                    S.current.whereDoYouPlay,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorOnSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val btnModifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(true) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                S.current.outdoor,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = btnModifier
+                            .background(
+                                if (!outdoor) Brush.linearGradient(gradientColors)
+                                else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (!outdoor) Color.Transparent else ColorOutline,
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            .clickable { onSelectOutdoor(false) }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
+                            Text(
+                                S.current.indoor,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (!outdoor) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Brush.linearGradient(gradientColors))
+                        .clickable { onConfirm() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        S.current.letsGo,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+            }
         }
     }
 }
@@ -552,12 +839,7 @@ private fun SoloChallengeCard(
                             fontWeight = FontWeight.Bold,
                             color = ColorOnSurface,
                         )
-                        Text(
-                            "AI",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8B5CF6),
-                        )
+                        AnimatedAiBadge()
                     }
                     Text(
                         S.current.soloModeSubtitle,

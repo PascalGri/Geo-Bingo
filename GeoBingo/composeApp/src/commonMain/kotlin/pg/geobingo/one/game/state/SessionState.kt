@@ -19,6 +19,7 @@ class SessionState {
     var gameMode by mutableStateOf(GameMode.CLASSIC)
     var quickStartOutdoor by mutableStateOf(true)
     var quickStartDurationMinutes by mutableStateOf(15)
+    var aiJudgeOutdoor by mutableStateOf(true)
     @Deprecated("Difficulty removed – single pool per environment")
     var quickStartDifficulty by mutableStateOf("medium")
 }

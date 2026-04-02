@@ -184,18 +184,21 @@ fun LobbyScreen(gameState: GameState) {
         GameMode.BLIND_BINGO -> GradientCool
         GameMode.WEIRD_CORE -> GradientWeird
         GameMode.QUICK_START -> GradientQuickStart
+        GameMode.AI_JUDGE   -> GradientAiJudge
     }
     val modeLabel = when (gameMode) {
         GameMode.CLASSIC    -> S.current.modeClassic
         GameMode.BLIND_BINGO -> S.current.modeBlindBingo
         GameMode.WEIRD_CORE -> S.current.modeWeirdCore
         GameMode.QUICK_START -> S.current.modeQuickStart
+        GameMode.AI_JUDGE   -> S.current.modeAiJudge
     }
     val modeIcon = when (gameMode) {
         GameMode.CLASSIC    -> Icons.Default.GridOn
         GameMode.BLIND_BINGO -> Icons.Default.VisibilityOff
         GameMode.WEIRD_CORE -> Icons.Default.QuestionMark
         GameMode.QUICK_START -> Icons.Default.Bolt
+        GameMode.AI_JUDGE   -> Icons.Default.AutoAwesome
     }
 
     val anim = rememberStaggeredAnimation(count = 3)

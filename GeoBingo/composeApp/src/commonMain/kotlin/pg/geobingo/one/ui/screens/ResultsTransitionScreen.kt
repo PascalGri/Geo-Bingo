@@ -35,6 +35,7 @@ fun ResultsTransitionScreen(gameState: GameState) {
         GameMode.BLIND_BINGO -> GradientCool
         GameMode.WEIRD_CORE  -> GradientWeird
         GameMode.QUICK_START -> GradientQuickStart
+        GameMode.AI_JUDGE    -> GradientAiJudge
     }
 
     LaunchedEffect(Unit) {

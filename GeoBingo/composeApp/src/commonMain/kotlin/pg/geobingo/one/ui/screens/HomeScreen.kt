@@ -419,6 +419,7 @@ fun HomeScreen(gameState: GameState) {
                                                 "CLASSIC" -> pg.geobingo.one.game.GameMode.CLASSIC
                                                 "BLIND_BINGO" -> pg.geobingo.one.game.GameMode.BLIND_BINGO
                                                 "WEIRD_CORE" -> pg.geobingo.one.game.GameMode.WEIRD_CORE
+                                                "AI_JUDGE" -> pg.geobingo.one.game.GameMode.AI_JUDGE
                                                 else -> pg.geobingo.one.game.GameMode.CLASSIC
                                             }
                                             gameState.session.gameMode = gameMode

@@ -61,10 +61,11 @@ fun CreateGameScreen(gameState: GameState) {
     var customCategoryCounter by remember { mutableStateOf(0) }
     var selectedPresetIds by remember { mutableStateOf(setOf<String>()) }
 
-    // For WEIRD_CORE: use different preset pool; for others: standard pool
+    // Different category pools per mode
     val presetPool = remember(gameMode) {
         when (gameMode) {
             GameMode.WEIRD_CORE -> WEIRD_CORE_CATEGORIES
+            GameMode.AI_JUDGE -> if (gameState.session.aiJudgeOutdoor) PRESET_CATEGORIES else INDOOR_PRESET_CATEGORIES
             else -> PRESET_CATEGORIES
         }
     }
@@ -111,6 +112,7 @@ fun CreateGameScreen(gameState: GameState) {
         GameMode.BLIND_BINGO -> S.current.modeBlindBingo
         GameMode.WEIRD_CORE -> S.current.modeWeirdCore
         GameMode.QUICK_START -> S.current.modeQuickStart
+        GameMode.AI_JUDGE -> S.current.modeAiJudge
     }
 
     Scaffold(
@@ -126,6 +128,7 @@ fun CreateGameScreen(gameState: GameState) {
                             GameMode.BLIND_BINGO -> GradientCool
                             GameMode.WEIRD_CORE -> GradientWeird
                             GameMode.QUICK_START -> GradientQuickStart
+                            GameMode.AI_JUDGE -> GradientAiJudge
                         },
                     )
                 },
@@ -231,6 +234,7 @@ fun CreateGameScreen(gameState: GameState) {
                             GameMode.BLIND_BINGO -> GradientCool
                             GameMode.WEIRD_CORE -> GradientWeird
                             GameMode.QUICK_START -> GradientQuickStart
+                            GameMode.AI_JUDGE -> GradientAiJudge
                         },
                         leadingIcon = if (isLoading) {
                             { CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) }
@@ -261,6 +265,7 @@ fun CreateGameScreen(gameState: GameState) {
                 GameMode.BLIND_BINGO -> GradientCool
                 GameMode.WEIRD_CORE -> GradientWeird
                 GameMode.QUICK_START -> GradientQuickStart
+                GameMode.AI_JUDGE -> GradientAiJudge
             }
 
             DarkSectionCard(
@@ -312,6 +317,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
                     GameMode.QUICK_START -> GradientQuickStart
+                    GameMode.AI_JUDGE -> GradientAiJudge
                 },
             ) {
                 // Custom category input – hidden for Weird Core (categories are fixed/curated)
@@ -436,6 +442,7 @@ fun CreateGameScreen(gameState: GameState) {
                 val shuffleGradient = when (gameMode) {
                     GameMode.WEIRD_CORE -> GradientWeird
                     GameMode.BLIND_BINGO -> GradientCool
+                    GameMode.AI_JUDGE -> GradientAiJudge
                     else -> GradientPrimary
                 }
 
@@ -599,6 +606,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
                     GameMode.QUICK_START -> GradientQuickStart
+                    GameMode.AI_JUDGE -> GradientAiJudge
                     else -> GradientPrimary
                 }
                 SpeedBonusCard(
@@ -621,6 +629,7 @@ fun CreateGameScreen(gameState: GameState) {
                         GameMode.BLIND_BINGO -> GradientCool
                         GameMode.WEIRD_CORE -> GradientWeird
                         GameMode.QUICK_START -> GradientQuickStart
+                        GameMode.AI_JUDGE -> GradientAiJudge
                     },
                     modifier = Modifier.staggered(timeIndex),
                 )
@@ -638,6 +647,7 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
                     GameMode.QUICK_START -> GradientQuickStart
+                    GameMode.AI_JUDGE -> GradientAiJudge
                 }
                 DarkSectionCard(
                     title = S.current.teamMode,
@@ -722,6 +732,12 @@ private fun ModeBanner(gameMode: GameMode, modifier: Modifier = Modifier) {
             title = S.current.quickStartActive,
             text = S.current.quickStartActiveDesc,
             colors = GradientQuickStart,
+        )
+        GameMode.AI_JUDGE -> ModeBannerData(
+            icon = Icons.Default.AutoAwesome,
+            title = S.current.aiJudgeActive,
+            text = S.current.aiJudgeActiveDesc,
+            colors = GradientAiJudge,
         )
         else -> return
     }

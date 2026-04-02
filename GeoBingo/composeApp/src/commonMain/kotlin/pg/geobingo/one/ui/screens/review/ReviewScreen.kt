@@ -28,6 +28,7 @@ fun ReviewScreen(gameState: GameState) {
         GameMode.BLIND_BINGO -> GradientCool
         GameMode.WEIRD_CORE  -> GradientWeird
         GameMode.QUICK_START -> GradientQuickStart
+        GameMode.AI_JUDGE    -> GradientAiJudge
     }
     val modeColor = modeGradient.first()
     val gameId = gameState.session.gameId ?: return

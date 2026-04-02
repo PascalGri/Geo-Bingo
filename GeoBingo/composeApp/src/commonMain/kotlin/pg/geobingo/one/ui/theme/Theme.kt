@@ -102,6 +102,10 @@ val GradientGold = listOf(
     Color(0xFFFBBF24), // Yellow
     Color(0xFFF97316), // Orange
 )
+val GradientAiJudge = listOf(
+    Color(0xFF8B5CF6), // Violet 500
+    Color(0xFFEC4899), // Pink 500
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = ColorPrimary,

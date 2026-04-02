@@ -346,7 +346,156 @@ private val CATEGORY_TEMPLATES = listOf(
         "Zwei identische Bäume rechts/links", "Symmetrischer Torbogen",
         "Gespiegelte Fensterreihe", "Doppeltreppe links-rechts",
     ), "Die Symmetrieachse muss erkennbar sein und beide Hälften müssen vollständig im Bild sein.", CategoryGroup.GEOMETRY, CategoryDifficulty.MEDIUM),
+
+    // ── Wetter & Jahreszeit ──────────────────────────────────────────────────
+    CategoryTemplate("weather", "🌦️", listOf(
+        "Regentropfen auf Glas", "Nebel in der Ferne", "Wind-bewegter Baum",
+        "Pfütze mit Regentropfen", "Raureif auf Blatt", "Schneematsch auf Gehweg",
+    ), "Das Wetterphänomen muss klar erkennbar sein. Natürliche Aufnahmen, keine Filter.", CategoryGroup.NATURE, CategoryDifficulty.MEDIUM),
+    CategoryTemplate("seasonal", "🍂", listOf(
+        "Herbstlaub am Boden", "Frühlingsblüte am Baum", "Sommerlicher Schatten",
+        "Winterliche Szene", "Saisonale Dekoration", "Jahreszeitlicher Marktstand",
+    ), "Die Jahreszeit muss durch das Foto eindeutig erkennbar sein.", CategoryGroup.NATURE, CategoryDifficulty.MEDIUM),
+
+    // ── Texturen & Oberflächen ───────────────────────────────────────────────
+    CategoryTemplate("texture", "🧱", listOf(
+        "Raue Backsteinwand", "Glatter Marmorboden", "Verwittertes Holz",
+        "Rostiges Metall", "Rissiger Asphalt", "Grober Naturstein",
+    ), "Die Textur muss formatfüllend und im Detail erkennbar sein. Mindestens 50% des Bildes.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("surface", "💎", listOf(
+        "Spiegelnde Glasfassade", "Strukturierter Putz", "Genarbtes Leder",
+        "Gewelltes Wellblech", "Sandgestrahlter Beton", "Polierter Granit",
+    ), "Die Oberfläche und ihr Material müssen klar erkennbar und im Fokus sein.", CategoryGroup.CURIOUS, CategoryDifficulty.MEDIUM),
+
+    // ── Transport & Mobilität ────────────────────────────────────────────────
+    CategoryTemplate("public_transport", "🚊", listOf(
+        "Bus an Haltestelle", "U-Bahn-Eingang", "Fahrplan an Haltestelle",
+        "Tram in Bewegung", "Ticket-Automat", "Wartende Menschen an Gleis",
+    ), "Das öffentliche Verkehrsmittel oder die Infrastruktur muss erkennbar sein.", CategoryGroup.VEHICLES, CategoryDifficulty.EASY),
+    CategoryTemplate("parking", "🅿️", listOf(
+        "Vollgeparkter Parkplatz", "Parkhaus-Einfahrt", "Parkuhr an Straße",
+        "Behindertenparkplatz", "Fahrradparkplatz", "Anwohnerparkausweis",
+    ), "Die Parksituation muss klar erkennbar sein. Schild oder Markierung muss sichtbar sein.", CategoryGroup.VEHICLES, CategoryDifficulty.EASY),
+
+    // ── Essen & Genuss erweitert ─────────────────────────────────────────────
+    CategoryTemplate("bakery", "🥐", listOf(
+        "Bäckerei-Auslage", "Frisches Brot im Regal", "Kuchen in Vitrine",
+        "Croissant auf Teller", "Brötchentüte", "Konditorei-Schaufenster",
+    ), "Die Backwaren oder Bäckerei müssen erkennbar sein. Selbstgebackenes zählt nicht.", CategoryGroup.FOOD, CategoryDifficulty.EASY),
+    CategoryTemplate("drink", "🥤", listOf(
+        "Kaffee in der Hand", "Smoothie im Becher", "Biergartenszene",
+        "Saft an Kiosk", "Trinkflasche beim Sport", "Cocktail auf Terrasse",
+    ), "Das Getränk und sein Kontext müssen erkennbar sein.", CategoryGroup.FOOD, CategoryDifficulty.EASY),
+
+    // ── Nostalgie & Retro ────────────────────────────────────────────────────
+    CategoryTemplate("vintage", "📻", listOf(
+        "Alter Telefonhörer", "Retro-Schaufenster", "Vintage-Werbeschild",
+        "Alte Apotheken-Aufschrift", "Historischer Ladenname", "Antike Straßenlaterne",
+    ), "Das Objekt muss erkennbar alt, historisch oder retro-styled sein. Moderne Imitate zählen nur bei deutlicher Retro-Ästhetik.", CategoryGroup.CULTURE, CategoryDifficulty.MEDIUM),
+
+    // ── Kontraste ────────────────────────────────────────────────────────────
+    CategoryTemplate("contrast", "◻️", listOf(
+        "Alt neben Neu", "Groß neben Klein", "Natur neben Beton",
+        "Hell neben Dunkel", "Rund neben Eckig", "Bunt neben Grau",
+    ), "Beide Elemente des Kontrasts müssen im selben Foto erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.MEDIUM),
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Indoor-Kategorien – für Multiplayer AI Judge Indoor-Modus
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val INDOOR_CATEGORY_TEMPLATES = listOf(
+    CategoryTemplate("in_chair", "🪑", listOf(
+        "Ausgefallener Stuhl", "Roter Sessel", "Stapelbarer Stuhl",
+        "Schaukelstuhl", "Drehstuhl", "Hocker am Tresen",
+    ), "Die Sitzgelegenheit und ihr Typ müssen klar erkennbar sein.", CategoryGroup.URBAN, CategoryDifficulty.EASY),
+    CategoryTemplate("in_lamp", "💡", listOf(
+        "Designerlampe", "Kronleuchter", "Stehlampe in Ecke",
+        "Schreibtischlampe", "Lichterkette an Wand", "Pendelleuchte",
+    ), "Die Lampe und ihr Design müssen erkennbar sein. Normale Deckenleuchten sind zu einfach.", CategoryGroup.URBAN, CategoryDifficulty.EASY),
+    CategoryTemplate("in_plant", "🪴", listOf(
+        "Monstera", "Kaktus auf Fensterbank", "Hängende Pflanze",
+        "Sukkulente in kleinem Topf", "Orchidee", "Farn im Bad",
+    ), "Die Pflanze und ihr Standort müssen erkennbar sein. Muss eine echte Pflanze sein.", CategoryGroup.NATURE, CategoryDifficulty.EASY),
+    CategoryTemplate("in_book", "📚", listOf(
+        "Buchstapel", "Offenes Buch", "Bücherregal mit vielen Büchern",
+        "Comic oder Graphic Novel", "Kochbuch in Küche", "Kinderbuch mit buntem Cover",
+    ), "Das Buch oder die Bücher müssen erkennbar sein. Titel oder Cover sollte sichtbar sein.", CategoryGroup.CULTURE, CategoryDifficulty.EASY),
+    CategoryTemplate("in_mirror", "🪞", listOf(
+        "Großer Wandspiegel", "Badezimmerspiegel", "Handspiegel",
+        "Spiegelnde Oberfläche", "Selfie im Spiegel", "Spiegel mit Rahmen",
+    ), "Der Spiegel und eine Reflexion müssen erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_cup", "☕", listOf(
+        "Kaffeetasse", "Bunte Tasse", "Teetasse mit Untertasse",
+        "Thermobecher", "Espressotasse", "Tasse mit witzigem Spruch",
+    ), "Die Tasse und ihr Merkmal müssen erkennbar sein.", CategoryGroup.FOOD, CategoryDifficulty.EASY),
+    CategoryTemplate("in_pattern", "🔲", listOf(
+        "Fliesenmuster im Bad", "Tapetenmuster", "Teppichmuster",
+        "Kissenmuster", "Vorhangmuster", "Geschirr mit Muster",
+    ), "Das Muster muss klar erkennbar und wiederholend sein.", CategoryGroup.GEOMETRY, CategoryDifficulty.EASY),
+    CategoryTemplate("in_kitchen", "🍳", listOf(
+        "Offener Kühlschrank", "Gewürzsammlung", "Schneidebrett mit Messer",
+        "Küchenmaschine", "Obstschale", "Topfsammlung",
+    ), "Das Küchenobjekt muss erkennbar und im Küchenkontext stehen.", CategoryGroup.FOOD, CategoryDifficulty.EASY),
+    CategoryTemplate("in_tech", "🖥️", listOf(
+        "Laptop auf Tisch", "Fernseher an Wand", "Spielkonsole",
+        "Smartwatch", "Tablet auf Sofa", "Router mit blinkenden Lichtern",
+    ), "Das Gerät muss eingeschaltet oder klar erkennbar sein.", CategoryGroup.TECH, CategoryDifficulty.EASY),
+    CategoryTemplate("in_textile", "🧶", listOf(
+        "Kuscheldecke auf Sofa", "Handtuchstapel", "Tischdecke mit Muster",
+        "Strickpullover", "Samtkissen", "Flickenteppich",
+    ), "Das Textil und seine Textur müssen erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_art", "🖼️", listOf(
+        "Bild an der Wand", "Poster oder Plakat", "Foto in Rahmen",
+        "Selbstgemaltes Bild", "Postkarten-Collage", "Wanddeko",
+    ), "Das Kunstwerk und seine Darstellung müssen erkennbar sein.", CategoryGroup.CULTURE, CategoryDifficulty.EASY),
+    CategoryTemplate("in_toy", "🧸", listOf(
+        "Stofftier", "Brettspiel-Schachtel", "Puzzle teilweise gelöst",
+        "LEGO-Modell", "Puppe oder Actionfigur", "Kartenspiel auf Tisch",
+    ), "Das Spielzeug muss klar erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_shoe", "👟", listOf(
+        "Schuhregal", "Einzelner Schuh auf dem Boden", "Hausschuhe",
+        "Sportschuhe am Eingang", "Stiefel im Flur", "Schuhe in einer Reihe",
+    ), "Die Schuhe und ihre Situation müssen erkennbar sein.", CategoryGroup.CLOTHING, CategoryDifficulty.EASY),
+    CategoryTemplate("in_door", "🚪", listOf(
+        "Zimmertür offen", "Schranktür mit Griff", "Badezimmertür",
+        "Kellertür", "Glastür", "Tür mit Poster",
+    ), "Die Tür und ihr besonderes Merkmal müssen erkennbar sein.", CategoryGroup.ARCHITECTURE, CategoryDifficulty.EASY),
+    CategoryTemplate("in_color_red", "🔴", listOf(
+        "Rotes Kissen", "Rote Verpackung", "Rotes Buch",
+        "Roter Apfel", "Rote Tasse", "Rotes Kleidungsstück",
+    ), "Das Objekt muss überwiegend rot sein und klar erkennbar.", CategoryGroup.COLORS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_color_blue", "🔵", listOf(
+        "Blaues Handtuch", "Blaue Flasche", "Blaue Schüssel",
+        "Blaues T-Shirt", "Blauer Kugelschreiber", "Blaue Zahnbürste",
+    ), "Das Objekt muss überwiegend blau sein und klar erkennbar.", CategoryGroup.COLORS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_glass", "🥂", listOf(
+        "Weinglas", "Glasvase", "Glasschüssel",
+        "Trinkglas mit Muster", "Glasflasche", "Glasdeko",
+    ), "Das Glasobjekt muss erkennbar und im Fokus sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_wood", "🪵", listOf(
+        "Holztisch", "Holzschneidebrett", "Holzregal",
+        "Holzrahmen", "Holzlöffel", "Holzfigur",
+    ), "Das Holzobjekt und seine Maserung müssen erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_candle", "🕯️", listOf(
+        "Duftkerze", "Teelicht in Halter", "Kerzenständer",
+        "Adventskranz-Kerze", "LED-Kerze", "Kerze auf Tisch",
+    ), "Die Kerze und ihr Kontext müssen erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+    CategoryTemplate("in_bottle", "🍾", listOf(
+        "Wasserflasche", "Weinflasche", "Parfüm-Flakon",
+        "Shampoo-Flasche", "Gewürzmühle", "Ölflsche in Küche",
+    ), "Die Flasche und ihr Inhalt oder Label müssen erkennbar sein.", CategoryGroup.CURIOUS, CategoryDifficulty.EASY),
+)
+
+val INDOOR_PRESET_CATEGORIES: List<Category> = INDOOR_CATEGORY_TEMPLATES.map { t ->
+    Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
+}.shuffled()
+
+fun INDOOR_TEMPLATES_SHUFFLED(): List<Category> = INDOOR_CATEGORY_TEMPLATES.map { t ->
+    Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
+}.shuffled()
+
+val INDOOR_CATEGORY_DESCRIPTIONS: Map<String, String> = INDOOR_CATEGORY_TEMPLATES.associate { it.id to it.description }
 
 const val VISIBLE_PRESET_COUNT = 12
 
@@ -360,7 +509,7 @@ fun CATEGORY_TEMPLATES_SHUFFLED(): List<Category> = CATEGORY_TEMPLATES.map { t -
 }.shuffled()
 
 // Lookup map: template id → description (used client-side without DB storage)
-val CATEGORY_DESCRIPTIONS: Map<String, String> = CATEGORY_TEMPLATES.associate { it.id to it.description }
+val CATEGORY_DESCRIPTIONS: Map<String, String> = (CATEGORY_TEMPLATES + INDOOR_CATEGORY_TEMPLATES).associate { it.id to it.description }
 
 // Lookup maps for group and difficulty metadata
 val CATEGORY_GROUPS: Map<String, CategoryGroup> = CATEGORY_TEMPLATES.associate { it.id to it.group }

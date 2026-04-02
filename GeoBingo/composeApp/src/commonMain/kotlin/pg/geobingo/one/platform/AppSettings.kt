@@ -40,6 +40,7 @@ object SettingsKeys {
     const val MODE_BLIND_COUNT = "mode_blind_count"
     const val MODE_WEIRD_COUNT = "mode_weird_count"
     const val MODE_QUICK_COUNT = "mode_quick_count"
+    const val MODE_AI_JUDGE_COUNT = "mode_ai_judge_count"
 
     // ── Stars Currency ────────────────────────────────────────────────
     const val STAR_COUNT = "star_count"

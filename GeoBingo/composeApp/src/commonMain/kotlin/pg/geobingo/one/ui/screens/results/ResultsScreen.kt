@@ -71,6 +71,7 @@ fun ResultsScreen(gameState: GameState) {
         GameMode.BLIND_BINGO -> GradientCool
         GameMode.WEIRD_CORE  -> GradientWeird
         GameMode.QUICK_START -> GradientQuickStart
+        GameMode.AI_JUDGE    -> GradientAiJudge
     }
     val modeColor = modeGradient.first()
 
@@ -154,6 +155,7 @@ fun ResultsScreen(gameState: GameState) {
                 pg.geobingo.one.game.GameMode.BLIND_BINGO -> SettingsKeys.MODE_BLIND_COUNT
                 pg.geobingo.one.game.GameMode.WEIRD_CORE -> SettingsKeys.MODE_WEIRD_COUNT
                 pg.geobingo.one.game.GameMode.QUICK_START -> SettingsKeys.MODE_QUICK_COUNT
+                pg.geobingo.one.game.GameMode.AI_JUDGE -> SettingsKeys.MODE_AI_JUDGE_COUNT
             }
             AppSettings.setInt(modeKey, AppSettings.getInt(modeKey, 0) + 1)
 

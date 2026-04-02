@@ -66,8 +66,9 @@ fun StatsScreen(gameState: GameState) {
     val modeBlind = remember { AppSettings.getInt(SettingsKeys.MODE_BLIND_COUNT) }
     val modeWeird = remember { AppSettings.getInt(SettingsKeys.MODE_WEIRD_COUNT) }
     val modeQuick = remember { AppSettings.getInt(SettingsKeys.MODE_QUICK_COUNT) }
+    val modeAiJudge = remember { AppSettings.getInt(SettingsKeys.MODE_AI_JUDGE_COUNT) }
     val favoriteMode = remember {
-        val modes = listOf("Classic" to modeClassic, "Blind Bingo" to modeBlind, "Weird Core" to modeWeird, "Quick Start" to modeQuick)
+        val modes = listOf("Classic" to modeClassic, "Blind Bingo" to modeBlind, "Weird Core" to modeWeird, "Quick Start" to modeQuick, "AI Judge" to modeAiJudge)
         modes.maxByOrNull { it.second }?.takeIf { it.second > 0 }?.first ?: "--"
     }
 

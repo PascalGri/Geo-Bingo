@@ -90,6 +90,12 @@ interface StringRes {
     val modeQuickStart: String
     val modeQuickStartSubtitle: String
     val modeQuickStartDesc: String
+    val modeAiJudge: String
+    val modeAiJudgeSubtitle: String
+    val modeAiJudgeDesc: String
+    val aiAnalyzing: String
+    val aiAnalyzingDesc: String
+    val aiAnalyzingProgress: String
     val letsGo: String
     val whereDoYouPlay: String
     val whereDoYouPlaySolo: String
@@ -116,6 +122,8 @@ interface StringRes {
     val weirdCoreActiveDesc: String
     val quickStartActive: String
     val quickStartActiveDesc: String
+    val aiJudgeActive: String
+    val aiJudgeActiveDesc: String
     val weirdCoreCategoryHint: String
 
     // ── Duration ────────────────────────────────────────────────────────

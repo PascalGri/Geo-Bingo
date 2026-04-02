@@ -1101,6 +1101,7 @@ private fun SettingsClickRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1112,8 +1113,6 @@ private fun SettingsClickRow(
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant, fontSize = 12.sp)
             }
         }
-        IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = ColorOnSurfaceVariant)
-        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp), tint = ColorOnSurfaceVariant)
     }
 }

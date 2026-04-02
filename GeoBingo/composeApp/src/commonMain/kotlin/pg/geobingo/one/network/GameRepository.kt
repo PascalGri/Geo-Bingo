@@ -529,6 +529,65 @@ object GameRepository {
         return PhotoValidationResult(rating = rating, reason = reason)
     }
 
+    // ── AI Judge (Multiplayer) ──────────────────────────────────────────
+
+    /**
+     * Validates all captures in a multiplayer game via AI.
+     * Downloads each photo, calls the validate-photo Edge Function,
+     * and inserts VoteDto records with voter_id = "ai_judge".
+     * Returns the total number of captures processed.
+     */
+    suspend fun validateMultiplayerCaptures(
+        gameId: String,
+        categories: List<Category>,
+        onProgress: (current: Int, total: Int) -> Unit = { _, _ -> },
+    ): Int {
+        val captures = getCaptures(gameId)
+        if (captures.isEmpty()) return 0
+
+        val categoryMap = categories.associateBy { it.id }
+        var processed = 0
+
+        for (capture in captures) {
+            onProgress(processed + 1, captures.size)
+            val category = categoryMap[capture.category_id] ?: continue
+
+            val photoBytes = downloadPhoto(gameId, capture.player_id, capture.category_id)
+            if (photoBytes == null) {
+                // No photo available — insert a default low rating
+                try {
+                    supabase.from("votes").insert(
+                        VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = 1)
+                    )
+                } catch (e: Exception) {
+                    if (!isDuplicateError(e)) AppLogger.w("Repo", "AI vote insert failed", e)
+                }
+                processed++
+                continue
+            }
+
+            try {
+                val result = validateSoloPhoto(photoBytes, category.name, category.description)
+                supabase.from("votes").insert(
+                    VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = result.rating)
+                )
+            } catch (e: Exception) {
+                AppLogger.e("Repo", "AI validation failed for ${capture.player_id}/${capture.category_id}", e)
+                // Insert fallback rating on validation failure
+                try {
+                    supabase.from("votes").insert(
+                        VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = 3)
+                    )
+                } catch (e2: Exception) {
+                    if (!isDuplicateError(e2)) AppLogger.w("Repo", "AI fallback vote insert failed", e2)
+                }
+            }
+            processed++
+        }
+
+        return processed
+    }
+
     // ── Solo Leaderboard ────────────────────────────────────────────────
 
     suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null): SoloScoreDto =

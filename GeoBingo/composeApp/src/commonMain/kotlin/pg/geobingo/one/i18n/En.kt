@@ -66,6 +66,12 @@ object En : StringRes {
     override val modeQuickStart = "Quick Start"
     override val modeQuickStartSubtitle = "15 min \u00B7 5 categories \u00B7 play instantly"
     override val modeQuickStartDesc = "No setup, no waiting. Just enter your name, pick your environment, and start playing."
+    override val modeAiJudge = "AI Judge"
+    override val modeAiJudgeSubtitle = "AI rates your photos instead of players"
+    override val modeAiJudgeDesc = "No voting phase -- an AI analyzes every photo and rates it 1-5 stars. Faster games, fair results."
+    override val aiAnalyzing = "AI Analysis"
+    override val aiAnalyzingDesc = "The AI is rating all photos..."
+    override val aiAnalyzingProgress = "Analyzing photo %1/%2"
     override val letsGo = "Let's go!"
     override val whereDoYouPlay = "Where are you playing?"
     override val whereDoYouPlaySolo = "Where are you playing?"
@@ -92,6 +98,8 @@ object En : StringRes {
     override val weirdCoreActiveDesc = "Only absurd categories. No standard photos -- unexpected moments, NPC observations, and things that shouldn't exist."
     override val quickStartActive = "Quick Start active"
     override val quickStartActiveDesc = "15 minutes, 5 preset categories -- just enter your name and start playing."
+    override val aiJudgeActive = "AI Judge active"
+    override val aiJudgeActiveDesc = "An AI rates every photo 1-5 stars. No voting phase -- results appear immediately after the game."
     override val weirdCoreCategoryHint = "Select the categories you want to play with."
 
     // ── Duration ────────────────────────────────────────────────────────
