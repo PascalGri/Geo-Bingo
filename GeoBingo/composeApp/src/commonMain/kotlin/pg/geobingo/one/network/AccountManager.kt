@@ -301,6 +301,26 @@ object AccountManager {
         }
     }
 
+    // ── App Startup (handles OAuth redirect on web) ──────────────────
+
+    /**
+     * Called on app startup. Awaits auth session restoration (important for
+     * web OAuth redirects where the page reloads) and runs profile setup
+     * + cloud sync if a user session exists.
+     */
+    suspend fun handleAppStartup() {
+        try {
+            supabase.auth.awaitInitialization()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Auth initialization failed", e)
+        }
+        val userId = currentUserId ?: return
+        val email = currentUser?.email ?: ""
+        createProfileIfNeeded(userId, email)
+        syncCloudToLocal(userId)
+        syncLocalToCloud(userId)
+    }
+
     // ── Cloud Sync ─────────────────────────────────────────────────
 
     suspend fun syncLocalToCloud(userId: String) {

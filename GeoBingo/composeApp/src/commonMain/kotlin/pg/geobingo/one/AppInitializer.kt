@@ -56,11 +56,8 @@ object AppInitializer {
         Analytics.track(Analytics.APP_OPENED)
         pg.geobingo.one.network.PushService.registerToken()
 
-        // Cloud sync
-        val userId = AccountManager.currentUserId
-        if (userId != null) {
-            AccountManager.syncLocalToCloud(userId)
-        }
+        // Auth initialization + cloud sync (handles web OAuth redirects)
+        AccountManager.handleAppStartup()
 
         // Daily login bonus + daily challenge reset
         gameState.stars.resetDailyChallengeIfNewDay()
