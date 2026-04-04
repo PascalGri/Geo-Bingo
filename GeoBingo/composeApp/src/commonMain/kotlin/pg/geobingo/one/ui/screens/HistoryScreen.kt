@@ -147,6 +147,13 @@ fun HistoryScreen(gameState: GameState) {
                             onToggleExpand = {
                                 expandedEntryKey = if (isExpanded) null else entryKey
                             },
+                            onNavigateToDetail = if (entry.gameId.isNotEmpty()) {
+                                {
+                                    gameState.ui.selectedMatchGameId = entry.gameId
+                                    gameState.ui.selectedMatchEntry = entry
+                                    nav.navigateTo(pg.geobingo.one.game.Screen.MATCH_DETAIL)
+                                }
+                            } else null,
                         )
                     }
                 }
@@ -171,6 +178,7 @@ private fun HistoryEntryCard(
     isLatest: Boolean,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
+    onNavigateToDetail: (() -> Unit)? = null,
 ) {
     // Load avatars from local cache
     var avatarBytes by remember { mutableStateOf(mapOf<String, ByteArray>()) }
@@ -241,7 +249,7 @@ private fun HistoryEntryCard(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onToggleExpand() },
+        modifier = Modifier.fillMaxWidth().clickable { if (onNavigateToDetail != null) onNavigateToDetail() else onToggleExpand() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = ColorSurface),
         border = androidx.compose.foundation.BorderStroke(

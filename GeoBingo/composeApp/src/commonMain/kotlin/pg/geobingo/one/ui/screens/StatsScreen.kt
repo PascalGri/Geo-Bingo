@@ -24,6 +24,8 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.MiniBarChart
+import pg.geobingo.one.ui.components.PieChart
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +90,7 @@ fun StatsScreen(gameState: GameState) {
         } else "--"
     }
 
-    val anim = rememberStaggeredAnimation(count = 14)
+    val anim = rememberStaggeredAnimation(count = 16)
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     Scaffold(
@@ -271,6 +273,76 @@ fun StatsScreen(gameState: GameState) {
                         modifier = Modifier.weight(1f).staggered(13),
                     )
                     Spacer(modifier = Modifier.weight(1f))
+                }
+
+                // ── Section: Mode Distribution ───────────────────────
+                val modeSegments = listOf(
+                    S.current.modeClassic to modeClassic.toFloat(),
+                    S.current.modeBlindBingo to modeBlind.toFloat(),
+                    S.current.modeWeirdCore to modeWeird.toFloat(),
+                    S.current.modeQuickStart to modeQuick.toFloat(),
+                    S.current.modeAiJudge to modeAiJudge.toFloat(),
+                ).filter { it.second > 0f }
+
+                if (modeSegments.isNotEmpty()) {
+                    SectionHeader(
+                        text = S.current.statsModeDistribution,
+                        modifier = Modifier.staggered(14),
+                    )
+                    GradientBorderCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggered(14),
+                        borderColors = GradientPrimary,
+                        backgroundColor = ColorSurface,
+                    ) {
+                        PieChart(
+                            segments = modeSegments,
+                            colors = listOf(
+                                Color(0xFF6366F1), // Indigo — Classic
+                                Color(0xFF22D3EE), // Cyan — Blind Bingo
+                                Color(0xFF22C55E), // Green — Weird Core
+                                Color(0xFFF59E0B), // Amber — Quick Start
+                                Color(0xFFEC4899), // Pink — AI Judge
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                        )
+                    }
+                }
+
+                // ── Section: Performance Overview ────────────────────
+                val speedBonusRate = if (gamesPlayed > 0) totalSpeedBonuses.toFloat() / gamesPlayed * 100f else 0f
+                val avgRatingScaled = averageRating * 20f // 0–5 stars → 0–100 scale
+
+                val perfData = buildList {
+                    if (gamesPlayed > 0) add(S.current.winRate to winRate.toFloat())
+                    if (totalStarsCount > 0) add(S.current.avgRating to avgRatingScaled)
+                    if (gamesPlayed > 0) add(S.current.statsSpeedBonuses to speedBonusRate)
+                    if (gamesPlayed > 0) add(S.current.statsCapturesPerGame to capturesPerGame * 10f)
+                }
+
+                if (perfData.isNotEmpty()) {
+                    SectionHeader(
+                        text = S.current.statsPerformanceOverview,
+                        modifier = Modifier.staggered(15),
+                    )
+                    GradientBorderCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggered(15),
+                        borderColors = GradientCool,
+                        backgroundColor = ColorSurface,
+                    ) {
+                        MiniBarChart(
+                            data = perfData,
+                            barColor = Color(0xFF6366F1),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(16.dp))

@@ -532,6 +532,11 @@ private fun HomeBottomBar(
                         Spacer(Modifier.width(4.dp))
                         Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
                     }
+                    TextButton(onClick = { onNavigate(Screen.ACHIEVEMENTS) }) {
+                        Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                        Text(S.current.achievementsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
+                    }
                 }
                 Row(
                     horizontalArrangement = Arrangement.Center,

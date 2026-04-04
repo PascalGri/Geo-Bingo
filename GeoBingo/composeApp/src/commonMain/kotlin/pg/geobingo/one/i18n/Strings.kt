@@ -220,6 +220,15 @@ interface StringRes {
     val photos: String
     val noPhotosAvailable: String
 
+    // ── Match Detail ─────────────────────────────────────────────────────
+    val matchDetails: String
+    val categoryBreakdownDetail: String
+    val votingResultsDetail: String
+    val noDataAvailable: String
+    val averageRatingLabel: String
+    val speedBonusEarned: String
+    val firstCapture: String
+
     // ── How to Play ─────────────────────────────────────────────────────
     val howToPlayTitle: String
     val exploreYourCity: String
@@ -276,6 +285,8 @@ interface StringRes {
     val statsOverview: String
     val statsPerformance: String
     val statsActivity: String
+    val statsModeDistribution: String
+    val statsPerformanceOverview: String
 
     // ── Quick Start Options ─────────────────────────────────────────────
     val duration10min: String
@@ -444,6 +455,8 @@ interface StringRes {
     val cosmeticShop: String
     val profileFrames: String
     val nameEffects: String
+    val playerTitles: String
+    val cardDesigns: String
     val equip: String
     val equipped: String
     val buy: String
@@ -517,6 +530,49 @@ interface StringRes {
     val inviteFriendsDesc: String
     val inviteFriendsMessage: String
 
+    // ── Achievements ───────────────────────────────────────────────
+    val achievementsTitle: String
+    fun achievementsUnlocked(count: Int, total: Int): String
+    val achievementsLocked: String
+    val achievementPerfectGame: String
+    val achievementPerfectGameDesc: String
+    val achievementSpeedDemon: String
+    val achievementSpeedDemonDesc: String
+    val achievementTenGames: String
+    val achievementTenGamesDesc: String
+    val achievementFiftyGames: String
+    val achievementFiftyGamesDesc: String
+    val achievementScore300: String
+    val achievementScore300Desc: String
+    val achievementScore500: String
+    val achievementScore500Desc: String
+    val achievementOutdoor10: String
+    val achievementOutdoor10Desc: String
+    val achievementIndoor10: String
+    val achievementIndoor10Desc: String
+    val achievementStar100: String
+    val achievementStar100Desc: String
+    val achievementStar500: String
+    val achievementStar500Desc: String
+    val achievementAllCaptured10: String
+    val achievementAllCaptured10Desc: String
+    val achievementMarathon: String
+    val achievementMarathonDesc: String
+    val achievementPerfect3: String
+    val achievementPerfect3Desc: String
+    val achievementFastFinish: String
+    val achievementFastFinishDesc: String
+
+    // ── Favorite Categories ─────────────────────────────────────────
+    val favorites: String
+    val saveFavorite: String
+    val loadFavorite: String
+    val deleteFavorite: String
+    val favoriteNameHint: String
+    val noFavoritesYet: String
+    val favoriteSaved: String
+    val favoritesMax: String
+
     // ── Friends System ─────────────────────────────────────────────
     val friends: String
     val friendsEmpty: String
@@ -546,4 +602,15 @@ interface StringRes {
     val friendCodeCopied: String
     fun lastSeenMinutes(min: Int): String
     fun lastSeenHours(h: Int): String
+
+    // ── Leaderboard Time Periods ────────────────────────────────────────
+    val leaderboardAllTime: String
+    val leaderboardWeekly: String
+    val leaderboardMonthly: String
+
+    // ── Direct Messages ──────────────────────────────────────────────────
+    val directMessages: String
+    val noMessagesYet: String
+    val typeMessageHint: String
+    val messageSent: String
 }

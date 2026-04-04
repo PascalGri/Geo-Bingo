@@ -354,6 +354,9 @@ fun App() {
                     Screen.MP_LEADERBOARD -> { nav.resetTo(Screen.HOME) } // disabled for now
                     Screen.PROFILE -> ProfileScreen(gameState)
                     Screen.ACTIVITY_FEED -> ActivityFeedScreen(gameState)
+                    Screen.ACHIEVEMENTS -> AchievementScreen(gameState)
+                    Screen.DIRECT_MESSAGE -> DirectMessageScreen(gameState)
+                    Screen.MATCH_DETAIL -> MatchDetailScreen(gameState)
                 }
             }
         }

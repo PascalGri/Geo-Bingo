@@ -27,4 +27,8 @@ class UiState {
     var consecutiveNetworkErrors by mutableStateOf(0)
     var interstitialShown by mutableStateOf(false)
     var gameHistory by mutableStateOf(listOf<GameHistoryEntry>())
+    var selectedDmFriendId by mutableStateOf<String?>(null)
+    var selectedDmFriendName by mutableStateOf("")
+    var selectedMatchGameId by mutableStateOf<String?>(null)
+    var selectedMatchEntry by mutableStateOf<GameHistoryEntry?>(null)
 }

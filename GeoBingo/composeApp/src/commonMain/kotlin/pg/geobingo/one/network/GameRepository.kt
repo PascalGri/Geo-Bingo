@@ -635,13 +635,16 @@ object GameRepository {
         return result
     }
 
-    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null, offset: Int = 0): List<SoloScoreDto> {
-        val cacheKey = "$limit:$isOutdoor:$offset"
+    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null, offset: Int = 0, createdAfter: String? = null): List<SoloScoreDto> {
+        val cacheKey = "$limit:$isOutdoor:$offset:$createdAfter"
         val cache = soloLeaderboardCaches.getOrPut(cacheKey) { ResponseCache(ttlMs = 60_000L) }
         return cache.getOrFetch {
             supabase.from("solo_scores")
                 .select {
-                    if (isOutdoor != null) filter { eq("is_outdoor", isOutdoor) }
+                    filter {
+                        if (isOutdoor != null) eq("is_outdoor", isOutdoor)
+                        if (createdAfter != null) gte("created_at", createdAfter)
+                    }
                     order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                     range(offset.toLong(), (offset + limit - 1).toLong())
                 }

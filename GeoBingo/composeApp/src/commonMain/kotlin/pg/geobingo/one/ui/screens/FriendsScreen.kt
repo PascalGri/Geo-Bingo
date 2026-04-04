@@ -326,6 +326,11 @@ fun FriendsScreen(gameState: GameState) {
                                 }
                             },
                             onRemove = { showRemoveDialog = friend },
+                            onMessage = {
+                                gameState.ui.selectedDmFriendId = friend.userId
+                                gameState.ui.selectedDmFriendName = friend.displayName
+                                nav.navigateTo(Screen.DIRECT_MESSAGE)
+                            },
                         )
                     }
                 }
@@ -374,7 +379,7 @@ private fun MyFriendCodeCard(code: String, onCopy: () -> Unit) {
 }
 
 @Composable
-private fun FriendRow(friend: FriendInfo, avatarBytes: ByteArray? = null, canInvite: Boolean, onInvite: () -> Unit, onRemove: () -> Unit) {
+private fun FriendRow(friend: FriendInfo, avatarBytes: ByteArray? = null, canInvite: Boolean, onInvite: () -> Unit, onRemove: () -> Unit, onMessage: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = ColorSurface),
@@ -431,6 +436,9 @@ private fun FriendRow(friend: FriendInfo, avatarBytes: ByteArray? = null, canInv
                 Spacer(Modifier.width(4.dp))
             }
 
+            IconButton(onClick = onMessage, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
+            }
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
             }

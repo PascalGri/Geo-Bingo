@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +56,34 @@ fun CosmeticPlayerName(
             style = style,
             fontWeight = fontWeight,
             color = fallbackColor,
+        )
+    }
+}
+
+/**
+ * Displays the equipped player title as a small colored text badge.
+ * Shows nothing if titleId is "title_none" or not found.
+ */
+@Composable
+fun PlayerTitleBadge(
+    titleId: String,
+    modifier: Modifier = Modifier,
+) {
+    if (titleId == "title_none") return
+    val title = CosmeticsManager.ALL_TITLES.find { it.id == titleId } ?: return
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(title.color.copy(alpha = 0.15f))
+            .border(0.5.dp, title.color.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text = title.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = title.color,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }

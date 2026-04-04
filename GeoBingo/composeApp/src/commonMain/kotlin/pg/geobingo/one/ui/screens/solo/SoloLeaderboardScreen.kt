@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.datetime.Clock
+import kotlin.time.Duration.Companion.days
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
@@ -38,6 +40,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var selectedEnvironment by remember { mutableStateOf(0) } // 0 = outdoor, 1 = indoor
     var selectedCatCount by remember { mutableStateOf(0) } // 0 = 5 categories, 1 = 10 categories
+    var selectedTimePeriod by remember { mutableStateOf(0) } // 0 = all-time, 1 = this week, 2 = this month
 
     // Cache for all 4 leaderboard variants
     var scores5Outdoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
@@ -62,6 +65,12 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     val currentUserId = AccountManager.currentUserId
     val playerName = gameState.solo.playerName
 
+    val createdAfter: String? = when (selectedTimePeriod) {
+        1 -> (Clock.System.now() - 7.days).toString()
+        2 -> (Clock.System.now() - 30.days).toString()
+        else -> null
+    }
+
     val scores = when {
         selectedCatCount == 0 && selectedEnvironment == 0 -> scores5Outdoor
         selectedCatCount == 0 && selectedEnvironment == 1 -> scores5Indoor
@@ -76,8 +85,8 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     }
 
     /** Load a page of scores for the given outdoor flag and append to the correct variant lists. */
-    suspend fun loadPage(isOutdoor: Boolean, offset: Int): Int {
-        val raw = GameRepository.getSoloLeaderboard(pageSize, isOutdoor = isOutdoor, offset = offset)
+    suspend fun loadPage(isOutdoor: Boolean, offset: Int, createdAfter: String? = null): Int {
+        val raw = GameRepository.getSoloLeaderboard(pageSize, isOutdoor = isOutdoor, offset = offset, createdAfter = createdAfter)
         val raw5 = raw.filter { it.categories_count <= 5 }
         val raw10 = raw.filter { it.categories_count > 5 }
         if (isOutdoor) {
@@ -94,10 +103,30 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         return raw.size
     }
 
-    LaunchedEffect(Unit) {
+    // Reload all variants when time period changes
+    LaunchedEffect(selectedTimePeriod) {
+        loading = true
+        error = false
+        scores5Outdoor = emptyList()
+        scores5Indoor = emptyList()
+        scores10Outdoor = emptyList()
+        scores10Indoor = emptyList()
+        rawOffset5Outdoor = 0
+        rawOffset5Indoor = 0
+        rawOffset10Outdoor = 0
+        rawOffset10Indoor = 0
+        hasMore5Outdoor = true
+        hasMore5Indoor = true
+        hasMore10Outdoor = true
+        hasMore10Indoor = true
+        val periodFilter: String? = when (selectedTimePeriod) {
+            1 -> (Clock.System.now() - 7.days).toString()
+            2 -> (Clock.System.now() - 30.days).toString()
+            else -> null
+        }
         try {
-            val outdoorCount = loadPage(isOutdoor = true, offset = 0)
-            val indoorCount = loadPage(isOutdoor = false, offset = 0)
+            val outdoorCount = loadPage(isOutdoor = true, offset = 0, createdAfter = periodFilter)
+            val indoorCount = loadPage(isOutdoor = false, offset = 0, createdAfter = periodFilter)
             hasMore5Outdoor = outdoorCount >= pageSize
             hasMore10Outdoor = outdoorCount >= pageSize
             hasMore5Indoor = indoorCount >= pageSize
@@ -242,7 +271,47 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                     }
                 }
 
-                Spacer(Modifier.height(4.dp))
+                // Time period tabs (All-time / This Week / This Month)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    listOf(
+                        0 to S.current.leaderboardAllTime,
+                        1 to S.current.leaderboardWeekly,
+                        2 to S.current.leaderboardMonthly,
+                    ).forEach { (idx, label) ->
+                        val selected = selectedTimePeriod == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (selected) Brush.linearGradient(tabGradient.map { it.copy(alpha = 0.55f) })
+                                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) Color.Transparent else ColorOutline,
+                                    shape = RoundedCornerShape(8.dp),
+                                )
+                                .clickable { selectedTimePeriod = idx }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selected) Color.White else ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(2.dp))
 
                 if (scores.isEmpty() && !loading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -273,7 +342,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                             try {
                                 val isOutdoor = selectedEnvironment == 0
                                 val currentOffset = if (isOutdoor) rawOffset5Outdoor else rawOffset5Indoor
-                                val count = loadPage(isOutdoor = isOutdoor, offset = currentOffset)
+                                val count = loadPage(isOutdoor = isOutdoor, offset = currentOffset, createdAfter = createdAfter)
                                 val noMore = count < pageSize
                                 if (isOutdoor) {
                                     hasMore5Outdoor = !noMore

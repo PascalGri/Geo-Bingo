@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
+import pg.geobingo.one.game.state.FavoriteCategoriesManager
 import pg.geobingo.one.util.AppLogger
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
@@ -82,6 +83,11 @@ fun CreateGameScreen(gameState: GameState) {
     val shuffleAlpha = remember { Animatable(1f) }
     var showRerollDialog by remember { mutableStateOf<String?>(null) } // category id to reroll
     var showNewSuggestionsDialog by remember { mutableStateOf(false) }
+
+    var favorites by remember { mutableStateOf(FavoriteCategoriesManager.getFavorites()) }
+    var favoritesExpanded by remember { mutableStateOf(false) }
+    var showSaveFavoriteDialog by remember { mutableStateOf(false) }
+    var favoriteNameInput by remember { mutableStateOf("") }
 
     val totalCategories = customCategories.size + selectedPresetIds.size
     val canStart = hostNameInput.trim().isNotEmpty() && (gameMode == GameMode.QUICK_START || totalCategories >= 2)
@@ -303,6 +309,231 @@ fun CreateGameScreen(gameState: GameState) {
                     ) {
                         Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
                     }
+                }
+            }
+
+            // ── Favoriten ─────────────────────────────────────────────────
+            if (gameMode != GameMode.QUICK_START) {
+                val favGradient = when (gameMode) {
+                    GameMode.CLASSIC -> GradientPrimary
+                    GameMode.BLIND_BINGO -> GradientCool
+                    GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
+                    GameMode.AI_JUDGE -> GradientAiJudge
+                }
+                GradientBorderCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    borderColors = favGradient,
+                    backgroundColor = ColorSurface,
+                    borderWidth = 1.dp,
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Header row – always visible
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { favoritesExpanded = !favoritesExpanded },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Favorite,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = favGradient.first(),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            AnimatedGradientText(
+                                text = S.current.favorites,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                gradientColors = favGradient,
+                                durationMillis = 3000,
+                                modifier = Modifier.weight(1f),
+                            )
+                            // "Save current" button visible when enough categories selected
+                            if (totalCategories >= 2) {
+                                IconButton(
+                                    onClick = {
+                                        if (favorites.size >= 10) {
+                                            scope.launch { snackbarHostState.showSnackbar(S.current.favoritesMax) }
+                                        } else {
+                                            favoriteNameInput = ""
+                                            showSaveFavoriteDialog = true
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.BookmarkAdd,
+                                        contentDescription = S.current.saveFavorite,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = favGradient.first(),
+                                    )
+                                }
+                                Spacer(Modifier.width(4.dp))
+                            }
+                            Icon(
+                                if (favoritesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = ColorOnSurfaceVariant,
+                            )
+                        }
+
+                        // Collapsible content
+                        AnimatedVisibility(
+                            visible = favoritesExpanded,
+                            enter = expandVertically(tween(300)) + fadeIn(tween(300)),
+                            exit = shrinkVertically(tween(300)) + fadeOut(tween(300)),
+                        ) {
+                            Column {
+                                Spacer(Modifier.height(12.dp))
+                                if (favorites.isEmpty()) {
+                                    Text(
+                                        S.current.noFavoritesYet,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = ColorOnSurfaceVariant,
+                                    )
+                                } else {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        favorites.forEach { favSet ->
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = ColorSurfaceVariant,
+                                                border = BorderStroke(1.dp, favGradient.first().copy(alpha = 0.25f)),
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            favSet.name,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = ColorOnSurface,
+                                                        )
+                                                        Text(
+                                                            favSet.categories.joinToString(", ") { it.name },
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = ColorOnSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                        )
+                                                    }
+                                                    Spacer(Modifier.width(8.dp))
+                                                    // Load button
+                                                    TextButton(
+                                                        onClick = {
+                                                            val presetIds = favSet.categories
+                                                                .map { it.id }
+                                                                .filter { id -> presetPool.any { it.id == id } }
+                                                                .toSet()
+                                                            val customOnes = favSet.categories
+                                                                .filter { ref -> presetPool.none { it.id == ref.id } }
+                                                                .mapIndexed { idx, ref ->
+                                                                    Category(
+                                                                        id = "custom_fav_${favSet.id}_$idx",
+                                                                        name = ref.name,
+                                                                        emoji = ref.emoji,
+                                                                    )
+                                                                }
+                                                            selectedPresetIds = presetIds
+                                                            customCategories = customOnes
+                                                            // Ensure loaded preset chips are visible
+                                                            val missingFromVisible = presetPool.filter { it.id in presetIds && it !in visiblePresets }
+                                                            if (missingFromVisible.isNotEmpty()) {
+                                                                val combined = (missingFromVisible + visiblePresets).take(VISIBLE_PRESET_COUNT)
+                                                                visiblePresets = combined
+                                                            }
+                                                            favoritesExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                    ) {
+                                                        Text(
+                                                            S.current.loadFavorite,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = favGradient.first(),
+                                                        )
+                                                    }
+                                                    // Delete button
+                                                    IconButton(
+                                                        onClick = {
+                                                            FavoriteCategoriesManager.deleteFavorite(favSet.id)
+                                                            favorites = FavoriteCategoriesManager.getFavorites()
+                                                        },
+                                                        modifier = Modifier.size(28.dp),
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Close,
+                                                            contentDescription = S.current.deleteFavorite,
+                                                            modifier = Modifier.size(14.dp),
+                                                            tint = ColorOnSurfaceVariant,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Save Favorite Dialog
+                if (showSaveFavoriteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showSaveFavoriteDialog = false },
+                        icon = {
+                            Icon(Icons.Default.BookmarkAdd, contentDescription = null, tint = favGradient.first())
+                        },
+                        title = { Text(S.current.saveFavorite) },
+                        text = {
+                            OutlinedTextField(
+                                value = favoriteNameInput,
+                                onValueChange = { if (it.length <= 30) favoriteNameInput = it },
+                                placeholder = { Text(S.current.favoriteNameHint, color = ColorOnSurfaceVariant) },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = favGradient.first(),
+                                    unfocusedBorderColor = ColorOutline,
+                                    focusedTextColor = ColorOnSurface,
+                                    unfocusedTextColor = ColorOnSurface,
+                                    cursorColor = favGradient.first(),
+                                    focusedContainerColor = ColorSurfaceVariant,
+                                    unfocusedContainerColor = ColorSurfaceVariant,
+                                ),
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val name = favoriteNameInput.trim()
+                                    if (name.isNotEmpty()) {
+                                        val presets = presetPool.filter { it.id in selectedPresetIds }
+                                        val allCats = customCategories + presets
+                                        FavoriteCategoriesManager.saveFavorite(name, allCats)
+                                        favorites = FavoriteCategoriesManager.getFavorites()
+                                        showSaveFavoriteDialog = false
+                                        scope.launch { snackbarHostState.showSnackbar(S.current.favoriteSaved) }
+                                    }
+                                },
+                                enabled = favoriteNameInput.trim().isNotEmpty(),
+                            ) {
+                                Text(S.current.save)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showSaveFavoriteDialog = false }) {
+                                Text(S.current.cancel)
+                            }
+                        },
+                        containerColor = ColorSurface,
+                    )
                 }
             }
 

@@ -21,8 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.game.state.CardDesign
 import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.game.state.NameEffect
+import pg.geobingo.one.game.state.PlayerTitle
 import pg.geobingo.one.game.state.ProfileFrame
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AppSettings
@@ -44,6 +46,8 @@ fun CosmeticShopScreen(gameState: GameState) {
     var purchaseCounter by remember { mutableStateOf(0) }
     val equippedFrameId = remember(purchaseCounter) { CosmeticsManager.getEquippedFrameId() }
     val equippedNameId = remember(purchaseCounter) { CosmeticsManager.getEquippedNameEffectId() }
+    val equippedTitleId = remember(purchaseCounter) { CosmeticsManager.getEquippedTitleId() }
+    val equippedCardDesignId = remember(purchaseCounter) { CosmeticsManager.getEquippedCardDesignId() }
 
     val playerName = AppSettings.getString("last_player_name", "Player")
     val avatarBytes = LocalPhotoStore.loadAvatar("profile")
@@ -206,6 +210,90 @@ fun CosmeticShopScreen(gameState: GameState) {
                 }
             }
 
+            // ── Player Titles ────────────────────────────────────────────
+            Text(
+                S.current.playerTitles,
+                style = MaterialTheme.typography.labelMedium,
+                color = ColorOnSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CosmeticsManager.ALL_TITLES.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        row.forEach { title ->
+                            PlayerTitleCard(
+                                title = title,
+                                isOwned = CosmeticsManager.isOwned(title.id),
+                                isEquipped = equippedTitleId == title.id,
+                                onBuy = {
+                                    if (gameState.stars.spend(title.starsCost)) {
+                                        CosmeticsManager.purchase(title.id)
+                                        CosmeticsManager.setEquippedTitle(title.id)
+                                        purchaseCounter++
+                                    } else {
+                                        miniShopNeeded = title.starsCost
+                                        showMiniShop = true
+                                    }
+                                },
+                                onEquip = {
+                                    CosmeticsManager.setEquippedTitle(title.id)
+                                    purchaseCounter++
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+
+            // ── Card Designs ─────────────────────────────────────────────
+            Text(
+                S.current.cardDesigns,
+                style = MaterialTheme.typography.labelMedium,
+                color = ColorOnSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CosmeticsManager.ALL_CARD_DESIGNS.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        row.forEach { design ->
+                            CardDesignCard(
+                                design = design,
+                                isOwned = CosmeticsManager.isOwned(design.id),
+                                isEquipped = equippedCardDesignId == design.id,
+                                onBuy = {
+                                    if (gameState.stars.spend(design.starsCost)) {
+                                        CosmeticsManager.purchase(design.id)
+                                        CosmeticsManager.setEquippedCardDesign(design.id)
+                                        purchaseCounter++
+                                    } else {
+                                        miniShopNeeded = design.starsCost
+                                        showMiniShop = true
+                                    }
+                                },
+                                onEquip = {
+                                    CosmeticsManager.setEquippedCardDesign(design.id)
+                                    purchaseCounter++
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -358,6 +446,162 @@ private fun NameEffectCard(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                             Icon(Icons.Default.Star, null, modifier = Modifier.size(12.dp), tint = Color.White)
                             Text("${effect.starsCost}", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerTitleCard(
+    title: PlayerTitle,
+    isOwned: Boolean,
+    isEquipped: Boolean,
+    onBuy: () -> Unit,
+    onEquip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GradientBorderCard(
+        modifier = modifier,
+        cornerRadius = 14.dp,
+        borderColors = if (isEquipped) listOf(title.color, title.color.copy(alpha = 0.6f)) else listOf(ColorOutlineVariant, ColorOutlineVariant),
+        backgroundColor = ColorSurface,
+        borderWidth = if (isEquipped) 1.5.dp else 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // Title preview badge
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(title.color.copy(alpha = 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    title.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = title.color,
+                )
+            }
+
+            Text(
+                title.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorOnSurface,
+            )
+
+            when {
+                isEquipped -> {
+                    Text(S.current.equipped, style = MaterialTheme.typography.labelSmall, color = ColorPrimary, fontWeight = FontWeight.Bold)
+                }
+                isOwned -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ColorPrimary.copy(alpha = 0.1f))
+                            .clickable { onEquip() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Text(S.current.equip, style = MaterialTheme.typography.labelSmall, color = ColorPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+                title.starsCost > 0 -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Brush.linearGradient(GradientGold))
+                            .clickable { onBuy() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Icon(Icons.Default.Star, null, modifier = Modifier.size(12.dp), tint = Color.White)
+                            Text("${title.starsCost}", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardDesignCard(
+    design: CardDesign,
+    isOwned: Boolean,
+    isEquipped: Boolean,
+    onBuy: () -> Unit,
+    onEquip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColors = if (design.backgroundColors.size >= 2) design.backgroundColors else GradientPrimary
+
+    GradientBorderCard(
+        modifier = modifier,
+        cornerRadius = 14.dp,
+        borderColors = if (isEquipped) borderColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+        backgroundColor = ColorSurface,
+        borderWidth = if (isEquipped) 1.5.dp else 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // Gradient preview rectangle
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        if (design.backgroundColors.size >= 2)
+                            Brush.linearGradient(design.backgroundColors)
+                        else
+                            Brush.linearGradient(listOf(design.backgroundColors.first(), design.backgroundColors.first()))
+                    ),
+            )
+
+            Text(
+                design.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorOnSurface,
+            )
+
+            when {
+                isEquipped -> {
+                    Text(S.current.equipped, style = MaterialTheme.typography.labelSmall, color = ColorPrimary, fontWeight = FontWeight.Bold)
+                }
+                isOwned -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ColorPrimary.copy(alpha = 0.1f))
+                            .clickable { onEquip() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Text(S.current.equip, style = MaterialTheme.typography.labelSmall, color = ColorPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+                design.starsCost > 0 -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Brush.linearGradient(GradientGold))
+                            .clickable { onBuy() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Icon(Icons.Default.Star, null, modifier = Modifier.size(12.dp), tint = Color.White)
+                            Text("${design.starsCost}", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
