@@ -44,6 +44,7 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -484,7 +485,7 @@ internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int,
             }
             PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(6.dp))
-            Text(player.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
+            CosmeticPlayerName(name = player.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, fallbackColor = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
             Spacer(Modifier.width(4.dp))
             Text(
                 "$captureCount/$totalCategories",

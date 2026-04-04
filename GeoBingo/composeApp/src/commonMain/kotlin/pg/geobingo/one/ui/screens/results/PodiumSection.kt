@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -67,12 +68,11 @@ internal fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarByte
                 Spacer(Modifier.height(4.dp))
                 PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp, photoBytes = playerAvatarBytes[player.id])
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    player.name,
+                CosmeticPlayerName(
+                    name = player.name,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    color = ColorOnBackground,
-                    textAlign = TextAlign.Center,
+                    fallbackColor = ColorOnBackground,
                 )
                 // Animated score counter
                 val animatedScore = remember { Animatable(0f) }

@@ -51,6 +51,7 @@ import pg.geobingo.one.network.toPlayer
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.rememberShareManager
+import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.PlayerAvatarViewRaw
 import pg.geobingo.one.ui.theme.Spacing
@@ -743,11 +744,10 @@ fun LobbyScreen(gameState: GameState) {
                                                 photoBytes = gameState.photo.playerAvatarBytes[player.id],
                                             )
                                             Spacer(Modifier.width(8.dp))
-                                            Text(
-                                                player.name,
+                                            CosmeticPlayerName(
+                                                name = player.name,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium,
-                                                color = ColorOnSurface,
                                             )
                                             if (player.id == myId) {
                                                 Spacer(Modifier.width(4.dp))
@@ -910,12 +910,11 @@ private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, isHost: Boolean, ph
                 CrownIcon(modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
             }
-            Text(
-                player.name,
+            CosmeticPlayerName(
+                name = player.name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f),
-                color = ColorOnSurface,
             )
             if (isMe) {
                 Box(

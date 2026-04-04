@@ -28,7 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.ui.components.CosmeticPlayerName
+import pg.geobingo.one.ui.components.PlayerTitleBadge
 import pg.geobingo.one.ui.theme.*
 
 /**
@@ -112,12 +115,18 @@ internal fun DarkRankCard(
                 Spacer(Modifier.width(10.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        player.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CosmeticPlayerName(
+                            name = player.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        val titleId = CosmeticsManager.getEquippedTitleId()
+                        if (titleId != "title_none") {
+                            Spacer(Modifier.width(6.dp))
+                            PlayerTitleBadge(titleId = titleId)
+                        }
+                    }
                     if (captures.isNotEmpty()) {
                         Text(
                             captures.take(3).joinToString(", ") + if (captures.size > 3) " …" else "",
