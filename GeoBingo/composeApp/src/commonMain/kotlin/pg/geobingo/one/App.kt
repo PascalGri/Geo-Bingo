@@ -16,8 +16,10 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.platform.DeepLinkHandler
 import pg.geobingo.one.platform.rememberConnectivityState
+import pg.geobingo.one.ui.components.BottomNavBar
 import pg.geobingo.one.ui.components.NotificationBanners
 import pg.geobingo.one.ui.components.SyncAvatars
+import pg.geobingo.one.ui.components.showsBottomNav
 import pg.geobingo.one.ui.screens.*
 import pg.geobingo.one.ui.screens.ModeSelectScreen
 import pg.geobingo.one.ui.screens.ProfileSetupScreen
@@ -75,6 +77,18 @@ fun App() {
             Box(modifier = Modifier.weight(1f)) {
                 SyncAvatars(gameState)
                 ScreenRouter(nav.currentScreen, gameState)
+            }
+
+            // Global bottom navigation bar (hidden during games/transitions)
+            if (nav.currentScreen.showsBottomNav()) {
+                BottomNavBar(
+                    currentScreen = nav.currentScreen,
+                    onTabSelected = { screen ->
+                        if (screen != nav.currentScreen) {
+                            nav.resetTo(screen)
+                        }
+                    },
+                )
             }
         }
     }

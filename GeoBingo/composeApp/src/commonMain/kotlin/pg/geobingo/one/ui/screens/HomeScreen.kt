@@ -120,20 +120,7 @@ fun HomeScreen(gameState: GameState) {
 
     var selectedHistoryEntry by remember { mutableStateOf<GameHistoryEntry?>(null) }
     var showEarnStarsDialog by remember { mutableStateOf(false) }
-    var pendingFriendRequestCount by remember { mutableStateOf(0) }
 
-    // Poll pending friend requests count
-    LaunchedEffect(Unit) {
-        if (!AccountManager.isLoggedIn) return@LaunchedEffect
-        while (true) {
-            try {
-                pendingFriendRequestCount = FriendsManager.getPendingRequests().size
-            } catch (e: Exception) {
-                pg.geobingo.one.util.AppLogger.w("Home", "Friend request poll failed", e)
-            }
-            delay(15_000L)
-        }
-    }
     // Reset daily challenge if a new UTC day has started (handles app staying open past midnight)
     LaunchedEffect(Unit) {
         while (true) {
@@ -167,10 +154,8 @@ fun HomeScreen(gameState: GameState) {
             HomeBottomBar(
                 btnOffsets = btnOffsets,
                 btnAlphas = btnAlphas,
-                pendingFriendRequestCount = pendingFriendRequestCount,
                 onCreateRound = { nav.navigateTo(Screen.SELECT_MODE) },
                 onJoinRound = { nav.navigateTo(Screen.JOIN_GAME) },
-                onNavigate = { nav.navigateTo(it) },
             )
         },
     ) { padding ->
@@ -437,17 +422,14 @@ private fun RejoinGameDialog(
 private fun HomeBottomBar(
     btnOffsets: List<Animatable<Float, *>>,
     btnAlphas: List<Animatable<Float, *>>,
-    pendingFriendRequestCount: Int,
     onCreateRound: () -> Unit,
     onJoinRound: () -> Unit,
-    onNavigate: (Screen) -> Unit,
 ) {
     Surface(color = Color.Transparent) {
         Column(
             modifier = Modifier
-                .navigationBarsPadding()
                 .padding(horizontal = Spacing.screenHorizontal)
-                .padding(bottom = 24.dp, top = 8.dp)
+                .padding(bottom = 12.dp, top = 8.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -490,76 +472,6 @@ private fun HomeBottomBar(
                     fontSize = 17.sp,
                     color = ColorOnSurface,
                 )
-            }
-
-            // ── FOOTER ────────────────────────────────────────────────
-            val uriHandler = LocalUriHandler.current
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = { onNavigate(Screen.FRIENDS) }) {
-                        Box {
-                            Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                            if (pendingFriendRequestCount > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 4.dp, y = (-4).dp)
-                                        .clip(androidx.compose.foundation.shape.CircleShape)
-                                        .background(Color(0xFFEF4444)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        "$pendingFriendRequestCount",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        Text(S.current.friends, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    }
-                    TextButton(onClick = { onNavigate(Screen.SETTINGS) }) {
-                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                        Spacer(Modifier.width(4.dp))
-                        Text(S.current.settings, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = { onNavigate(Screen.STATS) }) {
-                        Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                        Spacer(Modifier.width(4.dp))
-                        Text(S.current.statsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    }
-                    TextButton(onClick = { onNavigate(Screen.ACHIEVEMENTS) }) {
-                        Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(14.dp), tint = ColorOnSurfaceVariant)
-                        Spacer(Modifier.width(4.dp))
-                        Text(S.current.achievementsTitle, style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/impressum.html") }) {
-                        Text(S.current.impressum, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
-                    }
-                    TextButton(onClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") }) {
-                        Text(S.current.privacy, style = MaterialTheme.typography.labelSmall, color = ColorOutline)
-                    }
-                }
             }
         }
     }
