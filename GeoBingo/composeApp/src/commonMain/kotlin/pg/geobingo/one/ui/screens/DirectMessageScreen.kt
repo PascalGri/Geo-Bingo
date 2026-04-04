@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.DirectMessageManager
@@ -37,11 +38,12 @@ fun DirectMessageScreen(gameState: GameState) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val friendId = gameState.ui.selectedDmFriendId ?: run {
+    val dmArgs = nav.getArgs<NavArgs.DirectMessage>()
+    val friendId = dmArgs?.friendId ?: gameState.ui.selectedDmFriendId ?: run {
         nav.goBack()
         return
     }
-    val friendName = gameState.ui.selectedDmFriendName
+    val friendName = dmArgs?.friendName ?: gameState.ui.selectedDmFriendName
     val myId = AccountManager.currentUserId ?: ""
 
     var messages by remember { mutableStateOf<List<DirectMessageManager.DirectMessageDto>>(emptyList()) }

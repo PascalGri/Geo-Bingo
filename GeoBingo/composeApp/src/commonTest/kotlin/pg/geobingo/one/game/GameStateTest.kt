@@ -81,11 +81,11 @@ class GameStateTest {
         val gs = createGameState()
         gs.gameplay.captures = mapOf("p1" to setOf("cat1"), "p2" to setOf("cat1", "cat2"))
 
-        val p1Caps = gs.getPlayerCaptures("p1")
+        val p1Caps = gs.scoring.getPlayerCaptures("p1")
         assertEquals(1, p1Caps.size)
         assertEquals("cat1", p1Caps[0].id)
 
-        val p2Caps = gs.getPlayerCaptures("p2")
+        val p2Caps = gs.scoring.getPlayerCaptures("p2")
         assertEquals(2, p2Caps.size)
     }
 
@@ -144,7 +144,6 @@ class GameStateTest {
         assertFalse(gs.gameplay.isGameRunning)
         assertTrue(gs.gameplay.players.isEmpty())
         assertTrue(gs.gameplay.captures.isEmpty())
-        assertEquals(Screen.HOME, gs.session.currentScreen)
     }
 
     @Test
@@ -160,7 +159,6 @@ class GameStateTest {
         assertEquals("new_player", gs.session.myPlayerId)
         assertTrue(gs.session.isHost)
         assertFalse(gs.gameplay.isGameRunning)
-        assertEquals(Screen.LOBBY, gs.session.currentScreen)
     }
 
     @Test
@@ -198,11 +196,11 @@ class GameStateTest {
         gs.gameplay.captures = mapOf("p1" to setOf("cat1"), "p2" to setOf("cat1", "cat2"))
         gs.gameplay.teamAssignments = mapOf("p1" to 1, "p2" to 2)
 
-        val team1Players = gs.getTeamPlayers(1)
+        val team1Players = gs.teams.getTeamPlayers(1)
         assertEquals(1, team1Players.size)
         assertEquals("p1", team1Players[0].id)
 
-        val team2Players = gs.getTeamPlayers(2)
+        val team2Players = gs.teams.getTeamPlayers(2)
         assertEquals(1, team2Players.size)
         assertEquals("p2", team2Players[0].id)
     }
@@ -213,7 +211,7 @@ class GameStateTest {
         gs.gameplay.captures = mapOf("p1" to setOf("cat1"), "p2" to emptySet())
 
         // These should delegate to ScoringManager and return consistent results
-        val captures = gs.getPlayerCaptures("p1")
+        val captures = gs.scoring.getPlayerCaptures("p1")
         assertEquals(1, captures.size)
 
         val scoringCaptures = gs.scoring.getPlayerCaptures("p1")

@@ -4,12 +4,9 @@ import androidx.compose.ui.graphics.Color
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
-import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.PlayerDto
 
 fun mockGameState(): GameState = GameState().apply {
-    session.currentScreen = Screen.GAME
-
     val p1 = Player("p1", "Pascal", Color(0xFF84CC16))
     val p2 = Player("p2", "Lena", Color(0xFF38BDF8))
     val p3 = Player("p3", "Jonas", Color(0xFFFBBF24))
@@ -44,7 +41,6 @@ fun mockGameState(): GameState = GameState().apply {
 }
 
 fun mockLobbyGameState(): GameState = GameState().apply {
-    session.currentScreen = Screen.LOBBY
     session.gameCode = "KCH7X2"
     session.gameId = "preview"
     session.isHost = true

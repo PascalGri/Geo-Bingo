@@ -43,7 +43,7 @@ class ReviewViewModel(
         get() = gameState.gameplay.players.sortedBy { it.id }
 
     val sortedTeams: List<Int>
-        get() = gameState.getTeamNumbers()
+        get() = gameState.teams.getTeamNumbers()
 
     val categories: List<Category>
         get() = gameState.gameplay.selectedCategories
@@ -97,7 +97,7 @@ class ReviewViewModel(
         val entityCount = reviewEntityCount
         val targetIndex = stepIndex % entityCount
         return if (isTeamMode) {
-            val myTeam = gameState.getMyTeamNumber() ?: return false
+            val myTeam = gameState.teams.getMyTeamNumber() ?: return false
             targetIndex < sortedTeams.size && sortedTeams[targetIndex] == myTeam
         } else {
             targetIndex < sortedPlayers.size && sortedPlayers[targetIndex].id == gameState.session.myPlayerId
@@ -138,7 +138,7 @@ class ReviewViewModel(
             try {
                 if (isTeamMode) {
                     val targetTeam = sortedTeams[targetIndex]
-                    val capturer = gameState.getTeamCapturer(targetTeam, currentCategory.id)
+                    val capturer = gameState.teams.getTeamCapturer(targetTeam, currentCategory.id)
                     val targetPlayerId = capturer?.id ?: return@launch
                     val stepKey = VoteKeys.stepKey(currentCategory.id, "team_$targetTeam")
                     withRetry { GameRepository.submitStepVote(gameId, myPlayerId, targetPlayerId, currentCategory.id, stepKey, rating) }

@@ -1,17 +1,17 @@
 package pg.geobingo.one.di
 
 import io.ktor.client.HttpClient
+import pg.geobingo.one.game.GameState
 import pg.geobingo.one.navigation.NavigationManager
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import pg.geobingo.one.viewmodel.GameViewModel
+import pg.geobingo.one.viewmodel.ReviewViewModel
 
 /**
  * Lightweight service locator for dependency injection.
- * Manages shared resource lifecycles and enables test overrides.
- * Uses lazy initialization with @Volatile for safe singleton access.
+ * Central composition root for shared resources and factories.
  */
 object ServiceLocator {
     // ── HttpClient (shared, properly managed) ────────────────────────────
@@ -34,23 +34,33 @@ object ServiceLocator {
         return NavigationManager(initial)
     }
 
+    // ── GameState (shared singleton) ─────────────────────────────────────
+    @kotlin.concurrent.Volatile
+    private var _gameState: GameState? = null
+
+    val gameState: GameState
+        get() = _gameState ?: GameState().also { _gameState = it }
+
+    // ── ViewModel factories ──────────────────────────────────────────────
+
+    fun createGameViewModel(): GameViewModel =
+        GameViewModel(gameState, navigation)
+
+    fun createReviewViewModel(): ReviewViewModel =
+        ReviewViewModel(gameState, navigation)
+
     // ── Lifecycle ────────────────────────────────────────────────────────
 
-    /**
-     * Clean up resources. Call on app termination.
-     */
     fun shutdown() {
         _httpClient?.close()
         _httpClient = null
     }
 
-    /**
-     * Reset all instances. Used in tests.
-     */
     fun reset() {
         _httpClient?.close()
         _httpClient = null
         _navigation = null
+        _gameState = null
     }
 
     // ── Test overrides ───────────────────────────────────────────────────
@@ -62,5 +72,9 @@ object ServiceLocator {
 
     fun overrideNavigation(nav: NavigationManager) {
         _navigation = nav
+    }
+
+    fun overrideGameState(state: GameState) {
+        _gameState = state
     }
 }

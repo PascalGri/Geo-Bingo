@@ -30,17 +30,16 @@ class StarsState {
     var lastWeeklyWeek by mutableStateOf(AppSettings.getString(SettingsKeys.LAST_WEEKLY_WEEK, ""))
         private set
 
+    /**
+     * Whether the user can still watch an ad today.
+     * Call [resetAdsIfNewDay] during app init or before displaying ad UI,
+     * not inside a getter to avoid hidden state mutations.
+     */
     val canWatchAd: Boolean
-        get() {
-            resetAdsIfNewDay()
-            return adsWatchedToday < 5
-        }
+        get() = adsWatchedToday < 5
 
     val adsRemainingToday: Int
-        get() {
-            resetAdsIfNewDay()
-            return (5 - adsWatchedToday).coerceAtLeast(0)
-        }
+        get() = (5 - adsWatchedToday).coerceAtLeast(0)
 
     fun add(amount: Int) {
         starCount += amount
@@ -86,6 +85,7 @@ class StarsState {
             AppSettings.setString(SettingsKeys.LAST_DAILY_DATE, today)
             AppSettings.setBoolean(SettingsKeys.DAILY_CHALLENGE_COMPLETED, false)
         }
+        resetAdsIfNewDay()
         resetWeeklyChallengeIfNewWeek()
     }
 

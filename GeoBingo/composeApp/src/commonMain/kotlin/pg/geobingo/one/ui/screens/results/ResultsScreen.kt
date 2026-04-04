@@ -130,7 +130,7 @@ fun ResultsScreen(gameState: GameState) {
                 AppSettings.setInt(SettingsKeys.CURRENT_WIN_STREAK, 0)
             }
 
-            val myAvgRating = gameState.getPlayerAverageRating(myId)
+            val myAvgRating = gameState.scoring.getPlayerAverageRating(myId)
             if (myAvgRating != null) {
                 val totalStars = AppSettings.getInt(SettingsKeys.TOTAL_STARS_EARNED, 0) + (myAvgRating * 10).toInt()
                 val totalCount = AppSettings.getInt(SettingsKeys.TOTAL_STARS_COUNT, 0) + 10
@@ -141,9 +141,9 @@ fun ResultsScreen(gameState: GameState) {
             // ── Detailed Stats ───────────────────────────────────────
             val myCaptureCountLocal = gameState.review.allCaptures.count { it.player_id == myId }
             AppSettings.setInt(SettingsKeys.TOTAL_CAPTURES, AppSettings.getInt(SettingsKeys.TOTAL_CAPTURES, 0) + myCaptureCountLocal)
-            val mySpeedBonuses = gameState.getSpeedBonusCount(myId)
+            val mySpeedBonuses = gameState.scoring.getSpeedBonusCount(myId)
             AppSettings.setInt(SettingsKeys.TOTAL_SPEED_BONUSES, AppSettings.getInt(SettingsKeys.TOTAL_SPEED_BONUSES, 0) + mySpeedBonuses)
-            val myScore = gameState.getPlayerScore(myId)
+            val myScore = gameState.scoring.getPlayerScore(myId, gameState.review.votes)
             val bestScore = AppSettings.getInt(SettingsKeys.BEST_GAME_SCORE, 0)
             if (myScore > bestScore) AppSettings.setInt(SettingsKeys.BEST_GAME_SCORE, myScore)
             val gameDurationSec = gameState.gameplay.gameDurationMinutes * 60
@@ -212,7 +212,7 @@ fun ResultsScreen(gameState: GameState) {
             if (userId != null) {
                 try {
                     val myCaptureCount = gameState.review.allCaptures.count { it.player_id == myId }
-                    val myAvg = gameState.getPlayerAverageRating(myId) ?: 0.0
+                    val myAvg = gameState.scoring.getPlayerAverageRating(myId) ?: 0.0
                     val stats = GameRepository.MultiplayerStatsDto(
                         user_id = userId,
                         display_name = AppSettings.getString("last_player_name", ""),
@@ -397,7 +397,7 @@ fun ResultsScreen(gameState: GameState) {
                                 append("${S.current.shareResultText}\n\n")
                                 ranked.take(3).forEachIndexed { index, (player, score) ->
                                     val medal = when(index) { 0 -> "#1"; 1 -> "#2"; 2 -> "#3"; else -> "" }
-                                    val avg = gameState.getPlayerAverageRating(player.id)
+                                    val avg = gameState.scoring.getPlayerAverageRating(player.id)
                                     val starText = if (avg != null) " (${formatRating(avg)})" else ""
                                     append("$medal ${player.name}: $score ${S.current.pointsAbbrev}$starText\n")
                                 }
@@ -478,7 +478,7 @@ fun ResultsScreen(gameState: GameState) {
             // Winner banner
             if (gameState.gameplay.teamModeEnabled) {
                 // Team mode: show winning team
-                val rankedTeams = gameState.rankedTeams
+                val rankedTeams = gameState.teams.rankedTeams
                 val winnerTeam = rankedTeams.firstOrNull()
                 if (winnerTeam != null) {
                     Column(
@@ -523,7 +523,7 @@ fun ResultsScreen(gameState: GameState) {
                     rankedTeams.forEachIndexed { idx, (teamNum, teamName, score) ->
                         val isWinner = idx == 0
                         val teamColor = teamColors[idx % teamColors.size]
-                        val teamPlayers = gameState.getTeamPlayers(teamNum)
+                        val teamPlayers = gameState.teams.getTeamPlayers(teamNum)
                         GradientBorderCard(
                             modifier = Modifier.fillMaxWidth(),
                             cornerRadius = 14.dp,
@@ -627,18 +627,18 @@ fun ResultsScreen(gameState: GameState) {
                     color = ColorOnSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
-                val firstCapturers = remember(gameState.review.allCaptures) { gameState.getFirstCapturers() }
+                val firstCapturers = remember(gameState.review.allCaptures) { gameState.scoring.getFirstCapturers() }
                 ranked.forEachIndexed { index, (player, score) ->
                     val capturedCount = gameState.review.allCaptures.count { it.player_id == player.id }
-                    val speedBonus = gameState.getSpeedBonusCount(player.id)
-                    val avgRating = gameState.getPlayerAverageRating(player.id)
+                    val speedBonus = gameState.scoring.getSpeedBonusCount(player.id)
+                    val avgRating = gameState.scoring.getPlayerAverageRating(player.id)
                     val breakdown = remember(
                         gameState.gameplay.selectedCategories,
                         gameState.review.allVotes,
                         gameState.review.allCaptures,
                     ) {
                         gameState.gameplay.selectedCategories.map { category ->
-                            val catAvgRating = gameState.getCategoryAverageRating(player.id, category.id)
+                            val catAvgRating = gameState.scoring.getCategoryAverageRating(player.id, category.id)
                             val hasSpeed = firstCapturers[category.id] == player.id
                             val votes = gameState.review.allVotes.filter {
                                 it.target_player_id == player.id && it.category_id == category.id
@@ -662,7 +662,7 @@ fun ResultsScreen(gameState: GameState) {
                         score = score,
                         capturedCount = capturedCount,
                         totalCategories = gameState.gameplay.selectedCategories.size,
-                        captures = gameState.getPlayerCaptures(player.id).map { it.name },
+                        captures = gameState.scoring.getPlayerCaptures(player.id).map { it.name },
                         isWinner = index == 0,
                         speedBonus = speedBonus,
                         averageRating = avgRating,
@@ -679,10 +679,10 @@ fun ResultsScreen(gameState: GameState) {
                 if (gameId != null) {
                     // Find the capture with highest average rating
                     val bestCapture = gameState.review.allCaptures.maxByOrNull { capture ->
-                        gameState.getCategoryAverageRating(capture.player_id, capture.category_id) ?: 0.0
+                        gameState.scoring.getCategoryAverageRating(capture.player_id, capture.category_id) ?: 0.0
                     }
                     val bestRating = bestCapture?.let {
-                        gameState.getCategoryAverageRating(it.player_id, it.category_id)
+                        gameState.scoring.getCategoryAverageRating(it.player_id, it.category_id)
                     }
                     if (bestCapture != null && bestRating != null && bestRating >= 1.0) {
                         val bestPlayer = gameState.gameplay.players.find { it.id == bestCapture.player_id }

@@ -44,6 +44,7 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
 import pg.geobingo.one.ui.theme.rememberStaggeredAnimation
@@ -53,10 +54,11 @@ import pg.geobingo.one.util.NameValidator
 @Composable
 fun JoinGameScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    val inviteCode = gameState.ui.pendingGameInviteCode
+    val joinArgs = nav.getArgs<NavArgs.JoinGame>()
+    val inviteCode = joinArgs?.inviteCode ?: gameState.ui.pendingGameInviteCode
     var codeInput by remember { mutableStateOf(inviteCode ?: "") }
     LaunchedEffect(Unit) {
-        if (inviteCode != null) gameState.ui.pendingGameInviteCode = null
+        if (gameState.ui.pendingGameInviteCode != null) gameState.ui.pendingGameInviteCode = null
     }
     val nameInput = remember { AppSettings.getString("last_player_name", "") }
     val selectedAvatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }

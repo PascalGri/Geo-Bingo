@@ -8,12 +8,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pg.geobingo.one.data.*
 import pg.geobingo.one.game.state.*
-import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRealtimeManager
 import pg.geobingo.one.network.GameSyncManager
-import pg.geobingo.one.network.PlayerDto
-import pg.geobingo.one.network.VoteDto
-import pg.geobingo.one.network.toHex
 import pg.geobingo.one.util.AppLogger
 
 enum class Screen {
@@ -62,6 +58,7 @@ class GameState {
 
     // ── Feature managers (single source of truth for logic) ──────────────
     val scoring = ScoringManager(gameplay, review)
+    val teams = TeamManager(session, gameplay, review, scoring)
     val history = HistoryManager(session, gameplay, ui, scoring)
 
     // ── Shared realtime + sync managers ─────────────────────────────────
@@ -101,16 +98,8 @@ class GameState {
         }
     }
 
-    // ── Convenience accessors (delegate to ScoringManager) ──────────────
+    // ── Convenience accessors ───────────────────────────────────────────
     val reviewPlayer: Player? get() = gameplay.players.getOrNull(review.reviewPlayerIndex)
-
-    fun getFirstCapturers(): Map<String, String> = scoring.getFirstCapturers()
-    fun getSpeedBonusCount(playerId: String): Int = scoring.getSpeedBonusCount(playerId)
-    fun getCategoryAverageRating(playerId: String, categoryId: String): Double? = scoring.getCategoryAverageRating(playerId, categoryId)
-    fun getPlayerAverageRating(playerId: String): Double? = scoring.getPlayerAverageRating(playerId)
-    fun getPlayerScore(playerId: String): Int = scoring.getPlayerScore(playerId, review.votes)
-    fun getPlayerCaptures(playerId: String): List<Category> = scoring.getPlayerCaptures(playerId)
-    fun getLastCaptureTime(playerId: String): String = scoring.getLastCaptureTime(playerId)
 
     // ── Game lifecycle ──────────────────────────────────────────────────
     fun startGame() {
@@ -120,7 +109,6 @@ class GameState {
         gameplay.captures = gameplay.players.associate { it.id to emptySet() }
         photo.photoCache.clear()
         review.votes = emptyMap()
-        session.currentScreen = Screen.GAME
     }
 
     fun endGame() {
@@ -129,6 +117,10 @@ class GameState {
 
     // ── Captures (thread-safe via mutex) ─────────────────────────────────
 
+    /**
+     * Toggle a capture for a player. Safe for non-concurrent contexts (tests, initial setup).
+     * For concurrent access from coroutines, prefer [updateCapturesSafe].
+     */
     fun toggleCapture(playerId: String, categoryId: String) {
         val updated = gameplay.captures.toMutableMap()
         val current = (updated[playerId] ?: emptySet()).toMutableSet()
@@ -139,7 +131,6 @@ class GameState {
 
     /**
      * Thread-safe capture update from concurrent sources (realtime, polling).
-     * Uses mutex to prevent race conditions between coroutines.
      */
     suspend fun updateCapturesSafe(playerId: String, categoryId: String) {
         stateMutex.withLock {
@@ -153,7 +144,6 @@ class GameState {
 
     /**
      * Thread-safe bulk capture update from polling.
-     * Uses mutex to prevent race conditions.
      */
     suspend fun mergeCapturesSafe(allCaptures: Map<String, Set<String>>) {
         stateMutex.withLock {
@@ -163,7 +153,6 @@ class GameState {
                 merged[pid] = existing + cats
             }
             gameplay.captures = merged
-            // Recheck for any player whose captures changed
             allCaptures.keys.forEach { pid -> checkAllCategoriesCaptured(pid) }
         }
     }
@@ -197,7 +186,7 @@ class GameState {
         if (!gameplay.isGameRunning || gameplay.selectedCategories.isEmpty() || review.allCategoriesCaptured) return
         if (gameplay.teamModeEnabled) {
             val myTeam = gameplay.teamAssignments[playerId] ?: return
-            val teamCaptures = getTeamCaptures(myTeam)
+            val teamCaptures = teams.getTeamCaptures(myTeam)
             if (gameplay.selectedCategories.all { it.id in teamCaptures }) {
                 review.allCategoriesCaptured = true
             }
@@ -215,7 +204,7 @@ class GameState {
     // ── Voting ──────────────────────────────────────────────────────────
     fun submitVotes(targetPlayerId: String, approvedCategoryIds: Set<String>) {
         val updated = review.votes.toMutableMap()
-        getPlayerCaptures(targetPlayerId).forEach { category ->
+        scoring.getPlayerCaptures(targetPlayerId).forEach { category ->
             val key = "$targetPlayerId-${category.id}"
             val approved = category.id in approvedCategoryIds
             val existing = (updated[key] ?: emptyList()).toMutableList()
@@ -228,81 +217,13 @@ class GameState {
     fun getVoteResult(playerId: String, categoryId: String): Boolean? =
         scoring.getVoteResult(playerId, categoryId, review.votes)
 
-    // ── Team helpers ─────────────────────────────────────────────────────
-
-    fun getTeamNumbers(): List<Int> =
-        gameplay.teamAssignments.values.toSet().sorted()
-
-    fun getTeamPlayers(teamNumber: Int): List<Player> =
-        gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
-
-    /** All captures from any member of a team, merged. */
-    fun getTeamCaptures(teamNumber: Int): Set<String> {
-        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }
-        return teamPlayerIds.flatMap { gameplay.captures[it] ?: emptySet() }.toSet()
-    }
-
-    fun isTeamCaptured(teamNumber: Int, categoryId: String): Boolean =
-        getTeamCaptures(teamNumber).contains(categoryId)
-
-    /** Find which player on a team captured a specific category. */
-    fun getTeamCapturer(teamNumber: Int, categoryId: String): Player? {
-        val teamPlayers = getTeamPlayers(teamNumber)
-        // Prefer allCaptures (server truth) if available
-        if (review.allCaptures.isNotEmpty()) {
-            val teamPlayerIds = teamPlayers.map { it.id }.toSet()
-            val capture = review.allCaptures
-                .filter { it.category_id == categoryId && it.player_id in teamPlayerIds }
-                .minByOrNull { it.created_at }
-            if (capture != null) return teamPlayers.find { it.id == capture.player_id }
-        }
-        // Fallback to local captures
-        return teamPlayers.firstOrNull { gameplay.captures[it.id]?.contains(categoryId) == true }
-    }
-
-    fun getMyTeamNumber(): Int? =
-        gameplay.teamAssignments[session.myPlayerId]
-
-    /** Team score: sum of star ratings + speed bonuses. */
-    fun getTeamScore(teamNumber: Int): Int {
-        if (review.allVotes.isNotEmpty()) {
-            var starScore = 0.0
-            for (category in gameplay.selectedCategories) {
-                val capturer = getTeamCapturer(teamNumber, category.id) ?: continue
-                val avg = getCategoryAverageRating(capturer.id, category.id) ?: continue
-                starScore += avg
-            }
-            val speedBonus = getTeamSpeedBonusCount(teamNumber)
-            return (starScore + 0.5).toInt() + speedBonus
-        }
-        // Fallback: count captured categories
-        return getTeamCaptures(teamNumber).size
-    }
-
-    /** Speed bonuses at team level. */
-    fun getTeamSpeedBonusCount(teamNumber: Int): Int {
-        val firstCapturers = getFirstCapturers()
-        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }.toSet()
-        return firstCapturers.values.count { it in teamPlayerIds }
-    }
-
-    /** Ranked teams by score. Returns (teamNumber, teamName, score). */
-    val rankedTeams: List<Triple<Int, String, Int>>
-        get() {
-            if (!gameplay.teamModeEnabled) return emptyList()
-            return getTeamNumbers().map { teamNum ->
-                val teamName = gameplay.teamNames[teamNum] ?: "Team $teamNum"
-                Triple(teamNum, teamName, getTeamScore(teamNum))
-            }.sortedByDescending { it.third }
-        }
-
     // ── Ranked players (derived state) ───────────────────────────────────
     val rankedPlayers: List<Pair<Player, Int>> by derivedStateOf {
-        gameplay.players.map { it to getPlayerScore(it.id) }
+        gameplay.players.map { it to scoring.getPlayerScore(it.id, review.votes) }
             .sortedWith(
                 compareByDescending<Pair<Player, Int>> { it.second }
-                    .thenByDescending { getSpeedBonusCount(it.first.id) }
-                    .thenBy { getLastCaptureTime(it.first.id) }
+                    .thenByDescending { scoring.getSpeedBonusCount(it.first.id) }
+                    .thenBy { scoring.getLastCaptureTime(it.first.id) }
                     .thenBy { it.first.name }
             )
     }
@@ -354,7 +275,6 @@ class GameState {
         joker.jokerMode = false
         session.gameMode = GameMode.CLASSIC
         ui.interstitialShown = false
-        session.currentScreen = Screen.HOME
     }
 
     fun resetForRematch(newGameId: String, newGameCode: String, newPlayerId: String) {
@@ -365,7 +285,6 @@ class GameState {
         session.gameCode = newGameCode
         session.myPlayerId = newPlayerId
         session.isHost = true
-        session.currentScreen = Screen.LOBBY
     }
 
     fun formatTime(seconds: Int): String {

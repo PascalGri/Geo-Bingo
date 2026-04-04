@@ -42,6 +42,7 @@ import kotlinx.coroutines.withContext
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameHistoryEntry
+import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.network.parseHexColor
@@ -149,9 +150,7 @@ fun HistoryScreen(gameState: GameState) {
                             },
                             onNavigateToDetail = if (entry.gameId.isNotEmpty()) {
                                 {
-                                    gameState.ui.selectedMatchGameId = entry.gameId
-                                    gameState.ui.selectedMatchEntry = entry
-                                    nav.navigateTo(pg.geobingo.one.game.Screen.MATCH_DETAIL)
+                                    nav.navigateTo(pg.geobingo.one.game.Screen.MATCH_DETAIL, NavArgs.MatchDetail(gameId = entry.gameId, entry = entry))
                                 }
                             } else null,
                         )

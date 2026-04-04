@@ -28,7 +28,7 @@ fun GameScreen(gameState: GameState) {
     RequestLocationPermission()
 
     val nav = remember { ServiceLocator.navigation }
-    val vm = viewModel { GameViewModel(gameState, nav) }
+    val vm = viewModel { ServiceLocator.createGameViewModel() }
     val feedback = rememberFeedback(gameState)
 
     var photoTargetPlayerId by remember { mutableStateOf("") }

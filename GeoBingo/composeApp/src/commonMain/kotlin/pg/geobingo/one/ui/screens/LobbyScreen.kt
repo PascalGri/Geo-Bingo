@@ -133,7 +133,7 @@ fun LobbyScreen(gameState: GameState) {
             if (!gameState.session.isHost) {
                 when (game.status) {
                     "running" -> {
-                        if (gameState.session.currentScreen == Screen.LOBBY) {
+                        if (nav.currentScreen == Screen.LOBBY) {
                             // Re-validate game mode and duration from server (defensive)
                             gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (_: Exception) { gameState.session.gameMode }
                             gameState.gameplay.gameDurationMinutes = game.duration_s / 60

@@ -103,7 +103,7 @@ fun GameScreenContent(
 
     val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
     val isTeamMode = gameState.gameplay.teamModeEnabled
-    val myTeam = if (isTeamMode) gameState.getMyTeamNumber() else null
+    val myTeam = if (isTeamMode) gameState.teams.getMyTeamNumber() else null
 
     Scaffold(containerColor = ColorBackground) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { alpha = contentAlpha.value }) {
@@ -212,7 +212,7 @@ fun GameScreenContent(
                 // Player info + controls
                 if (myPlayer != null) {
                     val myCount = if (isTeamMode && myTeam != null)
-                        gameState.getTeamCaptures(myTeam).size
+                        gameState.teams.getTeamCaptures(myTeam).size
                     else
                         gameState.gameplay.captures[myPlayer.id]?.size ?: 0
                     val totalCats = gameState.gameplay.selectedCategories.size
@@ -337,15 +337,15 @@ fun GameScreenContent(
                                     val otherCapturers: List<Player>
 
                                     if (isTeamMode && myTeam != null) {
-                                        captured = gameState.isTeamCaptured(myTeam, category.id)
-                                        val capturer = gameState.getTeamCapturer(myTeam, category.id)
+                                        captured = gameState.teams.isTeamCaptured(myTeam, category.id)
+                                        val capturer = gameState.teams.getTeamCapturer(myTeam, category.id)
                                         photoBytes = if (capturer != null) gameState.getPhoto(capturer.id, category.id) else null
                                         // Show other teams' capture counts
-                                        otherCapturers = gameState.getTeamNumbers()
+                                        otherCapturers = gameState.teams.getTeamNumbers()
                                             .filter { it != myTeam }
                                             .flatMap { otherTeam ->
-                                                if (gameState.isTeamCaptured(otherTeam, category.id))
-                                                    listOfNotNull(gameState.getTeamCapturer(otherTeam, category.id))
+                                                if (gameState.teams.isTeamCaptured(otherTeam, category.id))
+                                                    listOfNotNull(gameState.teams.getTeamCapturer(otherTeam, category.id))
                                                 else emptyList()
                                             }
                                     } else {

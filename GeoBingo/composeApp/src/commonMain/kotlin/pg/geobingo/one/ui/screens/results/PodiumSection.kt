@@ -87,7 +87,7 @@ internal fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarByte
                     fontWeight = FontWeight.Bold,
                     color = player.color,
                 )
-                val avgRating = gameState.getPlayerAverageRating(player.id)
+                val avgRating = gameState.scoring.getPlayerAverageRating(player.id)
                 if (avgRating != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, null, modifier = Modifier.size(11.dp), tint = Color(0xFFFBBF24))

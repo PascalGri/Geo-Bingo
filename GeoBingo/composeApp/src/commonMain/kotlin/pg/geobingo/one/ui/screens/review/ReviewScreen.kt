@@ -21,7 +21,7 @@ import pg.geobingo.one.viewmodel.ReviewViewModel
 @Composable
 fun ReviewScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    val vm = viewModel { ReviewViewModel(gameState, nav) }
+    val vm = viewModel { ServiceLocator.createReviewViewModel() }
 
     val modeGradient = when (gameState.session.gameMode) {
         GameMode.CLASSIC     -> GradientPrimary
@@ -72,7 +72,7 @@ fun ReviewScreen(gameState: GameState) {
     if (vm.isTeamMode) {
         val targetTeam = vm.sortedTeams[targetIndex]
         val teamName = gameState.gameplay.teamNames[targetTeam] ?: S.current.teamName(targetTeam)
-        val capturer = gameState.getTeamCapturer(targetTeam, currentCategory.id)
+        val capturer = gameState.teams.getTeamCapturer(targetTeam, currentCategory.id)
         targetDisplayName = teamName
         targetPlayerId = capturer?.id
         targetPlayerForAvatar = capturer

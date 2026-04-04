@@ -39,6 +39,7 @@ import kotlinx.datetime.toLocalDateTime
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.network.CaptureDto
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.VoteDto
@@ -74,8 +75,9 @@ fun MatchDetailScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     SystemBackHandler { nav.goBack() }
 
-    val gameId = gameState.ui.selectedMatchGameId
-    val entry = gameState.ui.selectedMatchEntry
+    val matchArgs = nav.getArgs<NavArgs.MatchDetail>()
+    val gameId = matchArgs?.gameId ?: gameState.ui.selectedMatchGameId
+    val entry = matchArgs?.entry ?: gameState.ui.selectedMatchEntry
 
     // Fade/slide in
     val contentAlpha = remember { Animatable(0f) }

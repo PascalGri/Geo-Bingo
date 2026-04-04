@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameMode
+import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
@@ -241,8 +242,7 @@ fun FriendsScreen(gameState: GameState) {
                                     FriendsManager.respondToInvite(invite.id, true)
                                     pendingInvites = pendingInvites.filter { it.first.id != invite.id }
                                     // Navigate to join game with code
-                                    gameState.ui.pendingGameInviteCode = invite.game_code
-                                    nav.navigateTo(Screen.JOIN_GAME)
+                                    nav.navigateTo(Screen.JOIN_GAME, NavArgs.JoinGame(inviteCode = invite.game_code))
                                 }
                             },
                             onDecline = {
@@ -327,9 +327,7 @@ fun FriendsScreen(gameState: GameState) {
                             },
                             onRemove = { showRemoveDialog = friend },
                             onMessage = {
-                                gameState.ui.selectedDmFriendId = friend.userId
-                                gameState.ui.selectedDmFriendName = friend.displayName
-                                nav.navigateTo(Screen.DIRECT_MESSAGE)
+                                nav.navigateTo(Screen.DIRECT_MESSAGE, NavArgs.DirectMessage(friendId = friend.userId, friendName = friend.displayName))
                             },
                         )
                     }
