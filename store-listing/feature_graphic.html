@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    width: 1024px;
+    height: 500px;
+    background: #050508;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+/* Subtle radial glow behind logo */
+.glow {
+    position: absolute;
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(217, 70, 239, 0.15) 0%, rgba(244, 63, 94, 0.08) 40%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.content {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    z-index: 1;
+}
+.icon {
+    width: 180px;
+    height: 180px;
+    border-radius: 36px;
+}
+.text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+}
+.subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: #CBB8F0;
+    letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+    <div class="glow"></div>
+    <div class="content">
+        <img class="icon" src="app_icon_512x512.png" alt="KatchIt!">
+        <div class="text">
+            <div class="title">KatchIt!</div>
+            <div class="subtitle">Das Foto-Spiel mit Freunden</div>
+        </div>
+    </div>
+</body>
+</html>
