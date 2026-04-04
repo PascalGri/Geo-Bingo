@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +33,10 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 
 enum class NavTab(val icon: ImageVector, val targetScreen: Screen) {
-    FRIENDS(Icons.Default.People, Screen.FRIENDS),
     HOME(Icons.Default.Home, Screen.HOME),
+    FRIENDS(Icons.Default.People, Screen.FRIENDS),
     SHOP(Icons.Default.Storefront, Screen.COSMETIC_SHOP),
+    PROFILE(Icons.Default.Person, Screen.ACCOUNT),
 }
 
 /** Screens on which the bottom nav bar should be visible. */
@@ -47,11 +49,12 @@ fun Screen.showsBottomNav(): Boolean = this in setOf(
 
 /** Resolve which NavTab is active for the current screen. */
 fun Screen.activeTab(): NavTab? = when (this) {
-    Screen.HOME, Screen.SETTINGS, Screen.STATS, Screen.ACHIEVEMENTS,
-    Screen.HISTORY, Screen.ACCOUNT, Screen.PROFILE,
+    Screen.HOME, Screen.HISTORY,
     Screen.SOLO_LEADERBOARD, Screen.MP_LEADERBOARD -> NavTab.HOME
     Screen.FRIENDS, Screen.ACTIVITY_FEED -> NavTab.FRIENDS
     Screen.COSMETIC_SHOP, Screen.SHOP -> NavTab.SHOP
+    Screen.ACCOUNT, Screen.PROFILE, Screen.SETTINGS,
+    Screen.STATS, Screen.ACHIEVEMENTS -> NavTab.PROFILE
     else -> null
 }
 
@@ -89,9 +92,10 @@ fun BottomNavBar(
                     tab = tab,
                     selected = selected,
                     label = when (tab) {
-                        NavTab.FRIENDS -> S.current.friends
                         NavTab.HOME -> "Home"
+                        NavTab.FRIENDS -> S.current.friends
                         NavTab.SHOP -> "Shop"
+                        NavTab.PROFILE -> "Profil"
                     },
                     onClick = { onTabSelected(tab.targetScreen) },
                     modifier = Modifier.weight(1f),
