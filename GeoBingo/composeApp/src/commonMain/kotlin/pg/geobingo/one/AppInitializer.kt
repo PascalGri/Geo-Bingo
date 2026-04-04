@@ -66,7 +66,7 @@ object AppInitializer {
         gameState.stars.resetDailyChallengeIfNewDay()
         val bonusGranted = gameState.stars.checkDailyLoginBonus()
         if (bonusGranted) {
-            gameState.ui.pendingToast = "${S.current.dailyLoginBonus}: +5 ${S.current.stars}"
+            gameState.ui.showDailyBonusBanner = true
         }
 
         // Preload sounds

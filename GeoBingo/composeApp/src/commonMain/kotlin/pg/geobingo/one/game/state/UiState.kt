@@ -23,6 +23,7 @@ class UiState {
         AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, value)
     }
     var pendingToast by mutableStateOf<String?>(null)
+    var showDailyBonusBanner by mutableStateOf(false)
     var pendingGameInviteCode by mutableStateOf<String?>(null)
     var consecutiveNetworkErrors by mutableStateOf(0)
     var interstitialShown by mutableStateOf(false)

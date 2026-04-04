@@ -230,6 +230,12 @@ fun HomeScreen(gameState: GameState) {
                     HeroTagline()
                 }
 
+                // ── DAILY BONUS BANNER ────────────────────────────────────────
+                DailyBonusBanner(
+                    visible = gameState.ui.showDailyBonusBanner,
+                    onDismiss = { gameState.ui.showDailyBonusBanner = false },
+                )
+
                 // ── STARS + SHOP (minimal) ────────────────────────────────────
                 Row(
                     modifier = Modifier
@@ -759,6 +765,81 @@ private fun WeeklyChallengeCard(
         }
     }
     Spacer(Modifier.height(4.dp))
+}
+
+// ── DAILY BONUS BANNER ───────────────────────────────────────────────────────
+
+@Composable
+private fun DailyBonusBanner(visible: Boolean, onDismiss: () -> Unit) {
+    // Auto-dismiss after 4 seconds
+    LaunchedEffect(visible) {
+        if (visible) {
+            delay(4000L)
+            onDismiss()
+        }
+    }
+
+    val scale = remember { Animatable(0.8f) }
+    val alpha = remember { Animatable(0f) }
+    LaunchedEffect(visible) {
+        if (visible) {
+            launch { scale.animateTo(1f, tween(500, easing = androidx.compose.animation.core.EaseOutBack)) }
+            alpha.animateTo(1f, tween(400))
+        } else if (alpha.value > 0f) {
+            launch { scale.animateTo(0.9f, tween(300)) }
+            alpha.animateTo(0f, tween(300))
+        }
+    }
+
+    if (visible || alpha.value > 0f) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = scale.value
+                    scaleY = scale.value
+                    this.alpha = alpha.value
+                }
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color(0xFFFBBF24), Color(0xFFF59E0B), Color(0xFFEF4444))
+                    )
+                )
+                .clickable { onDismiss() }
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = Color.White,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        S.current.dailyLoginBonus,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                    Text(
+                        "+5 ${S.current.stars}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.9f),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+    }
 }
 
 // ── HERO TITLE ────────────────────────────────────────────────────────────────
