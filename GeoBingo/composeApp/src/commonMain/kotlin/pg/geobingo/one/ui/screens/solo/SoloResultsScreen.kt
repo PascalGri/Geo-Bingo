@@ -157,11 +157,9 @@ fun SoloResultsScreen(gameState: GameState) {
     val allCaptured = solo.capturedCategories.size == solo.categories.size && solo.categories.isNotEmpty()
     var showConfetti by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (allCaptured) {
-            kotlinx.coroutines.delay(600)
-            showConfetti = true
-            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Confetti)
-        }
+        kotlinx.coroutines.delay(600)
+        showConfetti = true
+        if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Confetti)
     }
 
     Scaffold(

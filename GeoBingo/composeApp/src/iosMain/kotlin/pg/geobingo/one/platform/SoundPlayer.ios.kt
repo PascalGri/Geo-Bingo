@@ -13,6 +13,8 @@ import platform.Foundation.writeToFile
 @OptIn(ExperimentalForeignApi::class)
 actual object SoundPlayer {
     private val soundPaths = mutableMapOf<String, String>()
+    /** Retain active players so ARC doesn't deallocate them mid-playback. */
+    private val activePlayers = mutableListOf<AVAudioPlayer>()
 
     actual fun preload(sounds: Map<String, ByteArray>) {
         val tmpDir = NSTemporaryDirectory()
@@ -33,10 +35,13 @@ actual object SoundPlayer {
     actual fun playFile(fileName: String) {
         val filePath = soundPaths[fileName] ?: return
         try {
+            // Remove finished players to avoid unbounded growth
+            activePlayers.removeAll { !it.isPlaying() }
             val url = NSURL.fileURLWithPath(filePath)
-            val player = AVAudioPlayer(contentsOfURL = url, error = null)
-            player?.prepareToPlay()
-            player?.play()
+            val player = AVAudioPlayer(contentsOfURL = url, error = null) ?: return
+            player.prepareToPlay()
+            player.play()
+            activePlayers.add(player)
         } catch (e: Exception) {
             println("[W] [SoundPlayer] Play failed: $fileName: ${e.message}")
         }

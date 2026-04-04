@@ -6,7 +6,7 @@ import java.io.File
 
 actual object SoundPlayer {
     private val soundPool: SoundPool = SoundPool.Builder()
-        .setMaxStreams(4)
+        .setMaxStreams(8)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
