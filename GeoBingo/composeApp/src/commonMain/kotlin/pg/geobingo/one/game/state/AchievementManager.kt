@@ -44,11 +44,17 @@ object AchievementManager {
 
     fun getUnlockedCount(): Int = ALL_ACHIEVEMENTS.count { isUnlocked(it.id) }
 
+    fun areAllUnlocked(): Boolean = getUnlockedCount() == ALL_ACHIEVEMENTS.size
+
+    private const val ALL_COMPLETE_KEY = "achievement_all_complete_rewarded"
+    private const val ALL_COMPLETE_REWARD = 50
+
     /**
      * Check and unlock achievements after a solo game.
      * Returns the list of **newly** unlocked achievements.
+     * Awards 50 bonus stars when all achievements are completed for the first time.
      */
-    fun checkAfterGame(solo: SoloState, stats: SoloStats): List<Achievement> {
+    fun checkAfterGame(solo: SoloState, stats: SoloStats, starsState: StarsState? = null): List<Achievement> {
         val newlyUnlocked = mutableListOf<Achievement>()
 
         fun check(id: String, condition: Boolean) {
@@ -75,6 +81,12 @@ object AchievementManager {
         check("marathon", solo.categoryCount == 10 && allCaptured)
         check("perfect_3", stats.perfectGames >= 3)
         check("fast_finish", allCaptured && timeUsed <= 120)
+
+        // Award 50 bonus stars when all achievements are completed for the first time
+        if (newlyUnlocked.isNotEmpty() && areAllUnlocked() && !AppSettings.getBoolean(ALL_COMPLETE_KEY, false)) {
+            AppSettings.setBoolean(ALL_COMPLETE_KEY, true)
+            starsState?.add(ALL_COMPLETE_REWARD)
+        }
 
         return newlyUnlocked
     }

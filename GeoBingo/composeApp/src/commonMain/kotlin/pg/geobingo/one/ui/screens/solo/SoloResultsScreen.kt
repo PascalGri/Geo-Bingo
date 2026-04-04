@@ -77,7 +77,7 @@ fun SoloResultsScreen(gameState: GameState) {
         isNewPersonalBest = solo.totalScore > statsBefore.bestScore
         SoloStatsManager.recordGame(solo)
         val statsAfter = SoloStatsManager.getStats()
-        newAchievements = AchievementManager.checkAfterGame(solo, statsAfter)
+        newAchievements = AchievementManager.checkAfterGame(solo, statsAfter, gameState.stars)
 
         // Update persistent general stats
         val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
