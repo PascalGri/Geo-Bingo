@@ -26,7 +26,7 @@ internal fun DurationSection(
             value = durationMinutes,
             onValueChange = onDurationChange,
             valueRange = GameConstants.MIN_GAME_DURATION_MINUTES.toFloat()..GameConstants.MAX_GAME_DURATION_MINUTES.toFloat(),
-            steps = 10,
+            steps = (GameConstants.MAX_GAME_DURATION_MINUTES - GameConstants.MIN_GAME_DURATION_MINUTES) / 5 - 1,
             colors = SliderDefaults.colors(
                 thumbColor = ColorPrimary,
                 activeTrackColor = ColorPrimary,

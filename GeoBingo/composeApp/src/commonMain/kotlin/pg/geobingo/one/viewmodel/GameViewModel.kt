@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.GameState
@@ -87,7 +88,6 @@ class GameViewModel(
         val gameId = gameState.session.gameId
 
         Analytics.track(Analytics.PHOTO_CAPTURED, mapOf("isJoker" to categoryId.startsWith("joker_").toString()))
-        gameState.addPhoto(playerId, categoryId, bytes)
         val isJoker = categoryId.startsWith("joker_")
 
         if (gameId != null) {
@@ -100,6 +100,7 @@ class GameViewModel(
 
         if (gameId != null) {
             viewModelScope.launch {
+                gameState.addPhoto(playerId, categoryId, bytes)
                 val location = try { getCurrentLocation() } catch (e: Exception) {
                     AppLogger.d("GameVM", "Location unavailable", e); null
                 }
@@ -129,7 +130,10 @@ class GameViewModel(
                 gameState.photo.finishUpload(categoryId)
             }
         } else {
-            gameState.photo.finishUpload(categoryId)
+            viewModelScope.launch {
+                gameState.addPhoto(playerId, categoryId, bytes)
+                gameState.photo.finishUpload(categoryId)
+            }
         }
 
         if (isJoker) gameState.joker.myJokerUsed = true
@@ -280,7 +284,7 @@ class GameViewModel(
             while (gameState.gameplay.isGameRunning) {
                 delay(interval)
                 try {
-                    val game = GameRepository.getGameById(gameId)
+                    val game = withTimeoutOrNull(10_000L) { GameRepository.getGameById(gameId) }
                     if (game?.status == "voting" && nav.currentScreen == Screen.GAME) {
                         gameState.gameplay.isGameRunning = false
                         gameState.review.reviewCategoryIndex = game.review_category_index

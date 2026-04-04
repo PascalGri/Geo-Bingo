@@ -146,15 +146,8 @@ class GameState {
             val current = gameplay.captures[playerId] ?: emptySet()
             if (categoryId !in current) {
                 gameplay.captures = gameplay.captures + (playerId to current + categoryId)
+                checkAllCategoriesCaptured(playerId)
             }
-        }
-    }
-
-    /** Non-suspending version for use from main thread where races are unlikely. */
-    fun updateCaptures(playerId: String, categoryId: String) {
-        val current = gameplay.captures[playerId] ?: emptySet()
-        if (categoryId !in current) {
-            gameplay.captures = gameplay.captures + (playerId to current + categoryId)
         }
     }
 
@@ -170,10 +163,12 @@ class GameState {
                 merged[pid] = existing + cats
             }
             gameplay.captures = merged
+            // Recheck for any player whose captures changed
+            allCaptures.keys.forEach { pid -> checkAllCategoriesCaptured(pid) }
         }
     }
 
-    /** Non-suspending version for backward compatibility. */
+    /** Non-suspending version for initial setup (main thread, no concurrent access). */
     fun mergeCaptures(allCaptures: Map<String, Set<String>>) {
         val merged = gameplay.captures.toMutableMap()
         allCaptures.forEach { (pid, cats) ->
@@ -187,22 +182,29 @@ class GameState {
         gameplay.captures[playerId]?.contains(categoryId) == true
 
     // ── Photos ──────────────────────────────────────────────────────────
-    fun addPhoto(playerId: String, categoryId: String, bytes: ByteArray) {
-        photo.photoCache.put(playerId, categoryId, bytes)
-        if (!isCaptured(playerId, categoryId)) {
-            toggleCapture(playerId, categoryId)
+    suspend fun addPhoto(playerId: String, categoryId: String, bytes: ByteArray) {
+        stateMutex.withLock {
+            photo.photoCache.put(playerId, categoryId, bytes)
+            if (!isCaptured(playerId, categoryId)) {
+                toggleCapture(playerId, categoryId)
+            }
+            checkAllCategoriesCaptured(playerId)
         }
-        if (gameplay.isGameRunning && gameplay.selectedCategories.isNotEmpty() && !review.allCategoriesCaptured) {
-            if (gameplay.teamModeEnabled) {
-                val myTeam = gameplay.teamAssignments[playerId] ?: return
-                val teamCaptures = getTeamCaptures(myTeam)
-                if (gameplay.selectedCategories.all { it.id in teamCaptures }) {
-                    review.allCategoriesCaptured = true
-                }
-            } else {
-                if (gameplay.selectedCategories.all { photo.photoCache.contains(playerId, it.id) }) {
-                    review.allCategoriesCaptured = true
-                }
+    }
+
+    /** Recheck the allCategoriesCaptured flag after captures change. Call inside stateMutex. */
+    private fun checkAllCategoriesCaptured(playerId: String) {
+        if (!gameplay.isGameRunning || gameplay.selectedCategories.isEmpty() || review.allCategoriesCaptured) return
+        if (gameplay.teamModeEnabled) {
+            val myTeam = gameplay.teamAssignments[playerId] ?: return
+            val teamCaptures = getTeamCaptures(myTeam)
+            if (gameplay.selectedCategories.all { it.id in teamCaptures }) {
+                review.allCategoriesCaptured = true
+            }
+        } else {
+            val playerCaptures = gameplay.captures[playerId] ?: emptySet()
+            if (gameplay.selectedCategories.all { it.id in playerCaptures }) {
+                review.allCategoriesCaptured = true
             }
         }
     }

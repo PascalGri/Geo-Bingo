@@ -6,6 +6,8 @@ import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.util.AppLogger
 import kotlin.math.pow
 
+private const val POLLING_TIMEOUT_MS = 10_000L
+
 /**
  * Consolidates Realtime subscriptions + fallback polling into unified flows.
  * Automatically cancels when the provided [scope] is cancelled (e.g. on navigation).
@@ -59,6 +61,8 @@ class GameSyncManager(
                     break // success
                 } catch (e: Exception) {
                     attempt++
+                    // Clean up failed subscription before retrying
+                    try { realtime.unsubscribe() } catch (_: Exception) {}
                     val delayMs = (GameConstants.RETRY_INITIAL_DELAY_MS * GameConstants.RETRY_BACKOFF_FACTOR.pow(attempt - 1))
                         .toLong().coerceAtMost(GameConstants.RETRY_MAX_DELAY_MS)
                     AppLogger.w("Sync", "Realtime subscribe failed (attempt $attempt), retrying in ${delayMs}ms", e)
@@ -96,7 +100,7 @@ class GameSyncManager(
             while (isActive) {
                 delay(interval)
                 try {
-                    val game = GameRepository.getGameById(gameId)
+                    val game = withTimeoutOrNull(POLLING_TIMEOUT_MS) { GameRepository.getGameById(gameId) }
                     if (game != null) {
                         _gameUpdates.emit(game)
                     }

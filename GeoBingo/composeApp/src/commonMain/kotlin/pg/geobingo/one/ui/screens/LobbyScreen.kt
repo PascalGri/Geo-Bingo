@@ -275,6 +275,9 @@ fun LobbyScreen(gameState: GameState) {
                                         // Save team assignments before starting
                                         if (gameState.gameplay.teamModeEnabled && gameState.gameplay.teamAssignments.isNotEmpty()) {
                                             try { GameRepository.saveTeamAssignments(gameId, gameState.gameplay.teamAssignments) } catch (e: Exception) { AppLogger.w("Lobby", "Team save failed", e) }
+                                            if (gameState.gameplay.teamNames.isNotEmpty()) {
+                                                try { GameRepository.saveTeamNames(gameId, gameState.gameplay.teamNames) } catch (e: Exception) { AppLogger.w("Lobby", "Team names save failed", e) }
+                                            }
                                         }
                                         GameRepository.startGame(gameId)
                                         val playerDtos = GameRepository.getPlayers(gameId)

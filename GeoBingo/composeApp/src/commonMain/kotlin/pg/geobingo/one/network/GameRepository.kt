@@ -23,6 +23,8 @@ import io.ktor.client.statement.readRawBytes
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.int
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 
 @Serializable
@@ -271,6 +273,32 @@ object GameRepository {
             .associate { it.player_id.removePrefix("__team__") to (it.label.toIntOrNull() ?: 1) }
     }
 
+    // ── Team names ───────────────────────────────────────────────────────
+    // Stored in joker_labels with "__team_name__<teamNumber>" as player_id.
+
+    suspend fun saveTeamNames(gameId: String, teamNames: Map<Int, String>) {
+        if (teamNames.isEmpty()) return
+        teamNames.forEach { (teamNum, name) ->
+            try {
+                supabase.from("joker_labels").upsert(
+                    JokerLabelInsertDto(game_id = gameId, player_id = "__team_name__$teamNum", label = name)
+                )
+            } catch (e: Exception) {
+                AppLogger.w("Repo", "Team name save failed for team $teamNum", e)
+            }
+        }
+    }
+
+    suspend fun getTeamNames(gameId: String): Map<Int, String> =
+        supabase.from("joker_labels")
+            .select { filter { eq("game_id", gameId) } }
+            .decodeList<JokerLabelDto>()
+            .filter { it.player_id.startsWith("__team_name__") }
+            .associate {
+                val teamNum = it.player_id.removePrefix("__team_name__").toIntOrNull() ?: 1
+                teamNum to it.label
+            }
+
     suspend fun addPlayer(gameId: String, name: String, color: String, userId: String? = null): PlayerDto =
         supabase.from("players").insert(
             PlayerInsertDto(game_id = gameId, name = name, color = color, user_id = userId)
@@ -296,13 +324,15 @@ object GameRepository {
             AppLogger.d("Repo", "Avatar cache miss for $playerId", e)
         }
         return try {
-            val path = "avatars/$playerId.jpg"
-            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
-            val bytes = httpClient.get(url).readRawBytes()
-            try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (e: Exception) {
-                AppLogger.d("Repo", "Avatar local save failed for $playerId", e)
+            withRetry {
+                val path = "avatars/$playerId.jpg"
+                val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.AVATAR_URL_EXPIRY)
+                val bytes = httpClient.get(url).readRawBytes()
+                try { LocalPhotoStore.saveAvatar(playerId, bytes) } catch (e: Exception) {
+                    AppLogger.d("Repo", "Avatar local save failed for $playerId", e)
+                }
+                bytes
             }
-            bytes
         } catch (e: Exception) {
             AppLogger.w("Repo", "Avatar download failed for $playerId", e)
             null
@@ -365,16 +395,18 @@ object GameRepository {
             AppLogger.d("Repo", "Photo cache miss for $playerId/$categoryId", e)
         }
 
-        // 2. Network download
+        // 2. Network download with retry
         return try {
-            val path = "$gameId/$playerId/$categoryId.jpg"
-            val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
-            val bytes = httpClient.get(url).readRawBytes()
-            // 3. Cache locally for future access
-            try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (e: Exception) {
-                AppLogger.d("Repo", "Photo local save failed", e)
+            withRetry {
+                val path = "$gameId/$playerId/$categoryId.jpg"
+                val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
+                val bytes = httpClient.get(url).readRawBytes()
+                // 3. Cache locally for future access
+                try { LocalPhotoStore.savePhoto(gameId, playerId, categoryId, bytes) } catch (e: Exception) {
+                    AppLogger.d("Repo", "Photo local save failed", e)
+                }
+                bytes
             }
-            bytes
         } catch (e: Exception) {
             AppLogger.w("Repo", "Photo download failed for $playerId/$categoryId", e)
             null
@@ -548,46 +580,41 @@ object GameRepository {
         if (captures.isEmpty()) return 0
 
         val categoryMap = categories.associateBy { it.id }
-        var processed = 0
+        var count = 0
 
-        for (capture in captures) {
-            onProgress(processed + 1, captures.size)
-            val category = categoryMap[capture.category_id] ?: continue
-
-            val photoBytes = downloadPhoto(gameId, capture.player_id, capture.category_id)
-            if (photoBytes == null) {
-                // No photo available — insert a default low rating
-                try {
-                    supabase.from("votes").insert(
-                        VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = 1)
-                    )
-                } catch (e: Exception) {
-                    if (!isDuplicateError(e)) AppLogger.w("Repo", "AI vote insert failed", e)
+        // Process in parallel batches of 4 to avoid overwhelming the edge function
+        for (batch in captures.chunked(4)) {
+            coroutineScope {
+                val jobs = batch.map { capture ->
+                    launch {
+                        val category = categoryMap[capture.category_id] ?: return@launch
+                        val photoBytes = downloadPhoto(gameId, capture.player_id, capture.category_id)
+                        val rating = if (photoBytes == null) {
+                            1 // No photo available
+                        } else {
+                            try {
+                                validateSoloPhoto(photoBytes, category.name, category.description).rating
+                            } catch (e: Exception) {
+                                AppLogger.e("Repo", "AI validation failed for ${capture.player_id}/${capture.category_id}", e)
+                                3 // Fallback rating
+                            }
+                        }
+                        try {
+                            supabase.from("votes").insert(
+                                VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = rating)
+                            )
+                        } catch (e: Exception) {
+                            if (!isDuplicateError(e)) AppLogger.w("Repo", "AI vote insert failed", e)
+                        }
+                    }
                 }
-                processed++
-                continue
+                jobs.forEach { it.join() }
             }
-
-            try {
-                val result = validateSoloPhoto(photoBytes, category.name, category.description)
-                supabase.from("votes").insert(
-                    VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = result.rating)
-                )
-            } catch (e: Exception) {
-                AppLogger.e("Repo", "AI validation failed for ${capture.player_id}/${capture.category_id}", e)
-                // Insert fallback rating on validation failure
-                try {
-                    supabase.from("votes").insert(
-                        VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = 3)
-                    )
-                } catch (e2: Exception) {
-                    if (!isDuplicateError(e2)) AppLogger.w("Repo", "AI fallback vote insert failed", e2)
-                }
-            }
-            processed++
+            count += batch.size
+            onProgress(count, captures.size)
         }
 
-        return processed
+        return count
     }
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
@@ -633,27 +660,31 @@ object GameRepository {
 
     /**
      * Returns the approximate rank of a player's best score.
-     * Uses a count query instead of fetching all higher scores into memory.
+     * Uses a head+count query to avoid loading all records into memory.
      */
     suspend fun getSoloRank(playerName: String): Int? {
         val best = getSoloPersonalBest(playerName) ?: return null
-        val higherScores = supabase.from("solo_scores")
+        val higherCount = supabase.from("solo_scores")
             .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("player_name")) {
                 filter { gt("score", best.score) }
             }
             .decodeList<SoloScoreNameDto>()
-        val distinctHigher = higherScores.map { it.player_name }.toSet().size
-        return distinctHigher + 1
-    }
-
-    /** Total number of distinct players on the leaderboard. Uses minimal column fetch. */
-    suspend fun getSoloTotalPlayers(): Int =
-        supabase.from("solo_scores")
-            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("player_name"))
-            .decodeList<SoloScoreNameDto>()
             .map { it.player_name }
             .toSet()
             .size
+        return higherCount + 1
+    }
+
+    /** Total number of distinct players on the leaderboard. Uses head+count for efficiency. */
+    suspend fun getSoloTotalPlayers(): Int {
+        val count = supabase.from("solo_scores")
+            .select {
+                head = true
+                count(Count.EXACT)
+            }
+            .countOrNull()?.toInt() ?: 0
+        return count
+    }
 
     // ── In-Game Chat ────────────────────────────────────────────────────
 

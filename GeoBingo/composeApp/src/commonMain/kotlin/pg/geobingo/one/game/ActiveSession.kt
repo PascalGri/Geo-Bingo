@@ -93,18 +93,32 @@ object ActiveSession {
             // Fetch players and categories
             val playerDtos = GameRepository.getPlayers(gameId)
             val categoryDtos = GameRepository.getCategories(gameId)
+
+            // Validate the player is still in the game
+            if (playerDtos.none { it.id == playerId }) {
+                AppLogger.w("ActiveSession", "Player $playerId no longer in game $gameId")
+                clear()
+                return null
+            }
+
             gameState.gameplay.players = playerDtos.map { it.toPlayer() }
             gameState.gameplay.lobbyPlayers = playerDtos
             gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
             gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == playerId }
                 .takeIf { it >= 0 } ?: 0
 
-            // Load team assignments
+            // Load team assignments and names
             try {
                 val teams = GameRepository.getTeamAssignments(gameId)
                 if (teams.isNotEmpty()) {
                     gameState.gameplay.teamModeEnabled = true
                     gameState.gameplay.teamAssignments = teams
+                    try {
+                        val names = GameRepository.getTeamNames(gameId)
+                        if (names.isNotEmpty()) gameState.gameplay.teamNames = names
+                    } catch (e: Exception) {
+                        AppLogger.w("ActiveSession", "Team names load failed", e)
+                    }
                 }
             } catch (e: Exception) {
                 AppLogger.w("ActiveSession", "Team assignment load failed", e)

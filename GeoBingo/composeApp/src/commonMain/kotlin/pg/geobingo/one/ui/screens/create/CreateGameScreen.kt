@@ -88,8 +88,8 @@ fun CreateGameScreen(gameState: GameState) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(errorMessage) {
         val msg = errorMessage ?: return@LaunchedEffect
-        errorMessage = null
         snackbarHostState.showSnackbar(msg)
+        errorMessage = null
     }
 
     val anim = rememberStaggeredAnimation(count = 6)

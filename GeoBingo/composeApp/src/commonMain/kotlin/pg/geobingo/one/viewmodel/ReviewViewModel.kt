@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameConstants
@@ -293,10 +295,10 @@ class ReviewViewModel(
     private fun startFallbackPolling(gameId: String) {
         pollingJob = viewModelScope.launch {
             var interval = GameConstants.POLLING_INITIAL_INTERVAL_MS
-            while (true) {
+            while (isActive) {
                 delay(interval)
                 try {
-                    val game = GameRepository.getGameById(gameId)
+                    val game = withTimeoutOrNull(10_000L) { GameRepository.getGameById(gameId) }
                     val newStep = game?.review_category_index ?: 0
                     if (newStep != gameState.review.reviewCategoryIndex) {
                         gameState.review.reviewCategoryIndex = newStep

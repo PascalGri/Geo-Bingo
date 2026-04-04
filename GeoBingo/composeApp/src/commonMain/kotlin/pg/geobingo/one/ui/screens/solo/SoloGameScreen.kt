@@ -129,16 +129,23 @@ fun SoloGameScreen(gameState: GameState) {
         }
     }
 
-    // Timer
+    // Timer — uses wall-clock to avoid drift from imprecise delay()
     LaunchedEffect(solo.isRunning) {
         if (!solo.isRunning) return@LaunchedEffect
         solo.startTimeMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        val endTimeMillis = solo.startTimeMillis + solo.timeRemainingSeconds * 1000L
         while (solo.isRunning && solo.timeRemainingSeconds > 0) {
-            delay(1000L)
-            solo.timeRemainingSeconds--
-            val t = solo.timeRemainingSeconds
-            if (gameState.ui.soundEnabled && (t == 60 || t == 30 || t == 10)) {
-                SoundPlayer.play(SoundEffect.TimerWarning)
+            delay(250L)
+            val remaining = ((endTimeMillis - kotlinx.datetime.Clock.System.now().toEpochMilliseconds()) / 1000).toInt().coerceAtLeast(0)
+            val prev = solo.timeRemainingSeconds
+            solo.timeRemainingSeconds = remaining
+            // Timer warning sounds at threshold crossings
+            if (gameState.ui.soundEnabled) {
+                for (threshold in listOf(60, 30, 10)) {
+                    if (prev > threshold && remaining <= threshold) {
+                        SoundPlayer.play(SoundEffect.TimerWarning)
+                    }
+                }
             }
         }
         if (solo.isRunning) {
