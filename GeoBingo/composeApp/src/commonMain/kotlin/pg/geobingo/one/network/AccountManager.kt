@@ -103,7 +103,11 @@ object AccountManager {
 
     suspend fun signInWithGoogle(): Result<Unit> {
         return try {
-            supabase.auth.signInWith(Google)
+            supabase.auth.signInWith(Google) {
+                if (Analytics.platform == "web") {
+                    queryParams["redirect_to"] = "https://katchit.app/play.html"
+                }
+            }
             val userId = supabase.auth.currentUserOrNull()?.id
             if (userId != null) {
                 val email = supabase.auth.currentUserOrNull()?.email ?: ""
@@ -120,7 +124,11 @@ object AccountManager {
 
     suspend fun signInWithApple(): Result<Unit> {
         return try {
-            supabase.auth.signInWith(Apple)
+            supabase.auth.signInWith(Apple) {
+                if (Analytics.platform == "web") {
+                    queryParams["redirect_to"] = "https://katchit.app/play.html"
+                }
+            }
             val userId = supabase.auth.currentUserOrNull()?.id
             if (userId != null) {
                 val email = supabase.auth.currentUserOrNull()?.email ?: ""
