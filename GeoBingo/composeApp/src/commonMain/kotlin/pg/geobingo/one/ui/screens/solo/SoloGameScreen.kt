@@ -130,10 +130,12 @@ fun SoloGameScreen(gameState: GameState) {
     }
 
     // Timer — uses wall-clock to avoid drift from imprecise delay()
+    // endTimeMillis is mutable so extra-time power-ups can extend it
+    var endTimeMillis by remember { mutableStateOf(0L) }
     LaunchedEffect(solo.isRunning) {
         if (!solo.isRunning) return@LaunchedEffect
         solo.startTimeMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        val endTimeMillis = solo.startTimeMillis + solo.timeRemainingSeconds * 1000L
+        endTimeMillis = solo.startTimeMillis + solo.timeRemainingSeconds * 1000L
         while (solo.isRunning && solo.timeRemainingSeconds > 0) {
             delay(250L)
             val remaining = ((endTimeMillis - kotlinx.datetime.Clock.System.now().toEpochMilliseconds()) / 1000).toInt().coerceAtLeast(0)
@@ -312,6 +314,7 @@ fun SoloGameScreen(gameState: GameState) {
                         onClick = {
                             trySpend(EXTRA_TIME_COST) {
                                 solo.timeRemainingSeconds += 60
+                                endTimeMillis += 60_000L
                                 gameState.ui.pendingToast = "+60s"
                                 if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PowerUp)
                             }

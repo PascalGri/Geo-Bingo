@@ -90,7 +90,7 @@ fun StatsScreen(gameState: GameState) {
         } else "--"
     }
 
-    val anim = rememberStaggeredAnimation(count = 16)
+    val anim = rememberStaggeredAnimation(count = 18)
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     Scaffold(
@@ -257,7 +257,7 @@ fun StatsScreen(gameState: GameState) {
                         icon = Icons.Default.Speed,
                         value = avgTimeCaptureFormatted,
                         label = S.current.statsAvgTimePerCapture,
-                        modifier = Modifier.weight(1f).staggered(13),
+                        modifier = Modifier.weight(1f).staggered(14),
                     )
                 }
 
@@ -270,7 +270,7 @@ fun StatsScreen(gameState: GameState) {
                         value = favoriteMode,
                         label = S.current.statsFavoriteMode,
                         smallValue = true,
-                        modifier = Modifier.weight(1f).staggered(13),
+                        modifier = Modifier.weight(1f).staggered(15),
                     )
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -287,12 +287,12 @@ fun StatsScreen(gameState: GameState) {
                 if (modeSegments.isNotEmpty()) {
                     SectionHeader(
                         text = S.current.statsModeDistribution,
-                        modifier = Modifier.staggered(14),
+                        modifier = Modifier.staggered(16),
                     )
                     GradientBorderCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .staggered(14),
+                            .staggered(16),
                         borderColors = GradientPrimary,
                         backgroundColor = ColorSurface,
                     ) {
@@ -326,12 +326,12 @@ fun StatsScreen(gameState: GameState) {
                 if (perfData.isNotEmpty()) {
                     SectionHeader(
                         text = S.current.statsPerformanceOverview,
-                        modifier = Modifier.staggered(15),
+                        modifier = Modifier.staggered(17),
                     )
                     GradientBorderCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .staggered(15),
+                            .staggered(17),
                         borderColors = GradientCool,
                         backgroundColor = ColorSurface,
                     ) {

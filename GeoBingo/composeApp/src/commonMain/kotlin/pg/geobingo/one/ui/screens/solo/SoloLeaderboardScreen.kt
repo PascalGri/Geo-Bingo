@@ -341,7 +341,12 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                             loadingMore = true
                             try {
                                 val isOutdoor = selectedEnvironment == 0
-                                val currentOffset = if (isOutdoor) rawOffset5Outdoor else rawOffset5Indoor
+                                val currentOffset = when {
+                                    isOutdoor && selectedCatCount == 0 -> rawOffset5Outdoor
+                                    isOutdoor && selectedCatCount == 1 -> rawOffset10Outdoor
+                                    !isOutdoor && selectedCatCount == 0 -> rawOffset5Indoor
+                                    else -> rawOffset10Indoor
+                                }
                                 val count = loadPage(isOutdoor = isOutdoor, offset = currentOffset, createdAfter = createdAfter)
                                 val noMore = count < pageSize
                                 if (isOutdoor) {
