@@ -2,8 +2,10 @@ package pg.geobingo.one.ui.theme
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -13,6 +15,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -23,10 +26,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
+import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.platform.toImageBitmap
 
 /**
  * Reusable player avatar: shows selfie photo if available, otherwise first letter on colored circle.
+ * Automatically applies the equipped profile frame cosmetic.
  */
 @Composable
 fun PlayerAvatarView(
@@ -35,34 +40,31 @@ fun PlayerAvatarView(
     fontSize: TextUnit = 16.sp,
     modifier: Modifier = Modifier,
     photoBytes: ByteArray? = null,
+    showFrame: Boolean = true,
 ) {
+    val frame = if (showFrame) remember { CosmeticsManager.getEquippedFrame() } else null
+    val hasFrame = frame != null && frame.id != "frame_none" && frame.borderColors.any { it != Color.Transparent }
+
     var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     LaunchedEffect(photoBytes) {
         imageBitmap = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
     }
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(if (imageBitmap == null) player.color else Color.Transparent)
-            .semantics { contentDescription = "Avatar ${player.name}" },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (imageBitmap != null) {
-            Image(
-                bitmap = imageBitmap ?: return,
-                contentDescription = "Foto ${player.name}",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Text(
-                text = player.name.take(1).uppercase(),
-                color = Color.White,
-                fontSize = fontSize,
-                fontWeight = FontWeight.Bold,
-            )
+
+    if (hasFrame && frame != null) {
+        Box(
+            modifier = modifier
+                .clip(CircleShape)
+                .border(
+                    width = frame.borderWidth.dp,
+                    brush = Brush.linearGradient(frame.borderColors),
+                    shape = CircleShape,
+                )
+                .padding(frame.borderWidth.dp),
+        ) {
+            AvatarContent(imageBitmap, player.color, player.name, size, fontSize)
         }
+    } else {
+        AvatarContent(imageBitmap, player.color, player.name, size, fontSize, modifier)
     }
 }
 
@@ -76,11 +78,43 @@ fun PlayerAvatarViewRaw(
     fontSize: TextUnit = 16.sp,
     modifier: Modifier = Modifier,
     photoBytes: ByteArray? = null,
+    showFrame: Boolean = true,
 ) {
+    val frame = if (showFrame) remember { CosmeticsManager.getEquippedFrame() } else null
+    val hasFrame = frame != null && frame.id != "frame_none" && frame.borderColors.any { it != Color.Transparent }
+
     var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     LaunchedEffect(photoBytes) {
         imageBitmap = if (photoBytes != null) withContext(Dispatchers.Default) { photoBytes.toImageBitmap() } else null
     }
+
+    if (hasFrame && frame != null) {
+        Box(
+            modifier = modifier
+                .clip(CircleShape)
+                .border(
+                    width = frame.borderWidth.dp,
+                    brush = Brush.linearGradient(frame.borderColors),
+                    shape = CircleShape,
+                )
+                .padding(frame.borderWidth.dp),
+        ) {
+            AvatarContent(imageBitmap, color, name, size, fontSize)
+        }
+    } else {
+        AvatarContent(imageBitmap, color, name, size, fontSize, modifier)
+    }
+}
+
+@Composable
+private fun AvatarContent(
+    imageBitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    color: Color,
+    name: String,
+    size: Dp,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier
             .size(size)
@@ -91,7 +125,7 @@ fun PlayerAvatarViewRaw(
     ) {
         if (imageBitmap != null) {
             Image(
-                bitmap = imageBitmap ?: return,
+                bitmap = imageBitmap,
                 contentDescription = "Foto $name",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
