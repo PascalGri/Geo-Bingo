@@ -1,0 +1,10 @@
+What's new in v1.2:
+
+- Achievements: 14 achievements to unlock and collect
+- Favorites: Save and quickly load your favorite category sets
+- Leaderboard: Filter by week, month, or all-time
+- Match Details: Review past games with all photos and ratings
+- Statistics: New charts for mode distribution and performance
+- Cosmetics: Player titles and card designs in the shop
+- Direct Messages: Chat with friends outside of games
+- Bug fixes: Timer precision, network stability, photo downloads

@@ -1,0 +1,10 @@
+Was ist neu in v1.2:
+
+- Erfolge: 14 Achievements zum Freischalten und Sammeln
+- Favoriten: Lieblings-Kategorien speichern und schnell laden
+- Bestenliste: Nach Woche, Monat oder Gesamt filtern
+- Match-Details: Vergangene Spiele mit allen Fotos und Bewertungen ansehen
+- Statistiken: Neue Charts fuer Modus-Verteilung und Performance
+- Cosmetics: Spielertitel und Karten-Designs im Shop
+- Direktnachrichten: Mit Freunden chatten
+- Bugfixes: Timer-Praezision, Netzwerk-Stabilitat, Foto-Downloads
