@@ -60,10 +60,14 @@ fun ResultsScreen(gameState: GameState) {
     val winner = ranked.firstOrNull()?.first
     val shareManager = rememberShareManager()
     var showConfetti by remember { mutableStateOf(false) }
+    var confettiSoundPlayed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(600)
         showConfetti = true
-        if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Confetti)
+        if (gameState.ui.soundEnabled && !confettiSoundPlayed) {
+            confettiSoundPlayed = true
+            SoundPlayer.play(SoundEffect.Confetti)
+        }
     }
 
     val modeGradient = when (gameState.session.gameMode) {
