@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,18 +22,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.game.state.BannerBackground
 import pg.geobingo.one.game.state.CardDesign
 import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.game.state.NameEffect
 import pg.geobingo.one.game.state.PlayerTitle
 import pg.geobingo.one.game.state.ProfileFrame
+import pg.geobingo.one.network.AccountManager
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.CollectScrollToTop
 import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.components.FramedAvatar
 import pg.geobingo.one.ui.components.MiniShopPopup
+import pg.geobingo.one.ui.components.PlayerBanner
+import pg.geobingo.one.ui.components.PlayerBannerSize
+import pg.geobingo.one.ui.components.ScrollToTopTags
+import pg.geobingo.one.ui.components.ShopTabSwitcher
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +50,52 @@ fun CosmeticShopScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     var showMiniShop by remember { mutableStateOf(false) }
     var miniShopNeeded by remember { mutableStateOf(0) }
+    val scrollState = rememberScrollState()
+    val purchaseScope = rememberCoroutineScope()
+    CollectScrollToTop(ScrollToTopTags.SHOP_COSMETICS, scrollState)
+
+    // Unified purchase flow: server-authoritative when logged in (via purchase_cosmetic RPC),
+    // local-only for guests. Caller only supplies item ID + fallback cost.
+    fun tryPurchase(
+        cosmeticId: String,
+        localCost: Int,
+        onAcquired: () -> Unit,
+    ) {
+        if (AccountManager.isLoggedIn) {
+            purchaseScope.launch {
+                when (val res = CosmeticsManager.purchaseCosmeticCloud(cosmeticId)) {
+                    is CosmeticsManager.PurchaseResult.Success -> {
+                        gameState.stars.setBalance(res.newStarBalance)
+                        onAcquired()
+                    }
+                    is CosmeticsManager.PurchaseResult.InsufficientStars -> {
+                        miniShopNeeded = localCost
+                        showMiniShop = true
+                    }
+                    is CosmeticsManager.PurchaseResult.UnknownCosmetic,
+                    is CosmeticsManager.PurchaseResult.NotAuthenticated,
+                    is CosmeticsManager.PurchaseResult.Error -> {
+                        // Fall back to local flow on transient errors
+                        if (gameState.stars.spend(localCost)) {
+                            CosmeticsManager.purchase(cosmeticId)
+                            onAcquired()
+                        } else {
+                            miniShopNeeded = localCost
+                            showMiniShop = true
+                        }
+                    }
+                }
+            }
+        } else {
+            if (gameState.stars.spend(localCost)) {
+                CosmeticsManager.purchase(cosmeticId)
+                onAcquired()
+            } else {
+                miniShopNeeded = localCost
+                showMiniShop = true
+            }
+        }
+    }
 
     // Force recomposition on purchase
     var purchaseCounter by remember { mutableStateOf(0) }
@@ -48,6 +103,7 @@ fun CosmeticShopScreen(gameState: GameState) {
     val equippedNameId = remember(purchaseCounter) { CosmeticsManager.getEquippedNameEffectId() }
     val equippedTitleId = remember(purchaseCounter) { CosmeticsManager.getEquippedTitleId() }
     val equippedCardDesignId = remember(purchaseCounter) { CosmeticsManager.getEquippedCardDesignId() }
+    val equippedBannerBgId = remember(purchaseCounter) { CosmeticsManager.getEquippedBannerBackgroundId() }
 
     val playerName = AppSettings.getString("last_player_name", "Player")
     val avatarBytes = LocalPhotoStore.loadAvatar("profile")
@@ -74,7 +130,7 @@ fun CosmeticShopScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -88,42 +144,33 @@ fun CosmeticShopScreen(gameState: GameState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // Preview card
-            GradientBorderCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                borderColors = GradientPrimary,
-                backgroundColor = ColorSurface,
-                borderWidth = 1.5.dp,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    FramedAvatar(frameId = equippedFrameId, size = 56.dp) {
-                        PlayerAvatarViewRaw(
-                            name = playerName,
-                            color = ColorPrimary,
-                            size = 48.dp,
-                            photoBytes = avatarBytes,
-                        )
-                    }
-                    Column {
-                        Text("Vorschau", style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant)
-                        CosmeticPlayerName(
-                            name = playerName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            nameEffectId = equippedNameId,
-                        )
-                    }
-                }
-            }
+            // ── Stars / Cosmetics Tab Switcher ──────────────────────────
+            ShopTabSwitcher(activeScreen = pg.geobingo.one.game.Screen.COSMETIC_SHOP)
+
+            // ── Live preview banner (Rocket-League-style) ───────────────
+            Text(
+                "Vorschau",
+                style = MaterialTheme.typography.labelMedium,
+                color = ColorOnSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+            PlayerBanner(
+                name = playerName,
+                cosmetics = PlayerCosmetics(
+                    frameId = equippedFrameId,
+                    nameEffectId = equippedNameId,
+                    titleId = equippedTitleId,
+                    bannerBackgroundId = equippedBannerBgId,
+                ),
+                avatarBytes = avatarBytes,
+                avatarColor = ColorPrimary,
+                size = PlayerBannerSize.Hero,
+            )
 
             // ── Profile Frames ──────────────────────────────────────────
             Text(
@@ -146,13 +193,9 @@ fun CosmeticShopScreen(gameState: GameState) {
                                 isOwned = CosmeticsManager.isOwned(frame.id),
                                 isEquipped = equippedFrameId == frame.id,
                                 onBuy = {
-                                    if (gameState.stars.spend(frame.starsCost)) {
-                                        CosmeticsManager.purchase(frame.id)
+                                    tryPurchase(frame.id, frame.starsCost) {
                                         CosmeticsManager.setEquippedFrame(frame.id)
                                         purchaseCounter++
-                                    } else {
-                                        miniShopNeeded = frame.starsCost
-                                        showMiniShop = true
                                     }
                                 },
                                 onEquip = {
@@ -189,13 +232,9 @@ fun CosmeticShopScreen(gameState: GameState) {
                                 isOwned = CosmeticsManager.isOwned(effect.id),
                                 isEquipped = equippedNameId == effect.id,
                                 onBuy = {
-                                    if (gameState.stars.spend(effect.starsCost)) {
-                                        CosmeticsManager.purchase(effect.id)
+                                    tryPurchase(effect.id, effect.starsCost) {
                                         CosmeticsManager.setEquippedNameEffect(effect.id)
                                         purchaseCounter++
-                                    } else {
-                                        miniShopNeeded = effect.starsCost
-                                        showMiniShop = true
                                     }
                                 },
                                 onEquip = {
@@ -231,17 +270,52 @@ fun CosmeticShopScreen(gameState: GameState) {
                                 isOwned = CosmeticsManager.isOwned(title.id),
                                 isEquipped = equippedTitleId == title.id,
                                 onBuy = {
-                                    if (gameState.stars.spend(title.starsCost)) {
-                                        CosmeticsManager.purchase(title.id)
+                                    tryPurchase(title.id, title.starsCost) {
                                         CosmeticsManager.setEquippedTitle(title.id)
                                         purchaseCounter++
-                                    } else {
-                                        miniShopNeeded = title.starsCost
-                                        showMiniShop = true
                                     }
                                 },
                                 onEquip = {
                                     CosmeticsManager.setEquippedTitle(title.id)
+                                    purchaseCounter++
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+
+            // ── Banner Backgrounds (NEW in v1.3) ─────────────────────────
+            Text(
+                S.current.bannerBackgrounds,
+                style = MaterialTheme.typography.labelMedium,
+                color = ColorOnSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CosmeticsManager.ALL_BANNER_BACKGROUNDS.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        row.forEach { bg ->
+                            BannerBackgroundCard(
+                                background = bg,
+                                playerName = playerName,
+                                isOwned = CosmeticsManager.isOwned(bg.id),
+                                isEquipped = equippedBannerBgId == bg.id,
+                                onBuy = {
+                                    tryPurchase(bg.id, bg.starsCost) {
+                                        CosmeticsManager.setEquippedBannerBackground(bg.id)
+                                        purchaseCounter++
+                                    }
+                                },
+                                onEquip = {
+                                    CosmeticsManager.setEquippedBannerBackground(bg.id)
                                     purchaseCounter++
                                 },
                                 modifier = Modifier.weight(1f),
@@ -273,13 +347,9 @@ fun CosmeticShopScreen(gameState: GameState) {
                                 isOwned = CosmeticsManager.isOwned(design.id),
                                 isEquipped = equippedCardDesignId == design.id,
                                 onBuy = {
-                                    if (gameState.stars.spend(design.starsCost)) {
-                                        CosmeticsManager.purchase(design.id)
+                                    tryPurchase(design.id, design.starsCost) {
                                         CosmeticsManager.setEquippedCardDesign(design.id)
                                         purchaseCounter++
-                                    } else {
-                                        miniShopNeeded = design.starsCost
-                                        showMiniShop = true
                                     }
                                 },
                                 onEquip = {
@@ -602,6 +672,110 @@ private fun CardDesignCard(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                             Icon(Icons.Default.Star, null, modifier = Modifier.size(12.dp), tint = Color.White)
                             Text("${design.starsCost}", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BannerBackgroundCard(
+    background: BannerBackground,
+    playerName: String,
+    isOwned: Boolean,
+    isEquipped: Boolean,
+    onBuy: () -> Unit,
+    onEquip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColors = if (background.gradientColors.size >= 2) background.gradientColors else GradientPrimary
+
+    GradientBorderCard(
+        modifier = modifier,
+        cornerRadius = 14.dp,
+        borderColors = if (isEquipped) borderColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+        backgroundColor = ColorSurface,
+        borderWidth = if (isEquipped) 1.5.dp else 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Banner gradient preview rectangle
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (background.gradientColors.size >= 2)
+                            Brush.linearGradient(background.gradientColors)
+                        else
+                            Brush.linearGradient(
+                                listOf(background.gradientColors.first(), background.gradientColors.first()),
+                            )
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = playerName.take(8),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+
+            Text(
+                background.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorOnSurface,
+            )
+
+            when {
+                isEquipped -> {
+                    Text(
+                        S.current.equipped,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                isOwned -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ColorPrimary.copy(alpha = 0.1f))
+                            .clickable { onEquip() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            S.current.equip,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                background.starsCost > 0 -> {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Brush.linearGradient(GradientGold))
+                            .clickable { onBuy() }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Icon(Icons.Default.Star, null, modifier = Modifier.size(12.dp), tint = Color.White)
+                            Text(
+                                "${background.starsCost}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }

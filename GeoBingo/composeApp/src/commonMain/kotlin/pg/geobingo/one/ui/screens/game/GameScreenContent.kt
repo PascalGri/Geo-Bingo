@@ -44,6 +44,7 @@ import pg.geobingo.one.game.*
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.theme.*
 
@@ -303,9 +304,27 @@ fun GameScreenContent(
                         totalCats <= 9 -> 3
                         else -> 4
                     }
+                    // Apply equipped Card Design as the bingo board background.
+                    // Reads once per composition — equipping a new design comes via
+                    // CosmeticsManager.equippedRevision which this function already observes.
+                    val equippedCardDesign = remember { CosmeticsManager.getEquippedCardDesign() }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                            .then(
+                                if (equippedCardDesign.id != "card_none" && equippedCardDesign.backgroundColors.size >= 2) {
+                                    Modifier.background(
+                                        brush = Brush.linearGradient(equippedCardDesign.backgroundColors),
+                                    )
+                                } else Modifier,
+                            )
+                            .padding(6.dp),
+                    ) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(cols),
-                        modifier = Modifier.weight(1f).padding(12.dp),
+                        modifier = Modifier.fillMaxSize().padding(6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -376,6 +395,7 @@ fun GameScreenContent(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
@@ -485,7 +505,7 @@ internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int,
             }
             PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(6.dp))
-            CosmeticPlayerName(name = player.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, fallbackColor = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
+            CosmeticPlayerName(name = player.name, nameEffectId = "name_none", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, fallbackColor = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)
             Spacer(Modifier.width(4.dp))
             Text(
                 "$captureCount/$totalCategories",

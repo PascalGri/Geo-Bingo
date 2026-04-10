@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.components.PlayerTitleBadge
 import pg.geobingo.one.ui.theme.*
@@ -57,6 +58,7 @@ internal fun DarkRankCard(
     averageRating: Double? = null,
     photoBytes: ByteArray? = null,
     categoryBreakdown: List<CategoryBreakdownItem> = emptyList(),
+    playerCosmetics: PlayerCosmetics = PlayerCosmetics.NONE,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -118,13 +120,13 @@ internal fun DarkRankCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CosmeticPlayerName(
                             name = player.name,
+                            nameEffectId = playerCosmetics.nameEffectId,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        val titleId = CosmeticsManager.getEquippedTitleId()
-                        if (titleId != "title_none") {
+                        if (playerCosmetics.titleId != "title_none") {
                             Spacer(Modifier.width(6.dp))
-                            PlayerTitleBadge(titleId = titleId)
+                            PlayerTitleBadge(titleId = playerCosmetics.titleId)
                         }
                     }
                     if (captures.isNotEmpty()) {

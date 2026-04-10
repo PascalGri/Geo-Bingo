@@ -29,6 +29,9 @@ import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.PlayerBanner
+import pg.geobingo.one.ui.components.PlayerBannerSize
+import pg.geobingo.one.ui.components.rememberLocalUserCosmetics
 import pg.geobingo.one.ui.theme.*
 
 private val ProfileGradient = listOf(Color(0xFF6366F1), Color(0xFF8B5CF6))
@@ -63,7 +66,7 @@ fun ProfileScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -73,6 +76,8 @@ fun ProfileScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        val localCosmetics = rememberLocalUserCosmetics()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -81,35 +86,19 @@ fun ProfileScreen(gameState: GameState) {
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Avatar
-            PlayerAvatarViewRaw(
+            // ── Rocket-League-style player banner ─────────────────────
+            PlayerBanner(
                 name = playerName,
-                color = ProfileGradient.first(),
-                size = 80.dp,
-                fontSize = 32.sp,
-                photoBytes = avatarBytes,
+                cosmetics = localCosmetics,
+                avatarBytes = avatarBytes,
+                avatarColor = ProfileGradient.first(),
+                size = PlayerBannerSize.Hero,
+                subtitle = if (isLoggedIn) AccountManager.currentUser?.email else null,
             )
 
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                playerName,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = ColorOnSurface,
-            )
-
-            if (isLoggedIn) {
-                Text(
-                    AccountManager.currentUser?.email ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ColorOnSurfaceVariant,
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
             // Stats grid
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

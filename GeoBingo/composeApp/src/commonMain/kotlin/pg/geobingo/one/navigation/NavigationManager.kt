@@ -61,6 +61,14 @@ class NavigationManager(initialScreen: Screen) {
     }
 
     /**
+     * Reset the backstack to HOME. Used by top-level screen back buttons
+     * so the arrow always returns to the main page from any top-level destination.
+     */
+    fun goHome() {
+        resetTo(Screen.HOME)
+    }
+
+    /**
      * Navigate back to a screen already in the stack, popping everything above it.
      */
     fun navigateBackTo(screen: Screen): Boolean {

@@ -80,4 +80,26 @@ object DirectMessageManager {
             AppLogger.w(TAG, "markAsRead failed", e)
         }
     }
+
+    /**
+     * Total number of unread direct messages addressed to the current user.
+     * Used by the bottom-nav Friends tab badge.
+     */
+    suspend fun getUnreadCount(): Int {
+        val myId = AccountManager.currentUserId ?: return 0
+        return try {
+            supabase.from("direct_messages")
+                .select {
+                    filter {
+                        eq("to_user_id", myId)
+                        eq("read", false)
+                    }
+                }
+                .decodeList<DirectMessageDto>()
+                .size
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "getUnreadCount failed", e)
+            0
+        }
+    }
 }

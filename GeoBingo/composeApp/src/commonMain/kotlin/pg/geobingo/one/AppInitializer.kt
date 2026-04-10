@@ -1,6 +1,7 @@
 package pg.geobingo.one
 
 import pg.geobingo.one.game.GameState
+import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.i18n.Language
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
@@ -58,6 +59,11 @@ object AppInitializer {
 
         // Auth initialization + cloud sync (handles web OAuth redirects)
         AccountManager.handleAppStartup()
+
+        // Cosmetics: pull owned + equipped state from cloud, push any local-only purchases
+        if (AccountManager.isLoggedIn) {
+            CosmeticsManager.syncFromCloud()
+        }
 
         // Daily login bonus + daily challenge reset
         gameState.stars.resetDailyChallengeIfNewDay()

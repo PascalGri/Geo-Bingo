@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,11 @@ import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.*
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.CollectScrollToTop
+import pg.geobingo.one.ui.components.PlayerBanner
+import pg.geobingo.one.ui.components.PlayerBannerSize
+import pg.geobingo.one.ui.components.ScrollToTopTags
+import pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.util.AppLogger
 
@@ -55,6 +61,14 @@ fun FriendsScreen(gameState: GameState) {
     var showAddDialog by remember { mutableStateOf(false) }
     var showRemoveDialog by remember { mutableStateOf<FriendInfo?>(null) }
     var friendAvatars by remember { mutableStateOf<Map<String, ByteArray>>(emptyMap()) }
+    val friendsListState = rememberLazyListState()
+    CollectScrollToTop(ScrollToTopTags.FRIENDS, friendsListState)
+
+    // Prefetch cosmetics for all friends (and pending request senders) in a single query
+    val friendUserIds = remember(friends, pendingRequests) {
+        (friends.map { it.userId } + pendingRequests.map { it.second.id }).distinct().filter { it.isNotBlank() }
+    }
+    val friendCosmetics by rememberPlayerCosmeticsMap(friendUserIds)
 
     // Load data
     LaunchedEffect(isLoggedIn) {
@@ -162,7 +176,7 @@ fun FriendsScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -206,6 +220,7 @@ fun FriendsScreen(gameState: GameState) {
             }
         } else {
             LazyColumn(
+                state = friendsListState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -316,6 +331,7 @@ fun FriendsScreen(gameState: GameState) {
                         FriendRow(
                             friend = friend,
                             avatarBytes = friendAvatars[friend.userId],
+                            cosmetics = friendCosmetics[friend.userId] ?: pg.geobingo.one.network.PlayerCosmetics.NONE,
                             canInvite = gameState.session.gameCode != null && gameState.session.isHost,
                             onInvite = {
                                 val code = gameState.session.gameCode ?: return@FriendRow
@@ -377,71 +393,56 @@ private fun MyFriendCodeCard(code: String, onCopy: () -> Unit) {
 }
 
 @Composable
-private fun FriendRow(friend: FriendInfo, avatarBytes: ByteArray? = null, canInvite: Boolean, onInvite: () -> Unit, onRemove: () -> Unit, onMessage: () -> Unit = {}) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = ColorSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Avatar + Online indicator
-            Box {
-                PlayerAvatarViewRaw(
-                    name = friend.displayName,
-                    color = FriendsGradient.first(),
-                    size = 40.dp,
-                    fontSize = 16.sp,
-                    photoBytes = avatarBytes,
-                )
-                // Online dot
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(if (friend.isOnline) Color(0xFF22C55E) else ColorOutlineVariant)
-                        .align(Alignment.BottomEnd),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    friend.displayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorOnSurface,
-                )
-                Text(
-                    if (friend.isOnline) S.current.friendsOnline else S.current.friendsOffline,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (friend.isOnline) Color(0xFF22C55E) else ColorOnSurfaceVariant,
-                )
-            }
-
-            if (canInvite && friend.isOnline) {
-                FilledTonalButton(
-                    onClick = onInvite,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = FriendsGradient.first().copy(alpha = 0.12f)),
-                    modifier = Modifier.height(32.dp),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Login, null, modifier = Modifier.size(14.dp), tint = FriendsGradient.first())
-                    Spacer(Modifier.width(4.dp))
-                    Text(S.current.inviteToGame, style = MaterialTheme.typography.labelSmall, color = FriendsGradient.first())
-                }
-                Spacer(Modifier.width(4.dp))
-            }
-
-            IconButton(onClick = onMessage, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp), tint = ColorPrimary)
-            }
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
-            }
-        }
+private fun FriendRow(
+    friend: FriendInfo,
+    avatarBytes: ByteArray? = null,
+    canInvite: Boolean,
+    cosmetics: pg.geobingo.one.network.PlayerCosmetics = pg.geobingo.one.network.PlayerCosmetics.NONE,
+    onInvite: () -> Unit,
+    onRemove: () -> Unit,
+    onMessage: () -> Unit = {},
+) {
+    val statusText = if (friend.isOnline) {
+        "\u25CF ${S.current.friendsOnline}"
+    } else {
+        S.current.friendsOffline
     }
+    PlayerBanner(
+        name = friend.displayName,
+        cosmetics = cosmetics,
+        avatarBytes = avatarBytes,
+        avatarColor = FriendsGradient.first(),
+        size = PlayerBannerSize.Compact,
+        subtitle = statusText,
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (canInvite && friend.isOnline) {
+                    FilledTonalButton(
+                        onClick = onInvite,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color.White.copy(alpha = 0.15f),
+                        ),
+                        modifier = Modifier.height(28.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Login,
+                            null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.White,
+                        )
+                    }
+                    Spacer(Modifier.width(2.dp))
+                }
+                IconButton(onClick = onMessage, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                }
+                IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.7f))
+                }
+            }
+        },
+    )
 }
 
 @Composable

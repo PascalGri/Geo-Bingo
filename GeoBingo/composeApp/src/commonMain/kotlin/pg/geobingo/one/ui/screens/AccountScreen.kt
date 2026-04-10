@@ -64,7 +64,7 @@ fun AccountScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },

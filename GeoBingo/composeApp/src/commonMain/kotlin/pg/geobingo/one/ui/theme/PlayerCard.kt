@@ -10,13 +10,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
-import pg.geobingo.one.game.state.CosmeticsManager
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.components.PlayerTitleBadge
 
 /**
  * Reusable player display: Avatar (with frame) + Name (with effect) + Title badge + optional status text.
- * Automatically applies all equipped cosmetics.
+ * Cosmetics are applied per-player via [cosmetics]; defaults to no cosmetics.
+ * Use [pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap] to fetch cosmetics
+ * for a list of users in one query.
  */
 @Composable
 fun PlayerCard(
@@ -25,6 +27,7 @@ fun PlayerCard(
     photoBytes: ByteArray? = null,
     statusText: String? = null,
     statusColor: androidx.compose.ui.graphics.Color = ColorOnSurfaceVariant,
+    cosmetics: PlayerCosmetics = PlayerCosmetics.NONE,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -42,13 +45,13 @@ fun PlayerCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CosmeticPlayerName(
                     name = player.name,
+                    nameEffectId = cosmetics.nameEffectId,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                val titleId = CosmeticsManager.getEquippedTitleId()
-                if (titleId != "title_none") {
+                if (cosmetics.titleId != "title_none") {
                     Spacer(Modifier.width(6.dp))
-                    PlayerTitleBadge(titleId = titleId)
+                    PlayerTitleBadge(titleId = cosmetics.titleId)
                 }
             }
             if (statusText != null) {

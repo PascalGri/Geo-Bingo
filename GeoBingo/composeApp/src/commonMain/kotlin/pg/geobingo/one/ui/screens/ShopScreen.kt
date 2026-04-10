@@ -24,6 +24,9 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.CollectScrollToTop
+import pg.geobingo.one.ui.components.ScrollToTopTags
+import pg.geobingo.one.ui.components.ShopTabSwitcher
 import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.ui.theme.*
 
@@ -58,6 +61,8 @@ fun ShopScreen(gameState: GameState) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var purchaseLoading by remember { mutableStateOf<String?>(null) }
+    val scrollState = rememberScrollState()
+    CollectScrollToTop(ScrollToTopTags.SHOP_STARS, scrollState)
 
     SystemBackHandler { nav.goBack() }
 
@@ -73,7 +78,7 @@ fun ShopScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -87,10 +92,13 @@ fun ShopScreen(gameState: GameState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            // ── Stars / Cosmetics Tab Switcher ──────────────────────────
+            ShopTabSwitcher(activeScreen = pg.geobingo.one.game.Screen.SHOP)
+
             // ── Stars Packages ──────────────────────────────────────────
             ShopSection(title = S.current.buyStars) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -244,40 +252,6 @@ fun ShopScreen(gameState: GameState) {
                             color = ColorSuccess,
                             fontWeight = FontWeight.SemiBold,
                         )
-                    }
-                }
-            }
-
-            // ── Cosmetics ────────────────────────────────────────────────
-            ShopSection(title = S.current.cosmeticShop) {
-                GradientBorderCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { nav.navigateTo(pg.geobingo.one.game.Screen.COSMETIC_SHOP) },
-                    cornerRadius = 14.dp,
-                    borderColors = GradientPrimary,
-                    backgroundColor = ColorSurface,
-                    borderWidth = 1.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                S.current.cosmeticShop,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = ColorOnSurface,
-                            )
-                            Text(
-                                S.current.cosmeticsDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                        }
-                        Icon(Icons.Default.ChevronRight, null, tint = ColorPrimary)
                     }
                 }
             }

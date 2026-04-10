@@ -37,7 +37,34 @@ data class UserProfile(
     val language: String = "de",
     val last_seen: String? = null,
     val friend_code: String? = null,
+    // ── Equipped cosmetics (synced via Supabase profiles table) ──────────
+    val equipped_frame: String = "frame_none",
+    val equipped_name_effect: String = "name_none",
+    val equipped_title: String = "title_none",
+    val equipped_card_design: String = "card_none",
+    val equipped_banner_background: String = "banner_none",
 )
+
+/**
+ * Lightweight per-player cosmetic snapshot used to render PlayerBanner across the app.
+ * Constructed from a UserProfile or from per-player metadata in game DTOs.
+ */
+data class PlayerCosmetics(
+    val frameId: String = "frame_none",
+    val nameEffectId: String = "name_none",
+    val titleId: String = "title_none",
+    val bannerBackgroundId: String = "banner_none",
+) {
+    companion object {
+        val NONE = PlayerCosmetics()
+        fun fromProfile(p: UserProfile): PlayerCosmetics = PlayerCosmetics(
+            frameId = p.equipped_frame,
+            nameEffectId = p.equipped_name_effect,
+            titleId = p.equipped_title,
+            bannerBackgroundId = p.equipped_banner_background,
+        )
+    }
+}
 
 object AccountManager {
     private const val TAG = "AccountManager"

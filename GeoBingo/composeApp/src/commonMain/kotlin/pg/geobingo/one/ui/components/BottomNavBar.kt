@@ -6,11 +6,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,10 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,8 +37,8 @@ import pg.geobingo.one.ui.theme.*
 enum class NavTab(val icon: ImageVector, val targetScreen: Screen) {
     HOME(Icons.Default.Home, Screen.HOME),
     FRIENDS(Icons.Default.People, Screen.FRIENDS),
-    SHOP(Icons.Default.Storefront, Screen.COSMETIC_SHOP),
-    PROFILE(Icons.Default.Person, Screen.ACCOUNT),
+    SHOP(Icons.Default.Storefront, Screen.SHOP),
+    SETTINGS(Icons.Default.Settings, Screen.SETTINGS),
 }
 
 /** Screens on which the bottom nav bar should be visible. */
@@ -53,17 +55,27 @@ fun Screen.activeTab(): NavTab? = when (this) {
     Screen.SOLO_LEADERBOARD, Screen.MP_LEADERBOARD -> NavTab.HOME
     Screen.FRIENDS, Screen.ACTIVITY_FEED -> NavTab.FRIENDS
     Screen.COSMETIC_SHOP, Screen.SHOP -> NavTab.SHOP
-    Screen.ACCOUNT, Screen.PROFILE, Screen.SETTINGS,
-    Screen.STATS, Screen.ACHIEVEMENTS -> NavTab.PROFILE
+    Screen.SETTINGS, Screen.ACCOUNT, Screen.PROFILE,
+    Screen.STATS, Screen.ACHIEVEMENTS -> NavTab.SETTINGS
     else -> null
+}
+
+private fun NavTab.label(): String = when (this) {
+    NavTab.HOME -> S.current.navHome
+    NavTab.FRIENDS -> S.current.friends
+    NavTab.SHOP -> S.current.shop
+    NavTab.SETTINGS -> S.current.settingsTitle
 }
 
 @Composable
 fun BottomNavBar(
     currentScreen: Screen,
-    onTabSelected: (Screen) -> Unit,
+    friendsBadgeCount: Int = 0,
+    onTabSelected: (NavTab) -> Unit,
+    onActiveTabReselected: (NavTab) -> Unit = {},
 ) {
     val activeTab = currentScreen.activeTab()
+    val haptic = LocalHapticFeedback.current
 
     Box(
         modifier = Modifier
@@ -91,13 +103,16 @@ fun BottomNavBar(
                 NavBarItem(
                     tab = tab,
                     selected = selected,
-                    label = when (tab) {
-                        NavTab.HOME -> "Home"
-                        NavTab.FRIENDS -> S.current.friends
-                        NavTab.SHOP -> "Shop"
-                        NavTab.PROFILE -> "Profil"
+                    label = tab.label(),
+                    badgeCount = if (tab == NavTab.FRIENDS) friendsBadgeCount else 0,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (selected) {
+                            onActiveTabReselected(tab)
+                        } else {
+                            onTabSelected(tab)
+                        }
                     },
-                    onClick = { onTabSelected(tab.targetScreen) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -110,6 +125,7 @@ private fun NavBarItem(
     tab: NavTab,
     selected: Boolean,
     label: String,
+    badgeCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -126,17 +142,17 @@ private fun NavBarItem(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
     )
 
-    // Animated shimmer for Shop tab
+    // Subtle shimmer pulse for the Shop tab when not selected
     val isShop = tab == NavTab.SHOP
     val shimmer = rememberInfiniteTransition(label = "shopShimmer")
-    val shimmerOffset by shimmer.animateFloat(
+    val shimmerPulse by shimmer.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
+            animation = tween(3500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "shimmerOff",
+        label = "shopPulse",
     )
 
     Column(
@@ -170,15 +186,35 @@ private fun NavBarItem(
                         scaleY = scale
                     },
                 tint = if (isShop && !selected) {
-                    // Animated gradient-like color for shop icon when not selected
-                    Color(
-                        red = 0.85f + 0.15f * kotlin.math.sin(shimmerOffset * 6.28f).toFloat(),
-                        green = 0.55f + 0.15f * kotlin.math.cos(shimmerOffset * 6.28f).toFloat(),
-                        blue = 0.94f,
-                        alpha = 0.8f,
+                    // Subtle warm-to-primary pulse instead of the previous loud color cycling
+                    androidx.compose.ui.graphics.lerp(
+                        ColorOnSurfaceVariant.copy(alpha = 0.65f),
+                        ColorPrimary.copy(alpha = 0.7f),
+                        shimmerPulse,
                     )
                 } else iconColor,
             )
+
+            // Unread / pending badge (top-right of icon)
+            if (badgeCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 8.dp, y = (-4).dp)
+                        .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                        .clip(CircleShape)
+                        .background(ColorError)
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (badgeCount > 99) "99+" else badgeCount.toString(),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
         }
         Text(
             label,

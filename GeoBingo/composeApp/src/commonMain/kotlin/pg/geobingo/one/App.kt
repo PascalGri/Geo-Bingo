@@ -17,8 +17,13 @@ import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.platform.DeepLinkHandler
 import pg.geobingo.one.platform.rememberConnectivityState
 import pg.geobingo.one.ui.components.BottomNavBar
+import pg.geobingo.one.ui.components.NavTab
 import pg.geobingo.one.ui.components.NotificationBanners
+import pg.geobingo.one.ui.components.ScrollToTopBus
+import pg.geobingo.one.ui.components.ScrollToTopTags
 import pg.geobingo.one.ui.components.SyncAvatars
+import pg.geobingo.one.ui.components.rememberFriendsBadgeCount
+import pg.geobingo.one.ui.components.rememberKeyboardOpen
 import pg.geobingo.one.ui.components.showsBottomNav
 import pg.geobingo.one.ui.screens.*
 import pg.geobingo.one.ui.screens.ModeSelectScreen
@@ -79,13 +84,31 @@ fun App() {
                 ScreenRouter(nav.currentScreen, gameState)
             }
 
-            // Global bottom navigation bar (hidden during games/transitions)
-            if (nav.currentScreen.showsBottomNav()) {
+            // Global bottom navigation bar — hidden during games/transitions
+            // and when the soft keyboard is open so it doesn't cover input fields.
+            val friendsBadge by rememberFriendsBadgeCount()
+            val keyboardOpen by rememberKeyboardOpen()
+            if (nav.currentScreen.showsBottomNav() && !keyboardOpen) {
                 BottomNavBar(
                     currentScreen = nav.currentScreen,
-                    onTabSelected = { screen ->
-                        if (screen != nav.currentScreen) {
-                            nav.resetTo(screen)
+                    friendsBadgeCount = friendsBadge,
+                    onTabSelected = { tab ->
+                        nav.resetTo(tab.targetScreen)
+                    },
+                    onActiveTabReselected = { tab ->
+                        // Re-tap on active tab → scroll the top-level screen to top.
+                        when (tab) {
+                            NavTab.HOME -> ScrollToTopBus.fire(ScrollToTopTags.HOME)
+                            NavTab.FRIENDS -> ScrollToTopBus.fire(ScrollToTopTags.FRIENDS)
+                            NavTab.SHOP -> {
+                                val tag = if (nav.currentScreen == Screen.COSMETIC_SHOP) {
+                                    ScrollToTopTags.SHOP_COSMETICS
+                                } else {
+                                    ScrollToTopTags.SHOP_STARS
+                                }
+                                ScrollToTopBus.fire(tag)
+                            }
+                            NavTab.SETTINGS -> ScrollToTopBus.fire(ScrollToTopTags.SETTINGS)
                         }
                     },
                 )

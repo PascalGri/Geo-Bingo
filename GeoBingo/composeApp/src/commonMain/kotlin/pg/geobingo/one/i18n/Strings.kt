@@ -613,4 +613,10 @@ interface StringRes {
     val noMessagesYet: String
     val typeMessageHint: String
     val messageSent: String
+
+    // ── Bottom Nav / Shop Tabs ───────────────────────────────────────────
+    val navHome: String
+    val shopTabStars: String
+    val shopTabCosmetics: String
+    val bannerBackgrounds: String
 }

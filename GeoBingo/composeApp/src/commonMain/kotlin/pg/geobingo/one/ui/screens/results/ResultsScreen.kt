@@ -27,9 +27,13 @@ import pg.geobingo.one.game.ActiveSession
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.*
 import pg.geobingo.one.util.AppLogger
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.network.generateCode
 import pg.geobingo.one.network.toHex
+import pg.geobingo.one.ui.components.rememberLocalUserCosmetics
+import pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
@@ -58,6 +62,20 @@ fun ResultsScreen(gameState: GameState) {
         gameState.rankedPlayers
     }
     val winner = ranked.firstOrNull()?.first
+
+    // Prefetch per-player cosmetics for the podium / ranking list
+    val rankedUserIds = remember(ranked) {
+        ranked.mapNotNull { (p, _) -> p.userId?.takeIf { it.isNotBlank() } }
+    }
+    val cosmeticsByUserId by rememberPlayerCosmeticsMap(rankedUserIds)
+    val localCosmetics = rememberLocalUserCosmetics()
+    val myUserId = AccountManager.currentUserId
+    fun cosmeticsFor(player: Player): PlayerCosmetics =
+        if (player.userId != null && player.userId == myUserId) {
+            localCosmetics
+        } else {
+            player.userId?.let { cosmeticsByUserId[it] } ?: PlayerCosmetics.NONE
+        }
     val shareManager = rememberShareManager()
     var showConfetti by remember { mutableStateOf(false) }
     var confettiSoundPlayed by remember { mutableStateOf(false) }
@@ -615,7 +633,12 @@ fun ResultsScreen(gameState: GameState) {
                 if (ranked.size >= 2) {
                     Spacer(Modifier.height(20.dp))
                     Box(modifier = Modifier.staggered(1)) {
-                        DarkPodiumSection(ranked = ranked.take(3), playerAvatarBytes = gameState.photo.playerAvatarBytes, gameState = gameState)
+                        DarkPodiumSection(
+                            ranked = ranked.take(3),
+                            playerAvatarBytes = gameState.photo.playerAvatarBytes,
+                            gameState = gameState,
+                            cosmeticsByUserId = cosmeticsByUserId,
+                        )
                     }
                 }
             }
@@ -672,6 +695,7 @@ fun ResultsScreen(gameState: GameState) {
                         averageRating = avgRating,
                         photoBytes = gameState.photo.playerAvatarBytes[player.id],
                         categoryBreakdown = breakdown,
+                        playerCosmetics = cosmeticsFor(player),
                     )
                 }
                 Spacer(Modifier.height(8.dp))

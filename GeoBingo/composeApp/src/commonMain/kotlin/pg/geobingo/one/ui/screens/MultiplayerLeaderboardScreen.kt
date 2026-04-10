@@ -25,7 +25,12 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.platform.SystemBackHandler
+import pg.geobingo.one.ui.components.PlayerBanner
+import pg.geobingo.one.ui.components.PlayerBannerSize
+import pg.geobingo.one.ui.components.rememberLocalUserCosmetics
+import pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.util.AppLogger
 
@@ -69,7 +74,7 @@ fun MultiplayerLeaderboardScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -122,6 +127,11 @@ fun MultiplayerLeaderboardScreen(gameState: GameState) {
                     }
                 }
             } else {
+                // Prefetch cosmetics for all visible leaderboard entries in one query
+                val userIds = remember(entries) { entries.map { it.user_id }.filter { it.isNotBlank() } }
+                val cosmeticsByUserId by rememberPlayerCosmeticsMap(userIds)
+                val localCosmetics = rememberLocalUserCosmetics()
+
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -140,47 +150,47 @@ fun MultiplayerLeaderboardScreen(gameState: GameState) {
                             else -> "${entry.games_played}"
                         }
 
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isMe) ColorPrimary.copy(alpha = 0.08f) else ColorSurface,
-                            ),
-                            border = if (isMe) BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f))
-                            else BorderStroke(1.dp, ColorOutlineVariant),
+                        val playerCosmetics = if (isMe) {
+                            localCosmetics
+                        } else {
+                            cosmeticsByUserId[entry.user_id] ?: PlayerCosmetics.NONE
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                // Rank
-                                Box(modifier = Modifier.width(30.dp), contentAlignment = Alignment.Center) {
-                                    if (index < 3) {
-                                        Icon(Icons.Default.EmojiEvents, null, tint = rankColor, modifier = Modifier.size(22.dp))
-                                    } else {
-                                        Text("#${index + 1}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = rankColor)
-                                    }
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
+                            // Rank chip on the left
+                            Box(modifier = Modifier.width(34.dp), contentAlignment = Alignment.Center) {
+                                if (index < 3) {
+                                    Icon(Icons.Default.EmojiEvents, null, tint = rankColor, modifier = Modifier.size(24.dp))
+                                } else {
                                     Text(
-                                        entry.display_name.ifBlank { "Player" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (isMe) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isMe) ColorPrimary else ColorOnSurface,
-                                    )
-                                    Text(
-                                        "${entry.games_won} ${S.current.wins} | ${entry.games_played} ${S.current.gamesPlayed}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = ColorOnSurfaceVariant,
+                                        "#${index + 1}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = rankColor,
                                     )
                                 }
-                                Text(
-                                    sortValue,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (index < 3) rankColor else ColorOnSurface,
-                                )
                             }
+                            // Banner on the right
+                            PlayerBanner(
+                                modifier = Modifier.weight(1f),
+                                name = entry.display_name.ifBlank { "Player" },
+                                cosmetics = playerCosmetics,
+                                avatarColor = if (isMe) ColorPrimary else MPGradient.first(),
+                                size = PlayerBannerSize.Compact,
+                                subtitle = "${entry.games_won} ${S.current.wins} • ${entry.games_played} ${S.current.gamesPlayed}",
+                                trailing = {
+                                    Text(
+                                        sortValue,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (index < 3) rankColor else Color.White,
+                                    )
+                                },
+                            )
                         }
                     }
                 }

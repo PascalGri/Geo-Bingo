@@ -466,6 +466,13 @@ fun LobbyScreen(gameState: GameState) {
             )
         }
 
+        // Prefetch lobby player cosmetics in one query (lifted out of LazyColumn scope)
+        val lobbyUserIds = remember(gameState.gameplay.lobbyPlayers) {
+            gameState.gameplay.lobbyPlayers.mapNotNull { it.user_id?.takeIf { id -> id.isNotBlank() } }
+        }
+        val cosmeticsByUserIdLobby by pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap(lobbyUserIds)
+        val localCosmeticsLobby = pg.geobingo.one.ui.components.rememberLocalUserCosmetics()
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -637,7 +644,19 @@ fun LobbyScreen(gameState: GameState) {
 
             val hostPlayerId = gameState.gameplay.lobbyPlayers.firstOrNull()?.id
             items(gameState.gameplay.lobbyPlayers) { player ->
-                LobbyPlayerRow(player = player, isMe = player.id == gameState.session.myPlayerId, isHost = player.id == hostPlayerId, photoBytes = gameState.photo.playerAvatarBytes[player.id])
+                val isMe = player.id == gameState.session.myPlayerId
+                val cosmetics = if (isMe) {
+                    localCosmeticsLobby
+                } else {
+                    player.user_id?.let { cosmeticsByUserIdLobby[it] } ?: pg.geobingo.one.network.PlayerCosmetics.NONE
+                }
+                LobbyPlayerRow(
+                    player = player,
+                    isMe = isMe,
+                    isHost = player.id == hostPlayerId,
+                    photoBytes = gameState.photo.playerAvatarBytes[player.id],
+                    cosmetics = cosmetics,
+                )
             }
 
             // ── Team Assignment Section ──────────────────────────────────
@@ -746,6 +765,7 @@ fun LobbyScreen(gameState: GameState) {
                                             Spacer(Modifier.width(8.dp))
                                             CosmeticPlayerName(
                                                 name = player.name,
+                                                nameEffectId = "name_none",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium,
                                             )
@@ -885,49 +905,47 @@ fun LobbyScreen(gameState: GameState) {
 }
 
 @Composable
-private fun LobbyPlayerRow(player: PlayerDto, isMe: Boolean, isHost: Boolean, photoBytes: ByteArray?) {
+private fun LobbyPlayerRow(
+    player: PlayerDto,
+    isMe: Boolean,
+    isHost: Boolean,
+    photoBytes: ByteArray?,
+    cosmetics: pg.geobingo.one.network.PlayerCosmetics = pg.geobingo.one.network.PlayerCosmetics.NONE,
+) {
     val color = parseHexColor(player.color)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = ColorSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, ColorOutlineVariant),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PlayerAvatarViewRaw(
-                name = player.name,
-                color = color,
-                avatar = player.avatar,
-                size = 40.dp,
-                fontSize = 16.sp,
-                photoBytes = photoBytes,
-            )
-            Spacer(Modifier.width(12.dp))
-            if (isHost) {
-                CrownIcon(modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-            }
-            CosmeticPlayerName(
-                name = player.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f),
-            )
-            if (isMe) {
+    val subtitle = buildString {
+        if (isHost) append("\u2605 Host")
+        if (isMe) {
+            if (isNotEmpty()) append(" • ")
+            append(S.current.you)
+        }
+    }.takeIf { it.isNotBlank() }
+
+    pg.geobingo.one.ui.components.PlayerBanner(
+        name = player.name,
+        cosmetics = cosmetics,
+        avatarBytes = photoBytes,
+        avatarColor = color,
+        size = pg.geobingo.one.ui.components.PlayerBannerSize.Compact,
+        subtitle = subtitle,
+        trailing = if (isMe) {
+            {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(ColorPrimaryContainer)
+                        .background(ColorPrimary.copy(alpha = 0.2f))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
-                    Text(S.current.you, style = MaterialTheme.typography.labelSmall, color = ColorPrimary)
+                    Text(
+                        S.current.you,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
-        }
-    }
+        } else null,
+    )
 }
 
 @Composable

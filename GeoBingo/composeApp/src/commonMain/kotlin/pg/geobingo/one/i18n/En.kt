@@ -579,4 +579,10 @@ object En : StringRes {
     override val averageRatingLabel = "Avg. Rating"
     override val speedBonusEarned = "Speed Bonus"
     override val firstCapture = "First"
+
+    // ── Bottom Nav / Shop Tabs ───────────────────────────────────────────
+    override val navHome = "Home"
+    override val shopTabStars = "Stars"
+    override val shopTabCosmetics = "Cosmetics"
+    override val bannerBackgrounds = "Banner Backgrounds"
 }

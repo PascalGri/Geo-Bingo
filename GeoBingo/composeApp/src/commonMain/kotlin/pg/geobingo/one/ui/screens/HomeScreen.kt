@@ -47,7 +47,9 @@ import pg.geobingo.one.network.SoloScoreDto
 import pg.geobingo.one.platform.AdManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
+import pg.geobingo.one.ui.components.CollectScrollToTop
 import pg.geobingo.one.ui.components.EarnStarsDialog
+import pg.geobingo.one.ui.components.ScrollToTopTags
 import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.Spacing
@@ -58,6 +60,8 @@ fun HomeScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val homeScrollState = rememberScrollState()
+    CollectScrollToTop(ScrollToTopTags.HOME, homeScrollState)
     LaunchedEffect(gameState.ui.pendingToast) {
         val msg = gameState.ui.pendingToast ?: return@LaunchedEffect
         gameState.ui.pendingToast = null
@@ -196,7 +200,7 @@ fun HomeScreen(gameState: GameState) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(homeScrollState),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
 

@@ -53,6 +53,15 @@ class StarsState {
         return true
     }
 
+    /**
+     * Force-set the star balance to a specific value. Used after a server-side
+     * authoritative update (e.g. purchase_cosmetic RPC returns the new balance).
+     */
+    fun setBalance(newBalance: Int) {
+        starCount = newBalance.coerceAtLeast(0)
+        AppSettings.setInt(SettingsKeys.STAR_COUNT, starCount)
+    }
+
     fun recordAdWatched() {
         resetAdsIfNewDay()
         adsWatchedToday++

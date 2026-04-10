@@ -43,6 +43,8 @@ import pg.geobingo.one.i18n.Language
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.platform.rememberShareManager
+import pg.geobingo.one.ui.components.CollectScrollToTop
+import pg.geobingo.one.ui.components.ScrollToTopTags
 import pg.geobingo.one.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,6 +54,8 @@ fun SettingsScreen(gameState: GameState) {
     val snackbarHostState = remember { SnackbarHostState() }
     SystemBackHandler { nav.goBack() }
     val uriHandler = LocalUriHandler.current
+    val scrollState = rememberScrollState()
+    CollectScrollToTop(ScrollToTopTags.SETTINGS, scrollState)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -65,7 +69,7 @@ fun SettingsScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -79,7 +83,7 @@ fun SettingsScreen(gameState: GameState) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

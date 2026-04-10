@@ -155,7 +155,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.goBack() }) {
+                    IconButton(onClick = { nav.goHome() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
@@ -363,16 +363,28 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                         }
                     }
 
+                    // Prefetch cosmetics for all visible leaderboard users in one query
+                    val scoreUserIds = remember(scores) { scores.mapNotNull { it.user_id?.takeIf { id -> id.isNotBlank() } } }
+                    val cosmeticsByUserIdSolo by pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap(scoreUserIds)
+                    val localCosmeticsSolo = pg.geobingo.one.ui.components.rememberLocalUserCosmetics()
+
                     LazyColumn(
                         state = listState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(scores) { index, score ->
+                            val isMe = isOwnScore(score, currentUserId, playerName)
+                            val rowCosmetics = when {
+                                isMe -> localCosmeticsSolo
+                                score.user_id != null -> cosmeticsByUserIdSolo[score.user_id] ?: pg.geobingo.one.network.PlayerCosmetics.NONE
+                                else -> pg.geobingo.one.network.PlayerCosmetics.NONE
+                            }
                             LeaderboardRow(
                                 rank = index + 1,
                                 score = score,
-                                isCurrentPlayer = isOwnScore(score, currentUserId, playerName),
+                                isCurrentPlayer = isMe,
+                                cosmetics = rowCosmetics,
                             )
                         }
 
@@ -392,79 +404,60 @@ fun SoloLeaderboardScreen(gameState: GameState) {
 
 
 @Composable
-private fun LeaderboardRow(rank: Int, score: SoloScoreDto, isCurrentPlayer: Boolean) {
+private fun LeaderboardRow(
+    rank: Int,
+    score: SoloScoreDto,
+    isCurrentPlayer: Boolean,
+    cosmetics: pg.geobingo.one.network.PlayerCosmetics = pg.geobingo.one.network.PlayerCosmetics.NONE,
+) {
     val rankColor = when (rank) {
         1 -> Color(0xFFFBBF24) // gold
         2 -> Color(0xFF94A3B8) // silver
         3 -> Color(0xFFCD7F32) // bronze
         else -> ColorOnSurfaceVariant
     }
+    val subtitle = "${score.categories_count} ${S.current.categories}" +
+            if (score.time_bonus > 0) " | +${score.time_bonus}s bonus" else ""
 
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentPlayer) ColorPrimary.copy(alpha = 0.08f) else ColorSurface,
-        ),
-        border = if (isCurrentPlayer) BorderStroke(1.dp, ColorPrimary.copy(alpha = 0.3f))
-        else BorderStroke(1.dp, ColorOutlineVariant),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Rank
-            Box(modifier = Modifier.width(30.dp), contentAlignment = Alignment.Center) {
-                if (rank <= 3) {
-                    Icon(
-                        Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = rankColor,
-                        modifier = Modifier.size(22.dp),
-                    )
-                } else {
-                    Text(
-                        "#$rank",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = rankColor,
-                    )
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-
-            // Name + details
-            Column(modifier = Modifier.weight(1f)) {
-                if (isCurrentPlayer) {
-                    pg.geobingo.one.ui.components.CosmeticPlayerName(
-                        name = score.player_name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fallbackColor = ColorPrimary,
-                    )
-                } else {
-                    Text(
-                        score.player_name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = ColorOnSurface,
-                    )
-                }
+        Box(modifier = Modifier.width(34.dp), contentAlignment = Alignment.Center) {
+            if (rank <= 3) {
+                Icon(
+                    Icons.Default.EmojiEvents,
+                    contentDescription = null,
+                    tint = rankColor,
+                    modifier = Modifier.size(24.dp),
+                )
+            } else {
                 Text(
-                    "${score.categories_count} ${S.current.categories}" +
-                            if (score.time_bonus > 0) " | +${score.time_bonus}s bonus" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ColorOnSurfaceVariant,
+                    "#$rank",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = rankColor,
                 )
             }
-
-            // Score
-            Text(
-                "${score.score}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (rank <= 3) rankColor else ColorOnSurface,
-            )
         }
+
+        pg.geobingo.one.ui.components.PlayerBanner(
+            modifier = Modifier.weight(1f),
+            name = score.player_name,
+            cosmetics = cosmetics,
+            avatarColor = if (isCurrentPlayer) ColorPrimary else Color(0xFF6366F1),
+            size = pg.geobingo.one.ui.components.PlayerBannerSize.Compact,
+            subtitle = subtitle,
+            trailing = {
+                Text(
+                    "${score.score}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (rank <= 3) rankColor else Color.White,
+                )
+            },
+        )
     }
 }
 

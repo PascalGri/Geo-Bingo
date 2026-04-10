@@ -8,7 +8,8 @@ data class Player(
     val id: String,
     val name: String,
     val color: Color,
-    val avatar: String = "" // emoji character or empty → falls back to first letter
+    val avatar: String = "", // emoji character or empty → falls back to first letter
+    val userId: String? = null, // Supabase auth user_id when the player is signed in
 )
 
 @Immutable

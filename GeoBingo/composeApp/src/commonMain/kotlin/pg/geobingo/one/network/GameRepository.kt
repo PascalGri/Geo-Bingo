@@ -151,7 +151,8 @@ fun PlayerDto.toPlayer(): Player = Player(
     id = id,
     name = name,
     color = parseHexColor(color),
-    avatar = avatar
+    avatar = avatar,
+    userId = user_id,
 )
 
 fun CategoryDto.toCategory(): Category = Category(

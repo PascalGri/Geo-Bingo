@@ -21,11 +21,17 @@ import androidx.compose.ui.unit.sp
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.network.PlayerCosmetics
 import pg.geobingo.one.ui.components.CosmeticPlayerName
 import pg.geobingo.one.ui.theme.*
 
 @Composable
-internal fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarBytes: Map<String, ByteArray>, gameState: GameState) {
+internal fun DarkPodiumSection(
+    ranked: List<Pair<Player, Int>>,
+    playerAvatarBytes: Map<String, ByteArray>,
+    gameState: GameState,
+    cosmeticsByUserId: Map<String, PlayerCosmetics> = emptyMap(),
+) {
     val heights = listOf(100.dp, 72.dp, 56.dp)
     val podiumOrder = when (ranked.size) {
         1 -> listOf(ranked[0] to 0)
@@ -68,8 +74,10 @@ internal fun DarkPodiumSection(ranked: List<Pair<Player, Int>>, playerAvatarByte
                 Spacer(Modifier.height(4.dp))
                 PlayerAvatarView(player = player, size = 40.dp, fontSize = 16.sp, photoBytes = playerAvatarBytes[player.id])
                 Spacer(Modifier.height(4.dp))
+                val playerCosmetics = player.userId?.let { cosmeticsByUserId[it] } ?: PlayerCosmetics.NONE
                 CosmeticPlayerName(
                     name = player.name,
+                    nameEffectId = playerCosmetics.nameEffectId,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
                     fallbackColor = ColorOnBackground,
