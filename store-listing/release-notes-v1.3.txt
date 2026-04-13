@@ -1,0 +1,10 @@
+Was ist neu in v1.3:
+
+- Spielerbanner im Rocket-League-Stil: Zeige dein Profil mit animierten Hintergruenden, Rahmen, Namens-Effekten und Titeln
+- 12 neue animierte Banner-Hintergruende, 5 neue Rahmen, 3 neue Namens-Effekte, 6 neue Titel im Shop
+- Kosmetik-Cloud-Sync: Deine ausgeruesteten Cosmetics sind auf allen Geraeten verfuegbar
+- Neue Bottom-Navigation: Home, Freunde, Shop und Einstellungen immer einen Tap entfernt
+- Ungelesen-Badge auf dem Freunde-Tab fuer offene Anfragen und neue Nachrichten
+- Banner in Lobby, Bestenliste, Freundesliste und Ergebnissen sichtbar
+- Live-Vorschau beim Ausruesten von Cosmetics im Shop
+- Bugfixes und Performance-Verbesserungen

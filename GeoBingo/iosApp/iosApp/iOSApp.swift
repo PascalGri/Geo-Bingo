@@ -68,7 +68,13 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    DeepLinkHandler.shared.handleUrl(url: url.absoluteString)
+                    // Route OAuth callback URLs (Google/Apple login) to Supabase via NSURL,
+                    // everything else (join codes, share extensions) goes through the common handler.
+                    if url.absoluteString.contains("login-callback") {
+                        IosAuthCallback.shared.handle(url: url)
+                    } else {
+                        DeepLinkHandler.shared.handleUrl(url: url.absoluteString)
+                    }
                 }
         }
     }

@@ -217,6 +217,12 @@ object AccountManager {
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sign out failed", e)
         }
+        // Wipe per-user cached state so the signed-out user's data isn't
+        // visible in the UI (or cross-contaminates the next login). Device
+        // preferences are preserved. last_known_user_id is cleared so the
+        // next login doesn't falsely trigger the user-switch branch.
+        clearUserScopedLocalState()
+        AppSettings.setString("last_known_user_id", "")
     }
 
     // ── Delete Account ─────────────────────────────────────────────
@@ -233,12 +239,9 @@ object AccountManager {
                     append("apikey", SupabaseConfig.current.anonKey)
                 }
             }
-            // Clear local data
-            AppSettings.setString("last_player_name", "")
-            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
-                AppLogger.w(TAG, "Avatar cleanup failed during account deletion", e)
-            }
-            // Sign out locally
+            // Clear all local per-user state and sign out locally
+            clearUserScopedLocalState()
+            AppSettings.setString("last_known_user_id", "")
             try { supabase.auth.signOut() } catch (e: Exception) {
                 AppLogger.w(TAG, "Sign out failed during account deletion", e)
             }
@@ -350,10 +353,105 @@ object AccountManager {
             AppLogger.w(TAG, "Auth initialization failed", e)
         }
         val userId = currentUserId ?: return
+
+        // Detect user switch since last session (e.g. email -> Apple login, or
+        // a guest user who just logged in for the first time). If the user_id
+        // changed OR there was no previous logged-in user, we wipe per-user
+        // local state so the previous identity's progress / name / avatar don't
+        // leak into the new session. The cloud sync below then hydrates all
+        // cloud-backed fields (stars, games_played/won, display_name, avatar)
+        // with the authoritative cloud values. Device-level preferences
+        // (sound, haptic, language, consent) are intentionally preserved.
+        val lastKnownUserId = AppSettings.getString("last_known_user_id", "")
+        val isUserSwitch = lastKnownUserId.isNotEmpty() && lastKnownUserId != userId
+        if (isUserSwitch) {
+            AppLogger.i(TAG, "User switched (${lastKnownUserId.take(8)}... -> ${userId.take(8)}...), clearing local state")
+            clearUserScopedLocalState()
+        }
+        AppSettings.setString("last_known_user_id", userId)
+
         val email = currentUser?.email ?: ""
         createProfileIfNeeded(userId, email)
         syncCloudToLocal(userId)
-        syncLocalToCloud(userId)
+        // After cloud->local sync, refresh the in-memory StarsState so any UI
+        // that already composed with the pre-sync values picks up the new ones.
+        try {
+            ServiceLocator.gameState.stars.reload()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "StarsState reload after sync failed", e)
+        }
+        // Only push local->cloud when we didn't just wipe local (otherwise we'd
+        // be pushing freshly-cleared zeros back up). For same-user sessions this
+        // preserves the offline-progress-survives-reconnect semantics.
+        if (!isUserSwitch) {
+            syncLocalToCloud(userId)
+        }
+    }
+
+    /**
+     * Clear all per-user local state. Called on sign-out and on user-switch
+     * detection so the previous identity's data never bleeds into the next
+     * session. Device-level preferences (sound, haptic, language, consent,
+     * onboarding-completed) are intentionally preserved — they belong to the
+     * device, not the user.
+     *
+     * Cloud-backed fields (stars, skip_cards, games_played/won, longest_streak,
+     * display_name, avatar) are re-hydrated from cloud on the next login. Non-
+     * cloud-backed fields (mode counts, totals, achievements, daily/weekly
+     * challenge state) reset to defaults for the new user — future schema
+     * migrations will promote these to cloud-backed.
+     *
+     * NO_ADS_PURCHASED is re-verified from StoreKit on app init (BillingBridge),
+     * so we clear the flag here but it auto-restores if the Apple ID owns it.
+     */
+    private fun clearUserScopedLocalState() {
+        // Identity
+        AppSettings.setString("last_player_name", "")
+        // Cloud-backed economy / stats (will be re-hydrated from cloud)
+        AppSettings.setInt(SettingsKeys.STAR_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.SKIP_CARDS_COUNT, 0)
+        AppSettings.setBoolean(SettingsKeys.NO_ADS_PURCHASED, false)
+        AppSettings.setInt(SettingsKeys.GAMES_PLAYED, 0)
+        AppSettings.setInt(SettingsKeys.GAMES_WON, 0)
+        AppSettings.setInt(SettingsKeys.LONGEST_WIN_STREAK, 0)
+        AppSettings.setInt(SettingsKeys.CURRENT_WIN_STREAK, 0)
+        // Device-only statistics (reset on user switch — not in cloud schema yet)
+        AppSettings.setInt(SettingsKeys.TOTAL_STARS_EARNED, 0)
+        AppSettings.setInt(SettingsKeys.TOTAL_STARS_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.TOTAL_CAPTURES, 0)
+        AppSettings.setInt(SettingsKeys.TOTAL_SPEED_BONUSES, 0)
+        AppSettings.setInt(SettingsKeys.BEST_GAME_SCORE, 0)
+        AppSettings.setInt(SettingsKeys.TOTAL_GAME_TIME_SECONDS, 0)
+        AppSettings.setInt(SettingsKeys.TOTAL_CATEGORIES_PLAYED, 0)
+        AppSettings.setString(SettingsKeys.FAVORITE_MODE, "")
+        AppSettings.setInt(SettingsKeys.MODE_CLASSIC_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.MODE_BLIND_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.MODE_WEIRD_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.MODE_QUICK_COUNT, 0)
+        AppSettings.setInt(SettingsKeys.MODE_AI_JUDGE_COUNT, 0)
+        // Daily / weekly challenge state (per-user)
+        AppSettings.setInt(SettingsKeys.ADS_WATCHED_TODAY, 0)
+        AppSettings.setString(SettingsKeys.LAST_AD_DATE, "")
+        AppSettings.setString(SettingsKeys.LAST_LOGIN_DATE, "")
+        AppSettings.setString(SettingsKeys.LAST_DAILY_DATE, "")
+        AppSettings.setBoolean(SettingsKeys.DAILY_CHALLENGE_COMPLETED, false)
+        AppSettings.setString(SettingsKeys.DAILY_CHALLENGE_TYPE, "")
+        AppSettings.setBoolean(SettingsKeys.EXTREME_MODE_UNLOCKED, false)
+        AppSettings.setInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, 0)
+        AppSettings.setBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, false)
+        AppSettings.setString(SettingsKeys.LAST_WEEKLY_WEEK, "")
+        // Cached avatar blob
+        try {
+            LocalPhotoStore.saveAvatar("profile", ByteArray(0))
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Avatar clear failed", e)
+        }
+        // Refresh in-memory StarsState so the UI picks up the cleared values
+        try {
+            ServiceLocator.gameState.stars.reload()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "StarsState reload after clear failed", e)
+        }
     }
 
     // ── Cloud Sync ─────────────────────────────────────────────────

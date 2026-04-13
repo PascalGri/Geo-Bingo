@@ -35,14 +35,21 @@ Features:
 - Foto-Galerie mit Standort-Karte nach jedem Spiel
 - Kostenlos spielbar
 
-Neu in Version 1.2:
-- Erfolge-Galerie: 14 Achievements zum Freischalten
-- Favoriten-Kategorien: Lieblings-Sets speichern und wiederverwenden
-- Leaderboard-Filter: Bestenliste nach Woche/Monat/Gesamt filtern
-- Match-Replay: Vergangene Spiele im Detail ansehen mit Fotos und Bewertungen
-- Statistik-Dashboard: Modus-Verteilung und Performance-Charts
-- Neue Cosmetics: Spielertitel und Karten-Designs im Shop
-- Direktnachrichten: Mit Freunden chatten, auch ausserhalb von Spielen
+Neu in Version 1.3:
+- Spielerbanner im Rocket-League-Stil mit animierten Hintergruenden
+- 12 neue Banner-Hintergruende, 5 Rahmen, 3 Namens-Effekte und 6 neue Titel
+- Kosmetik-Cloud-Sync auf allen Geraeten
+- Neue Bottom-Navigation mit Home, Freunde, Shop und Einstellungen
+- Ungelesen-Badge fuer Freunde-Anfragen und Direktnachrichten
+- Live-Vorschau beim Ausruesten von Cosmetics im Shop
+
+Seit v1.2 ebenfalls dabei:
+- 14 Erfolge zum Freischalten und Sammeln
+- Favoriten-Kategorien schnell laden
+- Bestenliste nach Woche, Monat oder Gesamt filtern
+- Match-Details: Vergangene Spiele ansehen
+- Statistik-Dashboard mit Performance-Charts
+- Direktnachrichten mit Freunden
 
 Perfekt fuer:
 - Geburtstage und Partys

@@ -1,0 +1,10 @@
+What's new in v1.3:
+
+- Rocket League-style player banners: Show off your profile with animated backgrounds, frames, name effects, and titles
+- 12 new animated banner backgrounds, 5 new frames, 3 new name effects, 6 new titles in the shop
+- Cosmetics cloud sync: Your equipped cosmetics are available on all your devices
+- New bottom navigation: Home, Friends, Shop, and Settings one tap away
+- Unread badge on the Friends tab for pending requests and new messages
+- Banners visible in lobby, leaderboard, friends list, and results
+- Live preview when equipping cosmetics in the shop
+- Bug fixes and performance improvements
