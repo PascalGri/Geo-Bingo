@@ -599,7 +599,7 @@ object De : StringRes {
 
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "KI-Fotobewertung"
-    override val aiConsentMessage = "Um deine Fotos zu bewerten, werden sie an einen KI-Dienst (Cloudflare Workers AI) gesendet. Dabei wird nur das Foto und der Kategoriename übertragen — keine persönlichen Daten wie Name oder ID. Die Fotos werden nicht gespeichert und nach der Bewertung sofort verworfen. Weitere Infos findest du in unserer Datenschutzerklärung."
+    override val aiConsentMessage = "Zur automatischen Bewertung werden deine Fotos an den KI-Dienst Cloudflare Workers AI der Cloudflare Inc. (USA) übermittelt. Übertragen werden nur das Bild und der Kategoriename — keine personenbezogenen Daten wie Name, E-Mail oder Nutzer-ID. Die Fotos werden nicht gespeichert und unmittelbar nach der Bewertung verworfen. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Du kannst jederzeit ablehnen — die App funktioniert dann mit einer Standardbewertung. Weitere Details findest du in unserer Datenschutzerklärung."
     override val aiConsentAccept = "Einverstanden"
     override val aiConsentDecline = "Ablehnen"
 }
