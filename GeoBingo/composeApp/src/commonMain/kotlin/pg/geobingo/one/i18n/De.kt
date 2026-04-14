@@ -587,6 +587,16 @@ object De : StringRes {
     override val shopTabCosmetics = "Kosmetik"
     override val bannerBackgrounds = "Banner-Hintergründe"
 
+    // ── Account-Required Gating ──────────────────────────────────────────
+    override val signInRequired = "Account erforderlich"
+    override val signInRequiredDesc = "Statistiken, Spielverlauf und Stars werden nur auf deinem Account gespeichert und geräteübergreifend synchronisiert. Melde dich an, um diese Funktionen zu nutzen."
+
+    // ── Restore Purchases Feedback ──────────────────────────────────────
+    override val restoringPurchases = "Käufe werden wiederhergestellt..."
+    override val purchasesRestored = "Käufe erfolgreich wiederhergestellt"
+    override val noPurchasesToRestore = "Keine früheren Käufe gefunden"
+    override val restoreFailed = "Wiederherstellung fehlgeschlagen"
+
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "KI-Fotobewertung"
     override val aiConsentMessage = "Um deine Fotos zu bewerten, werden sie an einen KI-Dienst (Cloudflare Workers AI) gesendet. Dabei wird nur das Foto und der Kategoriename übertragen — keine persönlichen Daten wie Name oder ID. Die Fotos werden nicht gespeichert und nach der Bewertung sofort verworfen. Weitere Infos findest du in unserer Datenschutzerklärung."

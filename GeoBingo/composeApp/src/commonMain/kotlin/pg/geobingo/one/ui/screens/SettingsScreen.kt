@@ -223,17 +223,28 @@ private fun AdvertisingSection(gameState: GameState) {
                 onClick = { ConsentManager.showPrivacyOptionsForm {} },
             )
             HorizontalDivider(color = ColorOutlineVariant)
+            var restoring by remember { mutableStateOf(false) }
             SettingsClickRow(
                 icon = Icons.Default.Refresh,
-                title = S.current.restorePurchases,
+                title = if (restoring) S.current.restoringPurchases else S.current.restorePurchases,
                 onClick = {
+                    if (restoring) return@SettingsClickRow
+                    restoring = true
+                    gameState.ui.pendingToast = S.current.restoringPurchases
                     BillingManager.restorePurchases(
                         onRestored = { products ->
+                            restoring = false
                             if ("pg.geobingo.one.no_ads" in products) {
                                 gameState.stars.updateNoAdsPurchased(true)
+                                gameState.ui.pendingToast = S.current.purchasesRestored
+                            } else {
+                                gameState.ui.pendingToast = S.current.noPurchasesToRestore
                             }
                         },
-                        onError = {},
+                        onError = { msg ->
+                            restoring = false
+                            gameState.ui.pendingToast = "${S.current.restoreFailed}: $msg"
+                        },
                     )
                 },
             )

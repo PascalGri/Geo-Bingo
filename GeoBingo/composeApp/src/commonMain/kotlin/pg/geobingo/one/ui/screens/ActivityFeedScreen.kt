@@ -76,6 +76,21 @@ fun ActivityFeedScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        if (!AccountManager.isLoggedIn) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                SignInRequiredState(
+                    icon = Icons.Default.RssFeed,
+                    title = S.current.signInRequired,
+                    description = S.current.signInRequiredDesc,
+                    signInLabel = S.current.signIn,
+                    onSignIn = { nav.navigateTo(pg.geobingo.one.game.Screen.ACCOUNT) },
+                )
+            }
+            return@Scaffold
+        }
         if (loading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = FeedGradient.first())

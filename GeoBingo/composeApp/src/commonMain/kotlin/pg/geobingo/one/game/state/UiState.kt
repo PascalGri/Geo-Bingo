@@ -33,16 +33,21 @@ class UiState {
     var consecutiveNetworkErrors by mutableStateOf(0)
     var interstitialShown by mutableStateOf(false)
 
-    // Game history is persisted in AppSettings as JSON. Writes are trapped by
-    // the custom setter below so saveToHistory / manual removals both persist
-    // automatically. Reads hydrate from storage at construction time.
-    private var _gameHistory by mutableStateOf(loadHistoryFromStorage())
+    // Game history is persisted in AppSettings as JSON for signed-in users.
+    // Guests (no account) see an empty in-memory history that never hits disk
+    // — per product decision 2026-04-14, guest sessions keep zero local state.
+    private var _gameHistory by mutableStateOf(
+        if (pg.geobingo.one.network.AccountManager.isLoggedIn) loadHistoryFromStorage() else emptyList()
+    )
     var gameHistory: List<GameHistoryEntry>
         get() = _gameHistory
         set(value) {
             val trimmed = if (value.size > MAX_HISTORY_ENTRIES) value.take(MAX_HISTORY_ENTRIES) else value
             _gameHistory = trimmed
-            saveHistoryToStorage(trimmed)
+            // Only persist for signed-in users; guests keep history in-memory only.
+            if (pg.geobingo.one.network.AccountManager.isLoggedIn) {
+                saveHistoryToStorage(trimmed)
+            }
         }
 
     /** Called on sign-out / user-switch so the previous identity's history is wiped. */

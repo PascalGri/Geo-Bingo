@@ -114,7 +114,20 @@ fun StatsScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
-        if (gamesPlayed == 0) {
+        if (!pg.geobingo.one.network.AccountManager.isLoggedIn) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                SignInRequiredState(
+                    icon = Icons.Default.BarChart,
+                    title = S.current.signInRequired,
+                    description = S.current.signInRequiredDesc,
+                    signInLabel = S.current.signIn,
+                    onSignIn = { nav.navigateTo(Screen.ACCOUNT) },
+                )
+            }
+        } else if (gamesPlayed == 0) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

@@ -134,9 +134,11 @@ fun ResultsScreen(gameState: GameState) {
         gameState.saveToHistory()
         // Participation reward: +2 Stars for completing a round
         gameState.stars.add(2)
-        // Update persistent stats
+        // Update persistent stats — only for signed-in users. Guests play without
+        // any local persistence (per product decision 2026-04-14): stats, history,
+        // stars, and streaks all live on the account and sync via cloud.
         val myId = gameState.session.myPlayerId
-        if (myId != null) {
+        if (myId != null && pg.geobingo.one.network.AccountManager.isLoggedIn) {
             val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
             AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
 

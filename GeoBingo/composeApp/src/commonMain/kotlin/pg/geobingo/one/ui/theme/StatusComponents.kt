@@ -128,6 +128,63 @@ fun EmptyState(
 }
 
 // ─────────────────────────────────────────────
+//  Sign-in required state
+// ─────────────────────────────────────────────
+
+/**
+ * Shown on account-scoped screens (Stats, History, Activity Feed, Profile
+ * stats) when the user is playing as a guest. Explains that the feature is
+ * account-bound and offers a sign-in CTA. Per product decision 2026-04-14,
+ * guest sessions keep zero local state — all stats/history live on the
+ * account and sync via cloud.
+ */
+@Composable
+fun SignInRequiredState(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    signInLabel: String,
+    onSignIn: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(Spacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = ColorPrimary,
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = ColorOnSurface,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = ColorOnSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        androidx.compose.material3.Button(
+            onClick = onSignIn,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = ColorPrimary,
+                contentColor = androidx.compose.ui.graphics.Color.White,
+            ),
+        ) {
+            Text(signInLabel, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
 //  Offline banner
 // ─────────────────────────────────────────────
 

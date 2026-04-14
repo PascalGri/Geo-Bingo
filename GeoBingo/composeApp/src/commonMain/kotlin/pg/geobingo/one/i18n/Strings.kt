@@ -621,6 +621,16 @@ interface StringRes {
     val shopTabCosmetics: String
     val bannerBackgrounds: String
 
+    // ── Account-Required Gating ──────────────────────────────────────────
+    val signInRequired: String
+    val signInRequiredDesc: String
+
+    // ── Restore Purchases Feedback ──────────────────────────────────────
+    val restoringPurchases: String
+    val purchasesRestored: String
+    val noPurchasesToRestore: String
+    val restoreFailed: String
+
     // ── AI Consent ──────────────────────────────────────────────────────
     val aiConsentTitle: String
     val aiConsentMessage: String

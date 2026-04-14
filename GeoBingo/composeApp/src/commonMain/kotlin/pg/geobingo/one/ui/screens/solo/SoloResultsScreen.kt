@@ -72,16 +72,21 @@ fun SoloResultsScreen(gameState: GameState) {
             "categoryCount" to solo.categoryCount.toString(),
         ))
 
-        // Record stats and check achievements
-        val statsBefore = SoloStatsManager.getStats()
-        isNewPersonalBest = solo.totalScore > statsBefore.bestScore
-        SoloStatsManager.recordGame(solo)
-        val statsAfter = SoloStatsManager.getStats()
-        newAchievements = AchievementManager.checkAfterGame(solo, statsAfter, gameState.stars)
+        // Record stats and check achievements — only for signed-in users. Guests
+        // play without any local stats persistence (per product decision
+        // 2026-04-14): stats live on the account and sync via cloud.
+        val isLoggedIn = AccountManager.isLoggedIn
+        if (isLoggedIn) {
+            val statsBefore = SoloStatsManager.getStats()
+            isNewPersonalBest = solo.totalScore > statsBefore.bestScore
+            SoloStatsManager.recordGame(solo)
+            val statsAfter = SoloStatsManager.getStats()
+            newAchievements = AchievementManager.checkAfterGame(solo, statsAfter, gameState.stars)
 
-        // Update persistent general stats
-        val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
-        AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
+            // Update persistent general stats
+            val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
+            AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
+        }
 
         // Submit to server (rate-limited)
         if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_SOLO_SUBMIT, pg.geobingo.one.util.RateLimiter.SOLO_SUBMIT_COOLDOWN_MS)) return@LaunchedEffect

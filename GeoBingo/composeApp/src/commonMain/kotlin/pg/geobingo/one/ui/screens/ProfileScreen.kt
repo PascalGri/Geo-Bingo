@@ -101,25 +101,38 @@ fun ProfileScreen(gameState: GameState) {
 
             Spacer(Modifier.height(20.dp))
 
-            // Stats grid
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileStatCard(Icons.Default.SportsEsports, "$gamesPlayed", S.current.gamesPlayed, ProfileGradient, Modifier.weight(1f))
-                ProfileStatCard(Icons.Default.EmojiEvents, "$gamesWon", S.current.wins, ProfileGradient, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileStatCard(Icons.Default.Percent, "$winRate%", S.current.winRate, ProfileGradient, Modifier.weight(1f))
-                ProfileStatCard(Icons.Default.LocalFireDepartment, "$longestStreak", S.current.winStreak, ProfileGradient, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileStatCard(Icons.Default.Star, "${(avgRating * 10).toInt() / 10.0}", S.current.averageRating, ProfileGradient, Modifier.weight(1f))
-                ProfileStatCard(Icons.Default.Bolt, "$currentStreak", S.current.currentStreak, ProfileGradient, Modifier.weight(1f))
+            // Stats grid — only shown for signed-in users; guests see the
+            // sign-in CTA at the bottom instead.
+            if (isLoggedIn) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProfileStatCard(Icons.Default.SportsEsports, "$gamesPlayed", S.current.gamesPlayed, ProfileGradient, Modifier.weight(1f))
+                    ProfileStatCard(Icons.Default.EmojiEvents, "$gamesWon", S.current.wins, ProfileGradient, Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProfileStatCard(Icons.Default.Percent, "$winRate%", S.current.winRate, ProfileGradient, Modifier.weight(1f))
+                    ProfileStatCard(Icons.Default.LocalFireDepartment, "$longestStreak", S.current.winStreak, ProfileGradient, Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProfileStatCard(Icons.Default.Star, "${(avgRating * 10).toInt() / 10.0}", S.current.averageRating, ProfileGradient, Modifier.weight(1f))
+                    ProfileStatCard(Icons.Default.Bolt, "$currentStreak", S.current.currentStreak, ProfileGradient, Modifier.weight(1f))
+                }
+            } else {
+                // Guest: show sign-in explanation instead of empty/zero stats
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    S.current.signInRequiredDesc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorOnSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // Quick links
+            // Quick links (history/activity also gate themselves — keep visible so
+            // logged-in users can navigate; guests will see the sign-in prompt)
             OutlinedButton(
                 onClick = { nav.navigateTo(Screen.HISTORY) },
                 modifier = Modifier.fillMaxWidth(),

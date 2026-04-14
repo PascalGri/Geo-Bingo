@@ -587,6 +587,16 @@ object En : StringRes {
     override val shopTabCosmetics = "Cosmetics"
     override val bannerBackgrounds = "Banner Backgrounds"
 
+    // ── Account-Required Gating ──────────────────────────────────────────
+    override val signInRequired = "Account required"
+    override val signInRequiredDesc = "Stats, game history, and stars are stored on your account and synced across devices. Sign in to use these features."
+
+    // ── Restore Purchases Feedback ──────────────────────────────────────
+    override val restoringPurchases = "Restoring purchases..."
+    override val purchasesRestored = "Purchases restored successfully"
+    override val noPurchasesToRestore = "No previous purchases found"
+    override val restoreFailed = "Restore failed"
+
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "AI Photo Rating"
     override val aiConsentMessage = "To rate your photos, they are sent to an AI service (Cloudflare Workers AI). Only the photo and category name are transmitted — no personal data such as your name or ID. Photos are not stored and are discarded immediately after rating. For more details, see our Privacy Policy."

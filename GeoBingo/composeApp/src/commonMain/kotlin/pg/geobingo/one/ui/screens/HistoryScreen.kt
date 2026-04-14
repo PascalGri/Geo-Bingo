@@ -92,7 +92,20 @@ fun HistoryScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
-        if (gameState.ui.gameHistory.isEmpty()) {
+        if (!pg.geobingo.one.network.AccountManager.isLoggedIn) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                SignInRequiredState(
+                    icon = Icons.Default.History,
+                    title = S.current.signInRequired,
+                    description = S.current.signInRequiredDesc,
+                    signInLabel = S.current.signIn,
+                    onSignIn = { nav.navigateTo(pg.geobingo.one.game.Screen.ACCOUNT) },
+                )
+            }
+        } else if (gameState.ui.gameHistory.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { translationY = contentOffset.value; alpha = contentAlpha.value },
                 contentAlignment = Alignment.Center,

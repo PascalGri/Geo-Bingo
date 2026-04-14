@@ -84,6 +84,15 @@ import ComposeApp
 
     private func restore() {
         Task {
+            // Force StoreKit to refresh entitlements from Apple's servers — without
+            // this, currentEntitlements only returns what's already cached locally,
+            // so a freshly-reinstalled app would never see prior purchases.
+            do {
+                try await AppStore.sync()
+            } catch {
+                BillingBridge.shared.onRestoreError(message: error.localizedDescription)
+                return
+            }
             var restoredIds: [String] = []
             for await result in Transaction.currentEntitlements {
                 if case .verified(let transaction) = result {
