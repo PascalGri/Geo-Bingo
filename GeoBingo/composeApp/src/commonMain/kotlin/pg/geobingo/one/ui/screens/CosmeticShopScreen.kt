@@ -105,8 +105,9 @@ fun CosmeticShopScreen(gameState: GameState) {
     val equippedCardDesignId = remember(purchaseCounter) { CosmeticsManager.getEquippedCardDesignId() }
     val equippedBannerBgId = remember(purchaseCounter) { CosmeticsManager.getEquippedBannerBackgroundId() }
 
-    val playerName = AppSettings.getString("last_player_name", "Player")
-    val avatarBytes = LocalPhotoStore.loadAvatar("profile")
+    val profileVersion = pg.geobingo.one.network.AccountManager.profileVersion
+    val playerName = remember(profileVersion) { AppSettings.getString("last_player_name", "Player") }
+    val avatarBytes = remember(profileVersion) { LocalPhotoStore.loadAvatar("profile") }
 
     SystemBackHandler { nav.goBack() }
 

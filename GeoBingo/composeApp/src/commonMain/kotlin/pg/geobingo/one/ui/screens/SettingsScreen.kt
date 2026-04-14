@@ -26,6 +26,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import katchit.composeapp.generated.resources.Res
+import katchit.composeapp.generated.resources.apple_logo
+import katchit.composeapp.generated.resources.google_logo
+import org.jetbrains.compose.resources.painterResource
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
@@ -123,10 +127,11 @@ private fun AccountQuickSection(
     onNavigate: (Screen) -> Unit,
 ) {
     SettingsSection(title = S.current.account) {
+        val profileVersion = AccountManager.profileVersion
         val isLoggedIn = AccountManager.isLoggedIn
         if (isLoggedIn) {
-            val name = AppSettings.getString("last_player_name", "")
-            val avatarBytes = LocalPhotoStore.loadAvatar("profile")
+            val name = remember(profileVersion) { AppSettings.getString("last_player_name", "") }
+            val avatarBytes = remember(profileVersion) { LocalPhotoStore.loadAvatar("profile") }
             SettingsClickRow(
                 icon = Icons.Default.Person,
                 title = name.ifBlank { S.current.account },
@@ -675,10 +680,9 @@ internal fun AuthDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // OAuth Buttons
-                OAuthButton(
+                // OAuth Buttons (authentic Apple/Google branding)
+                GoogleSignInButton(
                     text = S.current.continueWithGoogle,
-                    icon = Icons.Default.Public,
                     onClick = {
                         onAuthLoadingChange(true)
                         scope.launch {
@@ -694,9 +698,8 @@ internal fun AuthDialog(
                     enabled = !authLoading,
                 )
 
-                OAuthButton(
+                AppleSignInButton(
                     text = S.current.continueWithApple,
-                    icon = Icons.Default.PhoneIphone,
                     onClick = {
                         onAuthLoadingChange(true)
                         scope.launch {
@@ -869,6 +872,73 @@ internal fun OAuthButton(
         Icon(icon, null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(text, fontWeight = FontWeight.Medium)
+    }
+}
+
+/**
+ * Authentic "Sign in with Google" button per Google brand guidelines:
+ * white background, dark text, multi-color "G" logo, 1dp gray border.
+ */
+@Composable
+internal fun GoogleSignInButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White,
+            contentColor = Color(0xFF1F1F1F),
+            disabledContainerColor = Color.White.copy(alpha = 0.6f),
+            disabledContentColor = Color(0xFF1F1F1F).copy(alpha = 0.6f),
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDADCE0)),
+        contentPadding = PaddingValues(horizontal = 12.dp),
+    ) {
+        androidx.compose.foundation.Image(
+            painter = painterResource(Res.drawable.google_logo),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(text, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+    }
+}
+
+/**
+ * Authentic "Sign in with Apple" button per Apple Human Interface Guidelines:
+ * black background, white Apple logo and text, no border.
+ */
+@Composable
+internal fun AppleSignInButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Black,
+            contentColor = Color.White,
+            disabledContainerColor = Color.Black.copy(alpha = 0.6f),
+            disabledContentColor = Color.White.copy(alpha = 0.6f),
+        ),
+        contentPadding = PaddingValues(horizontal = 12.dp),
+    ) {
+        androidx.compose.foundation.Image(
+            painter = painterResource(Res.drawable.apple_logo),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     }
 }
 

@@ -395,6 +395,7 @@ object De : StringRes {
     override val history = "Verlauf"
     override val activityFeed = "Aktivitäten"
     override val noActivity = "Noch keine Aktivitäten"
+    override val noActivityDesc = "Hier siehst du, welche Multiplayer-Runden du und deine Freunde gespielt und gewonnen habt. Spiele eine Runde mit Freunden, damit etwas erscheint."
     override val activityWon = "hat eine Runde gewonnen"
     override val activityPlayed = "hat eine Runde gespielt"
     override val activityJoined = "ist KatchIt! beigetreten"
@@ -585,4 +586,10 @@ object De : StringRes {
     override val shopTabStars = "Stars"
     override val shopTabCosmetics = "Kosmetik"
     override val bannerBackgrounds = "Banner-Hintergründe"
+
+    // ── AI Consent ──────────────────────────────────────────────────────
+    override val aiConsentTitle = "KI-Fotobewertung"
+    override val aiConsentMessage = "Um deine Fotos zu bewerten, werden sie an einen KI-Dienst (Cloudflare Workers AI) gesendet. Dabei wird nur das Foto und der Kategoriename übertragen — keine persönlichen Daten wie Name oder ID. Die Fotos werden nicht gespeichert und nach der Bewertung sofort verworfen. Weitere Infos findest du in unserer Datenschutzerklärung."
+    override val aiConsentAccept = "Einverstanden"
+    override val aiConsentDecline = "Ablehnen"
 }

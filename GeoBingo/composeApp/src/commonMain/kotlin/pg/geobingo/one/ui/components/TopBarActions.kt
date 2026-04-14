@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.network.AccountManager
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.BillingManager
 import pg.geobingo.one.platform.LocalPhotoStore
@@ -37,8 +39,10 @@ fun TopBarStarsAndProfile(
                 onClick = { onNavigate(if (BillingManager.isBillingSupported) Screen.SHOP else Screen.SETTINGS) },
             )
         }
-        val name = AppSettings.getString("last_player_name", "")
-        val avatarBytes = LocalPhotoStore.loadAvatar("profile")
+        // Subscribe to profile changes so the avatar + name clear on sign-out
+        val profileVersion = AccountManager.profileVersion
+        val name = remember(profileVersion) { AppSettings.getString("last_player_name", "") }
+        val avatarBytes = remember(profileVersion) { LocalPhotoStore.loadAvatar("profile") }
         FramedAvatar(size = 32.dp) {
             PlayerAvatarViewRaw(
                 name = name.ifBlank { "?" },

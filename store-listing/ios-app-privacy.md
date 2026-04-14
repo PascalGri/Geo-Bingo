@@ -140,7 +140,32 @@ Begründung: AdMob/Google Mobile Ads nutzt den IDFA (wenn per ATT erlaubt) um We
 - [ ] Nur **Device ID** hat "Used for Tracking = Yes"
 - [ ] Unter "Tracking" **Yes** auswählen und AdMob-Begründung eintragen
 - [ ] Privacy Policy URL eingeben: `https://katchit.app/datenschutz.html`
+- [ ] **Support URL** eingeben: `https://katchit.app/support.html` (NICHT `https://katchit.app` — das wurde von Apple in v1.0 abgelehnt, weil die Root-URL keine Support-Informationen anzeigt)
 - [ ] Save + Publish
+
+---
+
+## Re-Submission nach v1.0-Ablehnung (April 2026)
+
+Apple lehnte v1.0 am 13.04.2026 mit zwei Begründungen ab:
+
+### 1.5.0 — Safety: Developer Information (Support URL)
+**Apple-Beschwerde**: Die Support URL `https://katchit.app` zeigt nur die Marketing-Landingpage an, keine Support-Informationen.
+
+**Fix**: Eigene Support-Seite unter `https://katchit.app/support.html` (Inhalte: Kontakt-Email, FAQ, Links zu Datenschutz/Impressum). In App Store Connect die Support URL auf diese neue Seite ändern.
+
+### 5.1.1 — Legal: Privacy / Data Collection (AI / Cloudflare Workers AI)
+**Apple-Beschwerde**: Die App teilt Foto-Daten mit einem Third-Party-AI-Dienst, ohne in der App offen zu legen, was gesendet wird, an wen, und ohne explizite Einwilligung des Users einzuholen.
+
+**Fix in der App**:
+1. Vor dem ersten KI-Foto-Validierungs-Call (Solo-Modus + Multiplayer-AI-Judge-Modus) wird ein Consent-Dialog gezeigt: erklärt dass das Foto an Cloudflare Workers AI gesendet wird, was übermittelt wird (Foto + Kategorie, keine Namen/IDs), und bittet um „Einverstanden" / „Ablehnen".
+2. Consent wird in `AppSettings` (`AI_CONSENT_ACCEPTED`) persistiert — pro Gerät einmal abfragen.
+3. Bei „Ablehnen" wird kein Foto an Cloudflare gesendet — es gibt einen lokalen Default-Score (3 Sterne) im Solo-Modus, im Multiplayer-AI-Judge wird die KI-Bewertung übersprungen.
+4. Privacy Policy unter `https://katchit.app/datenschutz.html` Abschnitt 3d / 5c nennt den Anbieter (Cloudflare Inc., USA), Zweck, übermittelte Daten und Rechtsgrundlage explizit.
+
+**Fix in App Store Connect**:
+- Privacy-Sektion → "Other Data" hinzufügen mit Kategorie **Other User Content** (Photos), Linked to User = **No**, Used for Tracking = **No**, Purpose = **App Functionality** (KI-Bewertung von Spielfotos via Cloudflare Workers AI).
+- Hinweis im "App Privacy Details" Resolution-Reply: „We added an in-app consent dialog before any photo data is sent to our third-party AI provider (Cloudflare Workers AI). The privacy policy at https://katchit.app/datenschutz.html section 3d/5c explicitly names the provider and the data shared. Photos are not stored — only processed in real time and discarded."
 
 ---
 

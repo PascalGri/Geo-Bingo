@@ -4,6 +4,9 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.builtin.Email
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
@@ -68,6 +71,20 @@ data class PlayerCosmetics(
 
 object AccountManager {
     private const val TAG = "AccountManager"
+
+    /**
+     * Reactive version counter that bumps whenever the local profile identity
+     * (display name, avatar, or auth state) changes. Compose screens that read
+     * `last_player_name` or the cached avatar blob can observe this value to
+     * trigger recomposition on sign-out, sign-in, user-switch, display-name
+     * updates, or avatar changes.
+     */
+    var profileVersion: Int by mutableIntStateOf(0)
+        private set
+
+    private fun bumpProfileVersion() {
+        profileVersion++
+    }
 
     val isLoggedIn: Boolean
         get() = supabase.auth.currentUserOrNull() != null
@@ -258,6 +275,7 @@ object AccountManager {
         return try {
             val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
             AppSettings.setString("last_player_name", name)
+            bumpProfileVersion()
             supabase.postgrest["profiles"].update({
                 set("display_name", name)
             }) {
@@ -285,6 +303,7 @@ object AccountManager {
             try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
                 AppLogger.w(TAG, "Avatar local cache failed", e)
             }
+            bumpProfileVersion()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar upload failed", e)
@@ -308,6 +327,7 @@ object AccountManager {
             try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
                 AppLogger.w(TAG, "Avatar local clear failed", e)
             }
+            bumpProfileVersion()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar removal failed", e)
@@ -452,6 +472,16 @@ object AccountManager {
         } catch (e: Exception) {
             AppLogger.w(TAG, "StarsState reload after clear failed", e)
         }
+        // Clear per-user game history — the previous identity's match history
+        // should not leak into the new session.
+        try {
+            ServiceLocator.gameState.ui.clearGameHistory()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "gameHistory clear failed", e)
+        }
+        // Notify Compose screens that the profile identity has changed so
+        // cached display-name / avatar reads recompose.
+        bumpProfileVersion()
     }
 
     // ── Cloud Sync ─────────────────────────────────────────────────
@@ -513,6 +543,8 @@ object AccountManager {
                     AppLogger.w(TAG, "Avatar sync failed", e)
                 }
             }
+            // Notify UI — display name and/or avatar may have changed
+            bumpProfileVersion()
         } catch (e: Exception) {
             AppLogger.w(TAG, "Sync from cloud failed", e)
         }

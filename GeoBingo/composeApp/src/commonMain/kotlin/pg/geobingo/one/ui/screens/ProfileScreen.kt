@@ -40,9 +40,10 @@ private val ProfileGradient = listOf(Color(0xFF6366F1), Color(0xFF8B5CF6))
 @Composable
 fun ProfileScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
+    val profileVersion = AccountManager.profileVersion
     val isLoggedIn = AccountManager.isLoggedIn
-    val playerName = AppSettings.getString("last_player_name", "Player")
-    val avatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }
+    val playerName = remember(profileVersion) { AppSettings.getString("last_player_name", "Player") }
+    val avatarBytes = remember(profileVersion) { LocalPhotoStore.loadAvatar("profile") }
 
     val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0)
     val gamesWon = AppSettings.getInt(SettingsKeys.GAMES_WON, 0)

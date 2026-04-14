@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -208,7 +209,7 @@ fun HomeScreen(gameState: GameState) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 80.dp, bottom = 24.dp)
+                        .padding(top = 80.dp, bottom = 12.dp)
                         .padding(horizontal = 24.dp)
                         .staggered(0),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -217,6 +218,9 @@ fun HomeScreen(gameState: GameState) {
                     AnimatedHeroTitle()
                     Spacer(Modifier.height(10.dp))
                     HeroTagline()
+                    Spacer(Modifier.height(14.dp))
+                    // ── HOW TO PLAY (pinned under hero heading) ──────────
+                    HowToPlayPill(onClick = { nav.navigateTo(Screen.HOW_TO_PLAY) })
                 }
 
                 // ── DAILY BONUS BANNER ────────────────────────────────────────
@@ -241,18 +245,25 @@ fun HomeScreen(gameState: GameState) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // ── DAILY CHALLENGE ──────────────────────────────────────────
-                DailyChallengeCard(
-                    gameState = gameState,
-                    dailyChallenge = dailyChallenge,
-                    onNavigate = { nav.navigateTo(it) },
-                )
-
-                // ── WEEKLY CHALLENGE ─────────────────────────────────────────
-                WeeklyChallengeCard(
-                    gameState = gameState,
-                    onNavigate = { nav.navigateTo(it) },
-                )
+                // ── CHALLENGES (compact, side-by-side) ────────────────────────
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    DailyChallengeCardCompact(
+                        gameState = gameState,
+                        dailyChallenge = dailyChallenge,
+                        onNavigate = { nav.navigateTo(it) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    WeeklyChallengeCardCompact(
+                        gameState = gameState,
+                        onNavigate = { nav.navigateTo(it) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
 
@@ -263,33 +274,6 @@ fun HomeScreen(gameState: GameState) {
                         .fillMaxWidth(),
                     onViewAll = { nav.navigateTo(Screen.SOLO_LEADERBOARD) },
                 )
-
-                Spacer(Modifier.height(4.dp))
-
-                // ── HOW TO PLAY ──────────────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.screenHorizontal)
-                        .fillMaxWidth()
-                        .clickable { nav.navigateTo(Screen.HOW_TO_PLAY) }
-                        .padding(horizontal = 4.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        S.current.howToPlay,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = ColorOnSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -482,6 +466,239 @@ private fun HomeBottomBar(
 }
 
 // ── DAILY CHALLENGE CARD ─────────────────────────────────────────────────────
+
+/**
+ * Pinned "How to Play" pill shown directly under the hero heading. Compact,
+ * gradient-bordered, tappable.
+ */
+@Composable
+private fun HowToPlayPill(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(ColorSurface.copy(alpha = 0.7f))
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(GradientPrimary),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            Icons.Default.HelpOutline,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = GradientPrimary.first(),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            S.current.howToPlay,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = ColorOnSurface,
+        )
+        Spacer(Modifier.width(4.dp))
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = ColorOnSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Compact daily-challenge card designed to sit side-by-side with the weekly
+ * challenge. Uses vertical layout to fit half the screen width.
+ */
+@Composable
+private fun DailyChallengeCardCompact(
+    gameState: GameState,
+    dailyChallenge: DailyChallenge,
+    onNavigate: (Screen) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDailyDone = gameState.stars.dailyChallengeCompleted
+    val challengeText = when (dailyChallenge.type) {
+        ChallengeType.WIN_ROUND -> S.current.challengeWinRound
+        ChallengeType.PLAY_MODE -> {
+            val modeName = when (dailyChallenge.targetMode) {
+                "CLASSIC" -> S.current.modeClassic
+                "BLIND_BINGO" -> S.current.modeBlindBingo
+                "WEIRD_CORE" -> S.current.modeWeirdCore
+                "QUICK_START" -> S.current.modeQuickStart
+                else -> dailyChallenge.targetMode ?: ""
+            }
+            "${S.current.challengePlayMode} $modeName"
+        }
+        ChallengeType.CAPTURE_CATEGORIES -> S.current.challengeCaptureCategories
+    }
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (!isDailyDone) Modifier.clickable {
+                when (dailyChallenge.type) {
+                    ChallengeType.PLAY_MODE -> {
+                        val mode = dailyChallenge.targetMode
+                        if (mode == "QUICK_START") {
+                            gameState.session.gameMode = pg.geobingo.one.game.GameMode.QUICK_START
+                            gameState.session.quickStartOutdoor = true
+                            gameState.session.quickStartDurationMinutes = 15
+                            gameState.gameplay.gameDurationMinutes = 15
+                            onNavigate(Screen.CREATE_GAME)
+                        } else {
+                            val gameMode = when (mode) {
+                                "CLASSIC" -> pg.geobingo.one.game.GameMode.CLASSIC
+                                "BLIND_BINGO" -> pg.geobingo.one.game.GameMode.BLIND_BINGO
+                                "WEIRD_CORE" -> pg.geobingo.one.game.GameMode.WEIRD_CORE
+                                "AI_JUDGE" -> pg.geobingo.one.game.GameMode.AI_JUDGE
+                                else -> pg.geobingo.one.game.GameMode.CLASSIC
+                            }
+                            gameState.session.gameMode = gameMode
+                            onNavigate(Screen.CREATE_GAME)
+                        }
+                    }
+                    else -> onNavigate(Screen.SELECT_MODE)
+                }
+            } else Modifier),
+        cornerRadius = 12.dp,
+        borderColors = if (isDailyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else GradientGold,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.dp,
+    ) {
+        Column(modifier = Modifier.padding(10.dp).fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    if (isDailyDone) Icons.Default.Check else Icons.Default.Today,
+                    null,
+                    tint = if (isDailyDone) Color(0xFF22C55E) else Color(0xFFFBBF24),
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    S.current.dailyChallenge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isDailyDone) Color(0xFF22C55E) else Color(0xFFFBBF24),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                )
+                Spacer(Modifier.weight(1f))
+                if (!isDailyDone) {
+                    Text(
+                        "+${dailyChallenge.reward}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFBBF24),
+                    )
+                    Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(11.dp))
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (isDailyDone) S.current.dailyChallengeCompleted else challengeText,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isDailyDone) Color(0xFF22C55E) else ColorOnSurface,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyChallengeCardCompact(
+    gameState: GameState,
+    onNavigate: (Screen) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val weeklyChallenge = remember { WeeklyChallengeManager.getThisWeekChallenge() }
+    val isWeeklyDone = gameState.stars.weeklyChallengeCompleted
+    val weeklyProgress = gameState.stars.weeklyChallengeProgress.coerceAtMost(weeklyChallenge.target)
+    val progressFraction = weeklyProgress.toFloat() / weeklyChallenge.target.toFloat()
+    val weeklyText = when (weeklyChallenge.type) {
+        WeeklyChallengeType.WIN_ROUNDS -> S.current.challengeWinRounds
+        WeeklyChallengeType.PLAY_ROUNDS -> S.current.challengePlayRounds
+        WeeklyChallengeType.CAPTURE_TOTAL -> S.current.challengeCaptureTotal
+        WeeklyChallengeType.PLAY_ALL_MODES -> S.current.challengePlayAllModes
+        WeeklyChallengeType.WIN_STREAK -> S.current.challengeWinStreak
+    }
+    val weeklyGradient = listOf(Color(0xFF8B5CF6), Color(0xFFA855F7))
+    GradientBorderCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (!isWeeklyDone) Modifier.clickable { onNavigate(Screen.SELECT_MODE) } else Modifier),
+        cornerRadius = 12.dp,
+        borderColors = if (isWeeklyDone) listOf(Color(0xFF22C55E), Color(0xFF16A34A)) else weeklyGradient,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.dp,
+    ) {
+        Column(modifier = Modifier.padding(10.dp).fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    if (isWeeklyDone) Icons.Default.Check else Icons.Default.DateRange,
+                    null,
+                    tint = if (isWeeklyDone) Color(0xFF22C55E) else weeklyGradient.first(),
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    S.current.weeklyChallenge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isWeeklyDone) Color(0xFF22C55E) else weeklyGradient.first(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                )
+                Spacer(Modifier.weight(1f))
+                if (!isWeeklyDone) {
+                    Text(
+                        "+${weeklyChallenge.reward}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = weeklyGradient.first(),
+                    )
+                    Icon(Icons.Default.Star, null, tint = weeklyGradient.first(), modifier = Modifier.size(11.dp))
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (isWeeklyDone) S.current.weeklyChallengeCompleted else "$weeklyText ($weeklyProgress/${weeklyChallenge.target})",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isWeeklyDone) Color(0xFF22C55E) else ColorOnSurface,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            if (!isWeeklyDone) {
+                Spacer(Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(ColorSurfaceVariant),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progressFraction)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Brush.horizontalGradient(weeklyGradient)),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun DailyChallengeCard(
@@ -1012,7 +1229,8 @@ private fun SoloLeaderboardPreview(
     var indoorScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
     var selectedTab by remember { mutableStateOf(0) } // 0=outdoor, 1=indoor
     var loading by remember { mutableStateOf(true) }
-    val playerName = remember { AppSettings.getString("last_player_name", "") }
+    val profileVersion = pg.geobingo.one.network.AccountManager.profileVersion
+    val playerName = remember(profileVersion) { AppSettings.getString("last_player_name", "") }
 
     LaunchedEffect(Unit) {
         try {

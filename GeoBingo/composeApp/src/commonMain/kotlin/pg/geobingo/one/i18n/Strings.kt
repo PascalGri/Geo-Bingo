@@ -434,6 +434,7 @@ interface StringRes {
     val history: String
     val activityFeed: String
     val noActivity: String
+    val noActivityDesc: String
     val activityWon: String
     val activityPlayed: String
     val activityJoined: String
@@ -619,4 +620,10 @@ interface StringRes {
     val shopTabStars: String
     val shopTabCosmetics: String
     val bannerBackgrounds: String
+
+    // ── AI Consent ──────────────────────────────────────────────────────
+    val aiConsentTitle: String
+    val aiConsentMessage: String
+    val aiConsentAccept: String
+    val aiConsentDecline: String
 }

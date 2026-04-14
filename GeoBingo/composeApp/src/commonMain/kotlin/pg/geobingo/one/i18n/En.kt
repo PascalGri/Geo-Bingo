@@ -395,6 +395,7 @@ object En : StringRes {
     override val history = "History"
     override val activityFeed = "Activity"
     override val noActivity = "No activity yet"
+    override val noActivityDesc = "This is where you'll see which multiplayer rounds you and your friends have played and won. Play a round with friends for something to appear here."
     override val activityWon = "won a round"
     override val activityPlayed = "played a round"
     override val activityJoined = "joined KatchIt!"
@@ -585,4 +586,10 @@ object En : StringRes {
     override val shopTabStars = "Stars"
     override val shopTabCosmetics = "Cosmetics"
     override val bannerBackgrounds = "Banner Backgrounds"
+
+    // ── AI Consent ──────────────────────────────────────────────────────
+    override val aiConsentTitle = "AI Photo Rating"
+    override val aiConsentMessage = "To rate your photos, they are sent to an AI service (Cloudflare Workers AI). Only the photo and category name are transmitted — no personal data such as your name or ID. Photos are not stored and are discarded immediately after rating. For more details, see our Privacy Policy."
+    override val aiConsentAccept = "Accept"
+    override val aiConsentDecline = "Decline"
 }

@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +35,8 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.rememberFeedback
 import pg.geobingo.one.util.AppLogger
@@ -136,6 +141,58 @@ private fun AiJudgeTransition(
     var progressTotal by remember { mutableStateOf(0) }
     var isDone by remember { mutableStateOf(false) }
 
+    // AI consent for multiplayer — host needs consent before sending photos to AI
+    var aiConsentAccepted by remember { mutableStateOf(AppSettings.getBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)) }
+    var showAiConsentDialog by remember { mutableStateOf(false) }
+    // true once consent flow is resolved (accepted or declined)
+    var consentResolved by remember { mutableStateOf(aiConsentAccepted) }
+    var consentDeclined by remember { mutableStateOf(false) }
+
+    // Show consent dialog on first launch if not already accepted
+    LaunchedEffect(Unit) {
+        if (!aiConsentAccepted && gameState.session.isHost) {
+            showAiConsentDialog = true
+        }
+    }
+
+    if (showAiConsentDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAiConsentDialog = false
+                consentDeclined = true
+                consentResolved = true
+            },
+            icon = { Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(28.dp)) },
+            title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    S.current.aiConsentMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ColorOnSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)
+                    aiConsentAccepted = true
+                    showAiConsentDialog = false
+                    consentResolved = true
+                }) {
+                    Text(S.current.aiConsentAccept)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAiConsentDialog = false
+                    consentDeclined = true
+                    consentResolved = true
+                }) {
+                    Text(S.current.aiConsentDecline)
+                }
+            },
+        )
+    }
+
     val transition = rememberInfiniteTransition(label = "aiJudge")
     val sparkleRotation by transition.animateFloat(
         initialValue = -15f,
@@ -156,24 +213,27 @@ private fun AiJudgeTransition(
         label = "sparkleScale",
     )
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(consentResolved) {
+        if (!consentResolved) return@LaunchedEffect
         feedback.gameEnd()
         val gameId = gameState.session.gameId ?: return@LaunchedEffect
         val isHost = gameState.session.isHost
 
         if (isHost) {
-            // Host runs AI validation for all captures
-            try {
-                GameRepository.validateMultiplayerCaptures(
-                    gameId = gameId,
-                    categories = gameState.gameplay.selectedCategories,
-                    onProgress = { current, total ->
-                        progressCurrent = current
-                        progressTotal = total
-                    },
-                )
-            } catch (e: Exception) {
-                AppLogger.e("VoteTransition", "AI validation failed", e)
+            // Host runs AI validation for all captures (only if consent was given)
+            if (!consentDeclined) {
+                try {
+                    GameRepository.validateMultiplayerCaptures(
+                        gameId = gameId,
+                        categories = gameState.gameplay.selectedCategories,
+                        onProgress = { current, total ->
+                            progressCurrent = current
+                            progressTotal = total
+                        },
+                    )
+                } catch (e: Exception) {
+                    AppLogger.e("VoteTransition", "AI validation failed", e)
+                }
             }
 
             // Set game status to results

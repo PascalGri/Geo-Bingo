@@ -18,6 +18,7 @@ enum class Screen {
 
 enum class GameMode { CLASSIC, BLIND_BINGO, WEIRD_CORE, QUICK_START, AI_JUDGE }
 
+@kotlinx.serialization.Serializable
 data class HistoryPlayer(
     val id: String,
     val name: String,
@@ -25,11 +26,13 @@ data class HistoryPlayer(
     val colorHex: String,
 )
 
+@kotlinx.serialization.Serializable
 data class HistoryCategory(
     val id: String,
     val name: String,
 )
 
+@kotlinx.serialization.Serializable
 data class GameHistoryEntry(
     val gameCode: String,
     val playerName: String,

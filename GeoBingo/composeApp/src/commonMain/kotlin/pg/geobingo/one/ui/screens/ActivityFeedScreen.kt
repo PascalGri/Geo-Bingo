@@ -81,11 +81,18 @@ fun ActivityFeedScreen(gameState: GameState) {
                 CircularProgressIndicator(color = FeedGradient.first())
             }
         } else if (activities.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.RssFeed, null, tint = ColorOnSurfaceVariant, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text(S.current.noActivity, style = MaterialTheme.typography.bodyLarge, color = ColorOnSurfaceVariant)
+                    Text(S.current.noActivity, style = MaterialTheme.typography.bodyLarge, color = ColorOnSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        S.current.noActivityDesc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorOnSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
                 }
             }
         } else {
