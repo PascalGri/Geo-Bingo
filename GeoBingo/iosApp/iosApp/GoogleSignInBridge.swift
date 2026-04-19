@@ -1,4 +1,5 @@
 import GoogleSignIn
+import CryptoKit
 import Security
 import UIKit
 import ComposeApp
@@ -60,16 +61,19 @@ import ComposeApp
             return
         }
 
-        // Fresh nonce per sign-in attempt. Plaintext on purpose — Google puts
-        // the exact same string into the id_token's `nonce` claim, and Supabase
-        // compares them byte-for-byte (unlike Apple, which hashes).
+        // Supabase's OIDC flow for Google matches Apple's: send the SHA256
+        // hash to the provider (ends up as the plaintext `nonce` claim in the
+        // id_token), send the raw nonce to Supabase (Supabase hashes and
+        // compares). Passing rawNonce to GIDSignIn produced
+        // `invalid nonce: Nonces mismatch` in auth logs.
         let rawNonce = Self.makeNonce()
+        let hashedNonce = Self.sha256(rawNonce)
 
         GIDSignIn.sharedInstance.signIn(
             withPresenting: presenter,
             hint: nil,
             additionalScopes: nil,
-            nonce: rawNonce
+            nonce: hashedNonce
         ) { result, error in
             if let err = error as NSError? {
                 // -5 = GIDSignInErrorCode.canceled
@@ -93,6 +97,11 @@ import ComposeApp
         let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         precondition(status == errSecSuccess, "SecRandomCopyBytes failed")
         return bytes.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func sha256(_ input: String) -> String {
+        let digest = SHA256.hash(data: Data(input.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     /// Foreground-active view controller — iPad-safe scene pick (same pattern
