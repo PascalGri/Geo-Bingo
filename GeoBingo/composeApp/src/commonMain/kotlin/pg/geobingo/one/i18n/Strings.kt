@@ -538,6 +538,7 @@ interface StringRes {
     val reportPhoto: String
     val reportPhotoTitle: String
     fun reportPhotoBody(name: String): String
+    val imageRejectedByModeration: String
     val changePassword: String
     val changePasswordDesc: String
     val currentPassword: String

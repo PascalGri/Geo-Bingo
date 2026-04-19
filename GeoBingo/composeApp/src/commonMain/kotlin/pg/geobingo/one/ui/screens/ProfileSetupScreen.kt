@@ -160,10 +160,16 @@ fun ProfileSetupScreen(gameState: GameState) {
                             snackbarHostState.showSnackbar(msg)
                             return@launch
                         }
-                        // Upload avatar if present
+                        // Upload avatar if present — gated on server-side moderation.
                         val bytes = avatarBytes
                         if (bytes != null && bytes.isNotEmpty()) {
-                            AccountManager.uploadProfileAvatar(bytes)
+                            val avatarResult = AccountManager.uploadProfileAvatar(bytes)
+                            if (avatarResult.isFailure &&
+                                avatarResult.exceptionOrNull()?.message?.contains("image_rejected") == true) {
+                                isLoading = false
+                                snackbarHostState.showSnackbar(S.current.imageRejectedByModeration)
+                                return@launch
+                            }
                         }
                         isLoading = false
                         nav.resetTo(Screen.HOME)

@@ -105,6 +105,17 @@ fun SoloGameScreen(gameState: GameState) {
                     categoryName = category.name,
                     categoryDescription = category.description,
                 )
+                // Server-side moderation flagged the photo as unsafe — undo
+                // the capture, clear the stored photo, and surface a toast.
+                if (!result.safe) {
+                    solo.capturedCategories = solo.capturedCategories - catId
+                    solo.categoryRatings = solo.categoryRatings - catId
+                    solo.categoryReasons = solo.categoryReasons - catId
+                    solo.captureTimestamps = solo.captureTimestamps - catId
+                    gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.imageRejectedByModeration
+                    if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
+                    return@launch
+                }
                 solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
                 solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
                 if (gameState.ui.soundEnabled) {

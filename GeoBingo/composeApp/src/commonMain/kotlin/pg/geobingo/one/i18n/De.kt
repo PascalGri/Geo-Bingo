@@ -497,6 +497,7 @@ object De : StringRes {
     override val reportPhoto = "Foto melden"
     override val reportPhotoTitle = "Foto melden"
     override fun reportPhotoBody(name: String) = "Möchtest du dieses Foto von $name wegen anstößiger oder unangemessener Inhalte melden? Wir prüfen alle Meldungen."
+    override val imageRejectedByModeration = "Bild enthält unangemessene Inhalte und wurde nicht übernommen."
     override val changePassword = "Passwort ändern"
     override val changePasswordDesc = "Neues Passwort festlegen"
     override val currentPassword = "Aktuelles Passwort"

@@ -468,6 +468,15 @@ object AccountManager {
     suspend fun uploadProfileAvatar(bytes: ByteArray): Result<Unit> {
         return try {
             val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            // Proactive safety check BEFORE anything hits Storage — we never
+            // want an NSFW avatar to live in the cloud even briefly. If the
+            // moderator flags it, bail out with a recognisable error so the
+            // UI can show a friendly toast.
+            val rejection = ModerationManager.moderateImage(bytes)
+            if (rejection != null) {
+                AppLogger.w(TAG, "Avatar rejected by moderation: $rejection")
+                return Result.failure(IllegalArgumentException("image_rejected"))
+            }
             val path = "avatars/$userId.jpg"
             supabase.storage.from("photos").upload(path, bytes) { upsert = true }
             // Update profile to mark avatar as present

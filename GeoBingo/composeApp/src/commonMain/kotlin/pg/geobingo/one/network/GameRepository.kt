@@ -96,7 +96,7 @@ data class SoloScoreDto(
     val created_at: String = "",
 )
 
-data class PhotoValidationResult(val rating: Int, val reason: String)
+data class PhotoValidationResult(val rating: Int, val reason: String, val safe: Boolean = true)
 
 /** Lightweight DTO for leaderboard count queries — fetches only the player_name column. */
 @Serializable
@@ -561,7 +561,8 @@ object GameRepository {
         val rating = (json["rating"]?.jsonPrimitive?.int ?: 5).coerceIn(1, 5)
         val reasonPrimitive = json["reason"]?.jsonPrimitive
         val reason = reasonPrimitive?.content ?: ""
-        return PhotoValidationResult(rating = rating, reason = reason)
+        val safe = json["safe"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+        return PhotoValidationResult(rating = rating, reason = reason, safe = safe)
     }
 
     // ── AI Judge (Multiplayer) ──────────────────────────────────────────

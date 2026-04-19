@@ -1,7 +1,19 @@
 package pg.geobingo.one.network
 
 import io.github.jan.supabase.postgrest.postgrest
+import io.ktor.client.call.body
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.content.TextContent
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.util.AppLogger
 
@@ -76,6 +88,38 @@ object ModerationManager {
             .split(",")
             .mapNotNull { it.trim().takeIf(String::isNotEmpty) }
             .toSet()
+
+    /**
+     * Proactive NSFW / violent / hate-speech check for uploaded images —
+     * required for Apple 1.2 "method for filtering objectionable material".
+     * Calls the moderate-image edge function; returns null if the image is
+     * OK, or a short rejection reason if it's not.
+     *
+     * Fails OPEN on network / upstream errors (returns null) so a flaky AI
+     * provider doesn't brick legitimate uploads. The report button remains
+     * as the reactive backstop if a bad upload slips through.
+     */
+    @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+    suspend fun moderateImage(bytes: ByteArray): String? {
+        return try {
+            val base64 = kotlin.io.encoding.Base64.encode(bytes)
+            val url = "${SupabaseConfig.current.url}/functions/v1/moderate-image"
+            val payload = buildJsonObject {
+                put("imageBase64", JsonPrimitive(base64))
+            }.toString()
+            val response = ServiceLocator.httpClient.post(url) {
+                headers { append("apikey", SupabaseConfig.current.anonKey) }
+                setBody(TextContent(payload, ContentType.Application.Json))
+            }
+            val body: String = response.body()
+            val json = Json.parseToJsonElement(body).jsonObject
+            val safe = json["safe"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+            if (safe) null else (json["reason"]?.jsonPrimitive?.content ?: "image_rejected")
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "moderate-image call failed", e)
+            null  // fail-open
+        }
+    }
 }
 
 /*
