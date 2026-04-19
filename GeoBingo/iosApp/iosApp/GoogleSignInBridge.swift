@@ -1,4 +1,5 @@
 import GoogleSignIn
+import Security
 import UIKit
 import ComposeApp
 
@@ -9,21 +10,21 @@ import ComposeApp
 /// fixed for Apple Sign-In. GIDSignIn uses ASWebAuthenticationSession with a
 /// proper presentation anchor, so iPad / Stage Manager work cleanly.
 ///
+/// Nonce handling: Supabase requires that any `nonce` claim in the id_token
+/// matches a nonce passed to the token-exchange call. GoogleSignIn 9.x ALWAYS
+/// embeds the nonce we give it as a plaintext `nonce` claim, so we generate
+/// one here and hand it back to Kotlin → AccountManager forwards it as
+/// `nonce = rawNonce` on the Supabase signInWith(IDToken) call. If we skipped
+/// the nonce entirely, GIDSignIn might still add one internally → Supabase 400
+/// "Passed nonce and nonce in id_token should either both exist or not."
+///
 /// Prerequisites (user-side, one-time):
 ///  1. Firebase Console → Authentication → Sign-in method → enable Google.
-///     Download the updated GoogleService-Info.plist (now contains CLIENT_ID +
-///     REVERSED_CLIENT_ID) and replace the existing one.
-///  2. Add the REVERSED_CLIENT_ID (e.g. com.googleusercontent.apps.XXX) as a
-///     CFBundleURLSchemes entry in Info.plist so Google can call back.
-///  3. In Supabase Dashboard → Auth → Providers → Google, add the iOS OAuth
-///     Client ID from GoogleService-Info.plist to "Authorized Client IDs"
-///     (comma-separated with the existing Web client ID).
+///     Download GoogleService-Info.plist (contains CLIENT_ID + REVERSED_CLIENT_ID).
+///  2. REVERSED_CLIENT_ID as a CFBundleURLSchemes entry in Info.plist.
+///  3. Supabase Dashboard → Auth → Providers → Google → add the iOS CLIENT_ID
+///     to "Authorized Client IDs" (comma-separated with the web client ID).
 ///  4. `pod install` in iosApp/.
-///
-/// If CLIENT_ID is missing from GoogleService-Info.plist the bridge reports
-/// itself as unavailable and the Kotlin side falls back to Supabase's web
-/// OAuth flow — so the app keeps working even when the user hasn't finished
-/// the config steps above.
 @objc class GoogleSignInBridgeImpl: NSObject {
 
     static let shared = GoogleSignInBridgeImpl()
@@ -31,9 +32,6 @@ import ComposeApp
     private var isConfigured = false
 
     func setup() {
-        // Read the iOS OAuth client ID from GoogleService-Info.plist. If it's
-        // missing we leave isConfigured=false and the Kotlin side will fall
-        // back to the web flow.
         guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
               let plist = NSDictionary(contentsOfFile: path),
               let clientId = plist["CLIENT_ID"] as? String,
@@ -48,7 +46,6 @@ import ComposeApp
                 self?.startSignIn()
             }
         }
-        // Flip the Kotlin-side flag so NativeGoogleSignIn.isSupported returns true.
         GoogleSignInBridgeCompanion.shared.setConfigured(configured: true)
     }
 
@@ -58,30 +55,24 @@ import ComposeApp
             GoogleSignInBridge.shared.onError(message: "not_configured")
             return
         }
-        // Try restoring a cached session first — silent if valid, falls through
-        // to the interactive flow if not.
-        if GIDSignIn.sharedInstance.hasPreviousSignIn() {
-            GIDSignIn.sharedInstance.restorePreviousSignIn { [weak self] user, error in
-                if let idToken = user?.idToken?.tokenString {
-                    GoogleSignInBridge.shared.onSuccess(idToken: idToken)
-                } else {
-                    self?.interactiveSignIn()
-                }
-            }
-        } else {
-            interactiveSignIn()
-        }
-    }
-
-    @MainActor
-    private func interactiveSignIn() {
         guard let presenter = presentingViewController() else {
             GoogleSignInBridge.shared.onError(message: "no_presenter")
             return
         }
-        GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, error in
+
+        // Fresh nonce per sign-in attempt. Plaintext on purpose — Google puts
+        // the exact same string into the id_token's `nonce` claim, and Supabase
+        // compares them byte-for-byte (unlike Apple, which hashes).
+        let rawNonce = Self.makeNonce()
+
+        GIDSignIn.sharedInstance.signIn(
+            withPresenting: presenter,
+            hint: nil,
+            additionalScopes: nil,
+            nonce: rawNonce
+        ) { result, error in
             if let err = error as NSError? {
-                // -5 = canceled (GIDSignInErrorCode.canceled)
+                // -5 = GIDSignInErrorCode.canceled
                 if err.code == -5 {
                     GoogleSignInBridge.shared.onError(message: "cancelled")
                 } else {
@@ -93,8 +84,15 @@ import ComposeApp
                 GoogleSignInBridge.shared.onError(message: "no_id_token")
                 return
             }
-            GoogleSignInBridge.shared.onSuccess(idToken: idToken)
+            GoogleSignInBridge.shared.onSuccess(idToken: idToken, rawNonce: rawNonce)
         }
+    }
+
+    private static func makeNonce() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        precondition(status == errSecSuccess, "SecRandomCopyBytes failed")
+        return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
     /// Foreground-active view controller — iPad-safe scene pick (same pattern

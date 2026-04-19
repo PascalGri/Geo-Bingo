@@ -7,11 +7,13 @@ actual object NativeGoogleSignIn {
     actual val isSupported: Boolean
         get() = GoogleSignInBridgeCompanion.isConfigured
 
-    actual suspend fun signIn(): String? {
+    actual suspend fun signIn(): NativeSignInResult? {
         if (!isSupported) return null
         return suspendCancellableCoroutine { cont ->
             GoogleSignInBridge.install(
-                onSuccess = { idToken -> if (cont.isActive) cont.resume(idToken) },
+                onSuccess = { idToken, rawNonce ->
+                    if (cont.isActive) cont.resume(NativeSignInResult(idToken, rawNonce))
+                },
                 onError = { if (cont.isActive) cont.resume(null) },
             )
             GoogleSignInBridgeCompanion.start()
@@ -20,19 +22,20 @@ actual object NativeGoogleSignIn {
 }
 
 object GoogleSignInBridge {
-    private var onSuccessHandler: ((String) -> Unit)? = null
+    private var onSuccessHandler: ((String, String) -> Unit)? = null
     private var onErrorHandler: ((String) -> Unit)? = null
 
-    fun install(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+    fun install(onSuccess: (String, String) -> Unit, onError: (String) -> Unit) {
         onSuccessHandler = onSuccess
         onErrorHandler = onError
     }
 
-    // Called from Swift
-    fun onSuccess(idToken: String) {
+    // Called from Swift. rawNonce must match the `nonce` claim Google embedded
+    // in the id_token so Supabase accepts it.
+    fun onSuccess(idToken: String, rawNonce: String) {
         val handler = onSuccessHandler
         clear()
-        handler?.invoke(idToken)
+        handler?.invoke(idToken, rawNonce)
     }
 
     // Called from Swift

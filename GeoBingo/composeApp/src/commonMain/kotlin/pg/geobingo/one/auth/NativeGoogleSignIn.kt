@@ -17,8 +17,10 @@ expect object NativeGoogleSignIn {
     val isSupported: Boolean
 
     /**
-     * Launches the native Google sign-in sheet. Returns the id_token on
-     * success, null on user-cancel or any failure.
+     * Launches the native Google sign-in sheet. Returns the id_token + the
+     * raw nonce we generated locally (Supabase needs the nonce to verify the
+     * JWT's `nonce` claim — without it the token exchange returns 400).
+     * Null on user-cancel or any failure.
      */
-    suspend fun signIn(): String?
+    suspend fun signIn(): NativeSignInResult?
 }

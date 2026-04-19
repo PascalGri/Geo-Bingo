@@ -243,7 +243,7 @@ object AccountManager {
         // yet (GoogleService-Info.plist without CLIENT_ID on iOS, or any non-iOS
         // target).
         if (NativeGoogleSignIn.isSupported) {
-            val idToken = try {
+            val native = try {
                 NativeGoogleSignIn.signIn()
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Native Google sign-in threw", e)
@@ -253,7 +253,8 @@ object AccountManager {
             return try {
                 supabase.auth.signInWith(IDToken) {
                     provider = Google
-                    this.idToken = idToken
+                    idToken = native.idToken
+                    nonce = native.rawNonce
                 }
                 val userId = supabase.auth.currentUserOrNull()?.id
                 if (userId != null) {
