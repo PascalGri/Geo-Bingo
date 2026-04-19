@@ -262,8 +262,15 @@ private fun AccountProfileSection(
                             }
                             isSaving = true
                             scope.launch {
-                                AppSettings.setString("last_player_name", name)
-                                AccountManager.updateDisplayName(name)
+                                val result = AccountManager.updateDisplayName(name)
+                                if (result.isFailure) {
+                                    isSaving = false
+                                    val msg = if (result.exceptionOrNull()?.message?.contains("display_name_rejected") == true)
+                                        S.current.nameContainsProfanity
+                                    else S.current.authError
+                                    snackbarHostState.showSnackbar(msg)
+                                    return@launch
+                                }
                                 val bytes = avatarBytes
                                 if (bytes != null && bytes.isNotEmpty()) {
                                     AccountManager.uploadProfileAvatar(bytes)

@@ -440,19 +440,28 @@ object AccountManager {
     // ── Profile Management ─────────────────────────────────────────
 
     suspend fun updateDisplayName(name: String): Result<Unit> {
+        val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+        // Hit the server FIRST — if our server-side moderation trigger blocks
+        // the name (check_violation 'display_name_rejected'), we don't want the
+        // rejected name sitting in local AppSettings. Only mirror locally after
+        // the DB accepts it.
         return try {
-            val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
-            AppSettings.setString("last_player_name", name)
-            bumpProfileVersion()
             supabase.postgrest["profiles"].update({
                 set("display_name", name)
             }) {
                 filter { eq("id", userId) }
             }
+            AppSettings.setString("last_player_name", name)
+            bumpProfileVersion()
             Result.success(Unit)
         } catch (e: Exception) {
             AppLogger.w(TAG, "Update display name failed", e)
-            Result.failure(e)
+            // Surface the server-side moderation rejection as a recognisable
+            // signal so the UI can show the "profanity" toast instead of a
+            // generic error.
+            if (e.message?.contains("display_name_rejected", ignoreCase = true) == true) {
+                Result.failure(IllegalArgumentException("display_name_rejected"))
+            } else Result.failure(e)
         }
     }
 

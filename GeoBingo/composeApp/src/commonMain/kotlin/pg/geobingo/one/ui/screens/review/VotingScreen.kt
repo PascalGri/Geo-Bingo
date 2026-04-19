@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.network.ModerationManager
 import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
@@ -78,6 +80,17 @@ internal fun DarkSinglePhotoVotingScreen(
     // Submission animation
     val submitScale = remember(stepIndex) { Animatable(1f) }
     val submitAlpha = remember(stepIndex) { Animatable(1f) }
+
+    // Photo-report dialog state — required by App-Store Guideline 1.2 for
+    // every piece of user-generated content visible to other users.
+    var showReportDialog by remember(stepIndex) { mutableStateOf(false) }
+    var photoReportToast by remember(stepIndex) { mutableStateOf<String?>(null) }
+    if (photoReportToast != null) {
+        LaunchedEffect(photoReportToast) {
+            delay(2200L)
+            photoReportToast = null
+        }
+    }
 
     // Slide-in from right per step
     val stepAlpha = remember(stepIndex) { Animatable(0f) }
@@ -176,6 +189,26 @@ internal fun DarkSinglePhotoVotingScreen(
                     else Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(40.dp), tint = ColorOnSurfaceVariant)
                         Text(S.current.noPhotoFound, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                    }
+                }
+                // Report-photo flag (top-right overlay). Visible whenever a photo is
+                // loaded. Tapping opens a confirm dialog → writes to content_reports.
+                if (!photoLoading && photo != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .clickable { showReportDialog = true }
+                            .padding(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Flag,
+                            contentDescription = S.current.reportPhoto,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
                 // Floating reaction overlay
@@ -348,6 +381,62 @@ internal fun DarkSinglePhotoVotingScreen(
                         leadingIcon = { Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(18.dp)) },
                     )
                 }
+            }
+        }
+    }
+
+    // ── Photo report dialog (Guideline 1.2) ────────────────────────────
+    if (showReportDialog) {
+        AlertDialog(
+            onDismissRequest = { showReportDialog = false },
+            containerColor = ColorSurface,
+            title = {
+                Text(S.current.reportPhotoTitle, style = MaterialTheme.typography.titleMedium, color = ColorOnSurface, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(S.current.reportPhotoBody(targetPlayer.name), style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showReportDialog = false
+                    scope.launch {
+                        ModerationManager.reportContent(
+                            contentType = "photo",
+                            contentId = "${gameId}/${targetPlayer.id}/${currentCategory.id}",
+                            contentSnapshot = "player=${targetPlayer.name} category=${currentCategory.name}",
+                            reportedUserId = targetPlayer.userId,
+                        )
+                        photoReportToast = S.current.reportSubmitted
+                    }
+                }) {
+                    Text(S.current.reportMessage, color = ColorError, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReportDialog = false }) {
+                    Text(S.current.cancel, color = ColorOnSurfaceVariant)
+                }
+            },
+        )
+    }
+
+    // Toast after report submit.
+    photoReportToast?.let { msg ->
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = ColorSurface,
+                shadowElevation = 6.dp,
+            ) {
+                Text(
+                    msg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorOnSurface,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                )
             }
         }
     }

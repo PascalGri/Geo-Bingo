@@ -150,10 +150,16 @@ fun ProfileSetupScreen(gameState: GameState) {
                     }
                     isLoading = true
                     scope.launch {
-                        // Save name locally
-                        AppSettings.setString("last_player_name", name)
-                        // Sync to cloud
-                        AccountManager.updateDisplayName(name)
+                        // Sync to cloud first — server-side moderation may reject
+                        // the name; only persist locally if the DB accepts it.
+                        val result = AccountManager.updateDisplayName(name)
+                        if (result.isFailure) {
+                            isLoading = false
+                            val msg = if (result.exceptionOrNull()?.message?.contains("display_name_rejected") == true)
+                                S.current.nameContainsProfanity else S.current.authError
+                            snackbarHostState.showSnackbar(msg)
+                            return@launch
+                        }
                         // Upload avatar if present
                         val bytes = avatarBytes
                         if (bytes != null && bytes.isNotEmpty()) {

@@ -535,6 +535,9 @@ interface StringRes {
     val reportSubmitted: String
     val userBlocked: String
     val termsOfService: String
+    val reportPhoto: String
+    val reportPhotoTitle: String
+    fun reportPhotoBody(name: String): String
     val changePassword: String
     val changePasswordDesc: String
     val currentPassword: String
