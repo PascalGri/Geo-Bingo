@@ -24,7 +24,13 @@ actual object LocalPhotoStore {
 
     actual fun loadAvatar(playerId: String): ByteArray? {
         val file = File(baseDir, "avatars/${playerId}.jpg")
-        return if (file.exists()) file.readBytes() else null
+        if (!file.exists() || file.length() == 0L) return null
+        return file.readBytes()
+    }
+
+    actual fun deleteAvatar(playerId: String) {
+        val file = File(baseDir, "avatars/${playerId}.jpg")
+        if (file.exists()) file.delete()
     }
 
     actual fun saveGameMeta(gameId: String, json: String) {

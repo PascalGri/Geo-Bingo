@@ -4,8 +4,13 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
+import io.github.jan.supabase.auth.status.SessionStatus
+import pg.geobingo.one.auth.NativeAppleSignIn
+import pg.geobingo.one.auth.NativeGoogleSignIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
@@ -15,6 +20,10 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.platform.AppSettings
@@ -86,14 +95,96 @@ object AccountManager {
         profileVersion++
     }
 
-    val isLoggedIn: Boolean
-        get() = supabase.auth.currentUserOrNull() != null
+    // Backing state driven by supabase.auth.sessionStatus (see init block).
+    // Keeping our own MutableState rather than delegating to a non-reactive
+    // getter guarantees every Compose read auto-subscribes — no "stale email
+    // on other screens after sign-out" bug even if a network-failed signOut()
+    // leaves Supabase's internal currentUserOrNull() momentarily out of sync.
+    private var _currentUser by mutableStateOf<UserInfo?>(null)
+    private var _isLoggedIn by mutableStateOf(false)
 
-    val currentUser: UserInfo?
-        get() = supabase.auth.currentUserOrNull()
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    val currentUserId: String?
-        get() = supabase.auth.currentUserOrNull()?.id
+    init {
+        // Seed from whatever Supabase already has cached (e.g. restored session),
+        // then follow every future auth event via the StateFlow. Running a single
+        // long-lived collector on an object-scope keeps the contract simple: UI
+        // state == sessionStatus, always.
+        val seeded = supabase.auth.currentUserOrNull()
+        _currentUser = seeded
+        _isLoggedIn = seeded != null
+        scope.launch {
+            supabase.auth.sessionStatus.collect { status ->
+                when (status) {
+                    is SessionStatus.Authenticated -> {
+                        _currentUser = status.session.user
+                        _isLoggedIn = status.session.user != null
+                    }
+                    is SessionStatus.NotAuthenticated -> {
+                        _currentUser = null
+                        _isLoggedIn = false
+                        // Bump so screens reading `profileVersion` (name/avatar caches)
+                        // also refresh — sessionStatus alone only covers _isLoggedIn/_currentUser.
+                        if (status.isSignOut) bumpProfileVersion()
+                    }
+                    else -> Unit  // LoadingFromStorage, RefreshFailure, etc. — keep current state
+                }
+            }
+        }
+    }
+
+    val isLoggedIn: Boolean get() = _isLoggedIn
+
+    val currentUser: UserInfo? get() = _currentUser
+
+    val currentUserId: String? get() = _currentUser?.id
+
+    /**
+     * User-friendly email string for the Account screen. Apple's "Hide My Email"
+     * feature returns `xxxxxxxx@privaterelay.appleid.com` for users who chose
+     * to conceal their real address — showing that raw relay address is just
+     * noise. We surface a labelled placeholder instead so the user sees the
+     * account is real without staring at a random-looking relay handle.
+     */
+    /**
+     * Maps a raw auth-error Throwable to a short, user-friendly string.
+     * The full technical message/stack goes to the logs (AppLogger.w) but
+     * NEVER surfaces in the UI — Apple reviewers see HTTP status codes,
+     * JWT-claim errors, and URLs as "unprofessional error handling".
+     */
+    fun friendlyAuthError(throwable: Throwable?): String {
+        val raw = throwable?.message.orEmpty().lowercase()
+        val s = pg.geobingo.one.i18n.S.current
+        return when {
+            raw.isBlank() -> s.authError
+            // User dismissed native sheet / hit cancel — not actually an error
+            raw.contains("cancelled") || raw.contains("canceled") -> ""
+            raw.contains("network") || raw.contains("socket") ||
+                raw.contains("timeout") || raw.contains("unreachable") ||
+                raw.contains("connect") || raw.contains("host") ||
+                raw.contains("resolve") -> s.authNetworkError
+            raw.contains("already registered") || raw.contains("already exists") ||
+                raw.contains("user already") -> s.authEmailAlreadyUsed
+            raw.contains("invalid") && raw.contains("email") -> s.authEmailInvalid
+            raw.contains("invalid login") || raw.contains("invalid credentials") ||
+                raw.contains("bad credentials") -> s.authError
+            // Bucket everything else (audience mismatch, 4xx/5xx, malformed JSON, …)
+            // under a generic message. The reviewer — and any end-user — sees a
+            // short, actionable string; debug details live in the logger.
+            else -> s.authError
+        }
+    }
+
+    val displayEmail: String
+        get() {
+            val raw = _currentUser?.email.orEmpty()
+            return when {
+                raw.isBlank() -> ""
+                raw.endsWith("@privaterelay.appleid.com", ignoreCase = true) ->
+                    pg.geobingo.one.i18n.S.current.emailHiddenByApple
+                else -> raw
+            }
+        }
 
     /** True if the user has signed up but hasn't set a display name yet. */
     val needsProfileSetup: Boolean
@@ -146,6 +237,38 @@ object AccountManager {
     // ── OAuth Providers ────────────────────────────────────────────
 
     suspend fun signInWithGoogle(): Result<Unit> {
+        // Prefer the native GIDSignIn sheet when available — no Safari redirect,
+        // no iPad multi-scene issues, and the id_token goes straight to Supabase.
+        // Falls back to the web OAuth flow if the native SDK isn't configured
+        // yet (GoogleService-Info.plist without CLIENT_ID on iOS, or any non-iOS
+        // target).
+        if (NativeGoogleSignIn.isSupported) {
+            val idToken = try {
+                NativeGoogleSignIn.signIn()
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Native Google sign-in threw", e)
+                return Result.failure(e)
+            } ?: return Result.failure(IllegalStateException("google_sign_in_cancelled"))
+
+            return try {
+                supabase.auth.signInWith(IDToken) {
+                    provider = Google
+                    this.idToken = idToken
+                }
+                val userId = supabase.auth.currentUserOrNull()?.id
+                if (userId != null) {
+                    val email = supabase.auth.currentUserOrNull()?.email ?: ""
+                    createProfileIfNeeded(userId, email)
+                    syncCloudToLocal(userId)
+                }
+                Analytics.track(Analytics.SIGN_IN, mapOf("method" to "google"))
+                Result.success(Unit)
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Google IDToken exchange failed: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+
         return try {
             supabase.auth.signInWith(Google) {
                 if (Analytics.platform == "web") {
@@ -167,6 +290,40 @@ object AccountManager {
     }
 
     suspend fun signInWithApple(): Result<Unit> {
+        // On iOS we MUST use the native ASAuthorizationController flow —
+        // Apple's HIG 4.1.2 requires it, and the Safari-redirect path crashes
+        // on iPad. Other platforms fall back to Supabase's OAuth web flow.
+        if (NativeAppleSignIn.isSupported) {
+            val native = try {
+                NativeAppleSignIn.signIn()
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Apple native sign-in threw", e)
+                return Result.failure(e)
+            } ?: return Result.failure(IllegalStateException("apple_sign_in_cancelled"))
+
+            return try {
+                supabase.auth.signInWith(IDToken) {
+                    provider = Apple
+                    idToken = native.idToken
+                    nonce = native.rawNonce
+                }
+                val userId = supabase.auth.currentUserOrNull()?.id
+                if (userId != null) {
+                    val email = supabase.auth.currentUserOrNull()?.email ?: ""
+                    createProfileIfNeeded(userId, email)
+                    syncCloudToLocal(userId)
+                }
+                Analytics.track(Analytics.SIGN_IN, mapOf("method" to "apple"))
+                Result.success(Unit)
+            } catch (e: Exception) {
+                // Log the FULL exception so we can see what Supabase actually says —
+                // "Unacceptable audience in id_token" means the Bundle ID isn't in
+                // Supabase → Auth → Providers → Apple → Authorized Client IDs.
+                AppLogger.w(TAG, "Apple IDToken exchange failed: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+
         return try {
             supabase.auth.signInWith(Apple) {
                 if (Analytics.platform == "web") {
@@ -232,7 +389,18 @@ object AccountManager {
         try {
             supabase.auth.signOut()
         } catch (e: Exception) {
-            AppLogger.w(TAG, "Sign out failed", e)
+            // supabase-kt's signOut() only calls clearSession() when the server
+            // /logout POST succeeds (or returns an ignored 4xx). On network
+            // failure / 5xx it throws BEFORE clearing local state — leaving
+            // currentUserOrNull() still returning the old user. The UI then
+            // shows stale "logged in" data on every screen that reads email.
+            // Force the local session clear so sign-out is actually observable.
+            AppLogger.w(TAG, "Supabase signOut threw — forcing local clearSession", e)
+            try {
+                supabase.auth.clearSession()
+            } catch (e2: Exception) {
+                AppLogger.w(TAG, "Forced clearSession also failed", e2)
+            }
         }
         // Wipe per-user cached state so the signed-out user's data isn't
         // visible in the UI (or cross-contaminates the next login). Device
@@ -324,7 +492,7 @@ object AccountManager {
             }) {
                 filter { eq("id", userId) }
             }
-            try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
+            try { LocalPhotoStore.deleteAvatar("profile") } catch (e: Exception) {
                 AppLogger.w(TAG, "Avatar local clear failed", e)
             }
             bumpProfileVersion()
@@ -460,9 +628,11 @@ object AccountManager {
         AppSettings.setInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, 0)
         AppSettings.setBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, false)
         AppSettings.setString(SettingsKeys.LAST_WEEKLY_WEEK, "")
-        // Cached avatar blob
+        // Cached avatar blob — actually remove the file (writing empty bytes
+        // leaves a 0-byte file that some decoders still try to parse, causing
+        // the old photo to linger after sign-out).
         try {
-            LocalPhotoStore.saveAvatar("profile", ByteArray(0))
+            LocalPhotoStore.deleteAvatar("profile")
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar clear failed", e)
         }
@@ -532,16 +702,30 @@ object AccountManager {
             AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, profile.haptic_enabled)
             AppSettings.setString(SettingsKeys.LANGUAGE, profile.language)
 
-            // Download avatar if profile has one and local cache is empty
-            if (profile.avatar_url.isNotBlank()) {
-                try {
-                    val cached = LocalPhotoStore.loadAvatar("profile")
-                    if (cached == null || cached.isEmpty()) {
-                        downloadProfileAvatar()
-                    }
-                } catch (e: Exception) {
-                    AppLogger.w(TAG, "Avatar sync failed", e)
+            // Avatar is ACCOUNT-BOUND, not device-bound: the local file is a
+            // cache, the cloud is the source of truth. Force the cache to match
+            // whatever the cloud says — don't trust whatever was sitting in
+            // local storage from a previous session / another user / a guest
+            // photo taken before login.
+            try {
+                if (profile.avatar_url.isNotBlank()) {
+                    // Cloud has an avatar — (re)download, bypassing any stale
+                    // cache that might belong to a different user.
+                    val path = profile.avatar_url
+                    val url = supabase.storage.from("photos").createSignedUrl(
+                        path,
+                        pg.geobingo.one.game.GameConstants.AVATAR_URL_EXPIRY,
+                    )
+                    val bytes: ByteArray = ServiceLocator.httpClient.get(url).body()
+                    LocalPhotoStore.saveAvatar("profile", bytes)
+                } else {
+                    // Cloud has no avatar — wipe local so a leftover photo
+                    // (e.g. from a guest session before this sign-in) can't
+                    // masquerade as this user's profile picture.
+                    LocalPhotoStore.deleteAvatar("profile")
                 }
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Avatar sync failed", e)
             }
             // Notify UI — display name and/or avatar may have changed
             bumpProfileVersion()

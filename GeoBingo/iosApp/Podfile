@@ -11,6 +11,10 @@ target 'iosApp' do
 
   # Firebase Cloud Messaging — Push Notifications
   pod 'FirebaseMessaging'
+
+  # Google Sign-In — native OAuth flow for "Continue with Google" on iOS.
+  # Replaces Supabase's Safari-redirect flow to avoid iPad multi-scene crashes.
+  pod 'GoogleSignIn'
 end
 
 # Verhindert Signing-Konflikte bei CocoaPods-Pods

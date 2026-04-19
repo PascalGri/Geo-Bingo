@@ -15,4 +15,9 @@
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
+  <url>
+    <loc>https://katchit.app/agb.html</loc>
+    <priority>0.3</priority>
+    <changefreq>yearly</changefreq>
+  </url>
 </urlset>

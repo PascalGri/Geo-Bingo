@@ -42,7 +42,18 @@ actual object LocalPhotoStore {
     actual fun loadAvatar(playerId: String): ByteArray? {
         val path = "$baseDir/avatars/${playerId}.jpg"
         val data = NSData.dataWithContentsOfFile(path) ?: return null
+        // A leftover zero-length file (from a past "clear by writing empty bytes"
+        // approach) must NOT be treated as a valid avatar — callers would feed
+        // the 0-byte array to the decoder, which races against the placeholder
+        // and visually flickers. Return null so the UI cleanly shows the
+        // initial letter.
+        if (data.length.toInt() == 0) return null
         return data.toByteArray()
+    }
+
+    actual fun deleteAvatar(playerId: String) {
+        val path = "$baseDir/avatars/${playerId}.jpg"
+        NSFileManager.defaultManager.removeItemAtPath(path, error = null)
     }
 
     actual fun saveGameMeta(gameId: String, json: String) {

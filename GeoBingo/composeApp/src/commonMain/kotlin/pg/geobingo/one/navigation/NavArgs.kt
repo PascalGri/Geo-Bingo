@@ -13,9 +13,6 @@ sealed interface NavArgs {
     /** Arguments for JoinGameScreen. */
     data class JoinGame(val inviteCode: String? = null) : NavArgs
 
-    /** Arguments for DirectMessageScreen. */
-    data class DirectMessage(val friendId: String, val friendName: String) : NavArgs
-
     /** Arguments for MatchDetailScreen. */
     data class MatchDetail(val gameId: String, val entry: GameHistoryEntry) : NavArgs
 }

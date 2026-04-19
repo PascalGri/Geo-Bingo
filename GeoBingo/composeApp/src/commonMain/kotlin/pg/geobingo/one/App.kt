@@ -150,7 +150,6 @@ private fun ScreenRouter(screen: Screen, gameState: GameState) {
         Screen.PROFILE -> ProfileScreen(gameState)
         Screen.ACTIVITY_FEED -> ActivityFeedScreen(gameState)
         Screen.ACHIEVEMENTS -> AchievementScreen(gameState)
-        Screen.DIRECT_MESSAGE -> DirectMessageScreen(gameState)
         Screen.MATCH_DETAIL -> MatchDetailScreen(gameState)
     }
 }

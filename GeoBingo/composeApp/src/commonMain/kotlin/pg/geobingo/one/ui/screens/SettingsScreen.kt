@@ -113,6 +113,7 @@ fun SettingsScreen(gameState: GameState) {
             LegalSection(
                 onImpressumClick = { uriHandler.openUri("https://katchit.app/impressum.html") },
                 onPrivacyClick = { uriHandler.openUri("https://katchit.app/datenschutz.html") },
+                onTermsClick = { uriHandler.openUri("https://katchit.app/agb.html") },
             )
 
             VersionFooter(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -135,7 +136,7 @@ private fun AccountQuickSection(
             SettingsClickRow(
                 icon = Icons.Default.Person,
                 title = name.ifBlank { S.current.account },
-                subtitle = AccountManager.currentUser?.email ?: "",
+                subtitle = AccountManager.displayEmail,
                 onClick = { onNavigate(Screen.ACCOUNT) },
             )
         } else {
@@ -324,6 +325,7 @@ private fun SupportSection(onContactClick: () -> Unit) {
 private fun LegalSection(
     onImpressumClick: () -> Unit,
     onPrivacyClick: () -> Unit,
+    onTermsClick: () -> Unit,
 ) {
     SettingsSection(title = S.current.legal) {
         SettingsClickRow(
@@ -336,6 +338,12 @@ private fun LegalSection(
             icon = Icons.Default.Shield,
             title = S.current.privacyPolicy,
             onClick = onPrivacyClick,
+        )
+        HorizontalDivider(color = ColorOutlineVariant)
+        SettingsClickRow(
+            icon = Icons.Default.Gavel,
+            title = S.current.termsOfService,
+            onClick = onTermsClick,
         )
     }
 }
@@ -359,9 +367,10 @@ private fun ProfileSection(
     snackbarHostState: SnackbarHostState,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
+    val profileVersion = AccountManager.profileVersion
     var isEditing by remember { mutableStateOf(false) }
-    var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var avatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
+    var nameInput by remember(profileVersion) { mutableStateOf(AppSettings.getString("last_player_name", "")) }
+    var avatarBytes by remember(profileVersion) { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
     var isSaving by remember { mutableStateOf(false) }
 
     // Download avatar from cloud if local cache is empty
@@ -480,7 +489,7 @@ private fun ProfileSection(
                         color = ColorOnSurface,
                     )
                     Text(
-                        AccountManager.currentUser?.email ?: "",
+                        AccountManager.displayEmail,
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorOnSurfaceVariant,
                     )
@@ -702,7 +711,8 @@ internal fun AuthDialog(
                             if (result.isSuccess) {
                                 onSuccess(false)
                             } else {
-                                errorMsg = S.current.authError
+                                val msg = AccountManager.friendlyAuthError(result.exceptionOrNull())
+                                if (msg.isNotEmpty()) errorMsg = msg
                             }
                         }
                     },
@@ -719,7 +729,8 @@ internal fun AuthDialog(
                             if (result.isSuccess) {
                                 onSuccess(false)
                             } else {
-                                errorMsg = S.current.authError
+                                val msg = AccountManager.friendlyAuthError(result.exceptionOrNull())
+                                if (msg.isNotEmpty()) errorMsg = msg
                             }
                         }
                     },
@@ -825,19 +836,8 @@ internal fun AuthDialog(
                         if (result.isSuccess) {
                             onSuccess(isSignUp)
                         } else {
-                            val msg = result.exceptionOrNull()?.message?.lowercase() ?: ""
-                            errorMsg = when {
-                                msg.contains("already registered") || msg.contains("already exists") ->
-                                    S.current.authEmailAlreadyUsed
-                                msg.contains("invalid") ->
-                                    S.current.authEmailInvalid
-                                msg.contains("network") || msg.contains("socket") ||
-                                    msg.contains("timeout") || msg.contains("unreachable") ||
-                                    msg.contains("connect") ->
-                                    S.current.authNetworkError
-                                else ->
-                                    S.current.authError
-                            }
+                            val msg = AccountManager.friendlyAuthError(result.exceptionOrNull())
+                            if (msg.isNotEmpty()) errorMsg = msg
                         }
                     }
                 },

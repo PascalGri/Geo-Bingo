@@ -40,17 +40,13 @@ object AppInitializer {
             ConsentManager.requestConsent { AdManager.preloadAds() }
         }
 
-        // Billing
+        // Billing — initialize() reads cached entitlements via Transaction.currentEntitlements
+        // (no network / no Apple-ID prompt). We intentionally do NOT call restorePurchases()
+        // here: it triggers AppStore.sync(), which on iOS can pop the Apple-ID password
+        // dialog at app launch — users mistake it for an unwanted Apple login. The user
+        // can still hit "Restore Purchases" in the shop / settings when they actually need it.
         if (BillingManager.isBillingSupported) {
             BillingManager.initialize()
-            BillingManager.restorePurchases(
-                onRestored = { products ->
-                    if ("pg.geobingo.one.no_ads" in products) {
-                        gameState.stars.updateNoAdsPurchased(true)
-                    }
-                },
-                onError = {},
-            )
         }
 
         // Analytics + push

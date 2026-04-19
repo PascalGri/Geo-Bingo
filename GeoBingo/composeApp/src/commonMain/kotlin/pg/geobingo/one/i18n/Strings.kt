@@ -441,6 +441,10 @@ interface StringRes {
     val shop: String
     val buyStars: String
     val adSkipper: String
+    val badgePopular: String
+    val badgeBestValue: String
+    val adsExhaustedToday: String
+    val billingNotAvailableWeb: String
     fun starsPackage(stars: Int, price: String): String
     fun skipCardsPackage(cards: Int, price: String): String
     val interstitialDisabledNote: String
@@ -519,6 +523,18 @@ interface StringRes {
     val newEmail: String
     val emailChanged: String
     val emailChangeError: String
+    val emailHiddenByApple: String
+
+    // ── Moderation (App-Store 1.2) ───────────────────────────────────
+    val moderationMenu: String
+    val moderationTitle: String
+    fun moderationSubtitle(name: String): String
+    val reportMessage: String
+    val blockUser: String
+    val blockUnavailableGuest: String
+    val reportSubmitted: String
+    val userBlocked: String
+    val termsOfService: String
     val changePassword: String
     val changePasswordDesc: String
     val currentPassword: String

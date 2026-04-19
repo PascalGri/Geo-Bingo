@@ -60,6 +60,10 @@ struct iOSApp: App {
         requestTrackingAuthorization()
         // StoreKit 2 Bridge initialisieren
         BillingBridgeImpl.shared.setup()
+        // Sign in with Apple (nativ via ASAuthorizationController)
+        AppleSignInBridgeImpl.shared.setup()
+        // Sign in with Google (nativ via GIDSignIn)
+        GoogleSignInBridgeImpl.shared.setup()
         // Analytics platform
         Analytics.shared.platform = "ios"
     }
@@ -68,8 +72,12 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    // Route OAuth callback URLs (Google/Apple login) to Supabase via NSURL,
-                    // everything else (join codes, share extensions) goes through the common handler.
+                    // Google's native sign-in completes via a reverse-client-ID URL —
+                    // let GIDSignIn claim the callback first, fall through otherwise.
+                    if GoogleSignInBridgeImpl.shared.handleOpenUrl(url) {
+                        return
+                    }
+                    // Legacy web OAuth callback (Apple or fallback Google via Supabase).
                     if url.absoluteString.contains("login-callback") {
                         IosAuthCallback.shared.handle(url: url)
                     } else {

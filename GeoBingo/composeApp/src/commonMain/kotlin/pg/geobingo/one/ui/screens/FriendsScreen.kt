@@ -342,9 +342,6 @@ fun FriendsScreen(gameState: GameState) {
                                 }
                             },
                             onRemove = { showRemoveDialog = friend },
-                            onMessage = {
-                                nav.navigateTo(Screen.DIRECT_MESSAGE, NavArgs.DirectMessage(friendId = friend.userId, friendName = friend.displayName))
-                            },
                         )
                     }
                 }
@@ -400,7 +397,6 @@ private fun FriendRow(
     cosmetics: pg.geobingo.one.network.PlayerCosmetics = pg.geobingo.one.network.PlayerCosmetics.NONE,
     onInvite: () -> Unit,
     onRemove: () -> Unit,
-    onMessage: () -> Unit = {},
 ) {
     val statusText = if (friend.isOnline) {
         "\u25CF ${S.current.friendsOnline}"
@@ -433,9 +429,6 @@ private fun FriendRow(
                         )
                     }
                     Spacer(Modifier.width(2.dp))
-                }
-                IconButton(onClick = onMessage, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp), tint = Color.White)
                 }
                 IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.7f))

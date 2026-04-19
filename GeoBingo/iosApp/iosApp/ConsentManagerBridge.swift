@@ -37,8 +37,14 @@ import ComposeApp
     }
 
     private static func topViewController() -> UIViewController {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let root = scene.windows.first?.rootViewController else {
+        // iPad-safe: pick the foreground-active scene, not just "first" — Stage Manager
+        // and multi-window mode can put an inactive scene at index 0.
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first(where: { $0.activationState == .foregroundActive })
+            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
+            ?? scenes.first
+        let window = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first
+        guard let root = window?.rootViewController else {
             return UIViewController()
         }
         var top = root

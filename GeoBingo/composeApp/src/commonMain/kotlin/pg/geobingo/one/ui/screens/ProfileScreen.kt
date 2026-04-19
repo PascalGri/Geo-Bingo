@@ -71,7 +71,12 @@ fun ProfileScreen(gameState: GameState) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = S.current.back, tint = ColorPrimary)
                     }
                 },
-                actions = { pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) }) },
+                actions = {
+                    IconButton(onClick = { nav.navigateTo(pg.geobingo.one.game.Screen.SETTINGS) }) {
+                        Icon(Icons.Default.Settings, contentDescription = S.current.settingsTitle, tint = ColorPrimary)
+                    }
+                    pg.geobingo.one.ui.components.TopBarStarsAndProfile(gameState = gameState, onNavigate = { nav.navigateTo(it) })
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorSurface),
             )
         },
@@ -96,7 +101,7 @@ fun ProfileScreen(gameState: GameState) {
                 avatarBytes = avatarBytes,
                 avatarColor = ProfileGradient.first(),
                 size = PlayerBannerSize.Hero,
-                subtitle = if (isLoggedIn) AccountManager.currentUser?.email else null,
+                subtitle = if (isLoggedIn) AccountManager.displayEmail.ifBlank { null } else null,
             )
 
             Spacer(Modifier.height(20.dp))

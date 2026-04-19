@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
+import pg.geobingo.one.platform.AppSettings
+import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
 
 enum class NavTab(val icon: ImageVector, val targetScreen: Screen) {
@@ -106,7 +108,9 @@ fun BottomNavBar(
                     label = tab.label(),
                     badgeCount = if (tab == NavTab.FRIENDS) friendsBadgeCount else 0,
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (AppSettings.getBoolean(SettingsKeys.HAPTIC_ENABLED, true)) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                         if (selected) {
                             onActiveTabReselected(tab)
                         } else {

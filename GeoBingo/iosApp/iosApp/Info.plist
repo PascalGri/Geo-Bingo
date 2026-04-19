@@ -16,6 +16,16 @@
 				<string>pg.geobingo.one</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Google Sign-In callback. Must match REVERSED_CLIENT_ID in
+				 GoogleService-Info.plist exactly or GIDSignIn won't claim the url. -->
+			<key>CFBundleURLName</key>
+			<string>google-signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.704659604691-fhe1ur7k3osiva0n1n069brqpfv3esll</string>
+			</array>
+		</dict>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

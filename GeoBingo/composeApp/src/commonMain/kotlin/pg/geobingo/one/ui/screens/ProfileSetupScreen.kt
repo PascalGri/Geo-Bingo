@@ -101,7 +101,7 @@ fun ProfileSetupScreen(gameState: GameState) {
                 onTakePhoto = { photoCapturer.launch() },
                 onClear = {
                     avatarBytes = null
-                    try { LocalPhotoStore.saveAvatar("profile", ByteArray(0)) } catch (e: Exception) {
+                    try { LocalPhotoStore.deleteAvatar("profile") } catch (e: Exception) {
                         pg.geobingo.one.util.AppLogger.w("ProfileSetup", "Avatar clear failed", e)
                     }
                 },

@@ -86,7 +86,7 @@ fun AccountScreen(gameState: GameState) {
                 AccountProfileSection(snackbarHostState, scope)
 
                 // Account info
-                AccountInfoSection(currentUser.email ?: "")
+                AccountInfoSection(AccountManager.displayEmail)
 
                 // Account actions
                 AccountActionsSection(
@@ -197,9 +197,13 @@ private fun AccountProfileSection(
     snackbarHostState: SnackbarHostState,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
+    val profileVersion = AccountManager.profileVersion
     var isEditing by remember { mutableStateOf(false) }
-    var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var avatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
+    // Re-seed on profileVersion bumps so a new sign-in / cloud sync actually
+    // pulls the fresh name + avatar instead of sticking with the value from
+    // the previous session's first composition.
+    var nameInput by remember(profileVersion) { mutableStateOf(AppSettings.getString("last_player_name", "")) }
+    var avatarBytes by remember(profileVersion) { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
     var isSaving by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -284,7 +288,7 @@ private fun AccountProfileSection(
                 PlayerAvatarViewRaw(name = nameInput.ifBlank { "?" }, color = ColorPrimary, size = 48.dp, photoBytes = avatarBytes)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(nameInput.ifBlank { "?" }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
-                    Text(AccountManager.currentUser?.email ?: "", style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
+                    Text(AccountManager.displayEmail, style = MaterialTheme.typography.bodySmall, color = ColorOnSurfaceVariant)
                 }
                 Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
             }

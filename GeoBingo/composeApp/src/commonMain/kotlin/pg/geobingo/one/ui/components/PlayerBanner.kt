@@ -62,11 +62,13 @@ fun PlayerBanner(
     val height: Dp = if (size == PlayerBannerSize.Hero) 88.dp else 60.dp
     val cornerRadius = 14.dp
 
-    // Animated background gradient when the banner has `animated = true`
+    // Drifting background gradient — every banner with 2+ colours subtly animates.
+    val reduceMotion = LocalReduceMotion.current
+    val canAnimate = !reduceMotion && background.gradientColors.size >= 2
     val transition = rememberInfiniteTransition(label = "bannerBg")
     val gradientShift by transition.animateFloat(
         initialValue = 0f,
-        targetValue = 1f,
+        targetValue = if (canAnimate) 1f else 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 6000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
@@ -74,10 +76,9 @@ fun PlayerBanner(
         label = "bgShift",
     )
 
-    val gradient: Brush = remember(background.id, gradientShift) {
-        if (background.animated && background.gradientColors.size >= 2) {
-            // Diagonal gradient that shifts over time
-            val shift = gradientShift * 200f
+    val gradient: Brush = run {
+        val shift = gradientShift * 200f
+        if (background.gradientColors.size >= 2) {
             Brush.linearGradient(
                 colors = background.gradientColors,
                 start = Offset(shift, 0f),
@@ -85,8 +86,7 @@ fun PlayerBanner(
             )
         } else {
             Brush.linearGradient(
-                colors = if (background.gradientColors.size >= 2) background.gradientColors
-                         else listOf(Color(0xFF1E293B), Color(0xFF0F172A)),
+                colors = listOf(Color(0xFF1E293B), Color(0xFF0F172A)),
                 start = Offset(0f, 0f),
                 end = Offset(800f, 400f),
             )

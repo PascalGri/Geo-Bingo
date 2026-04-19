@@ -6,6 +6,7 @@ actual object LocalPhotoStore {
     actual fun loadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? = null
     actual fun saveAvatar(playerId: String, bytes: ByteArray) {}
     actual fun loadAvatar(playerId: String): ByteArray? = null
+    actual fun deleteAvatar(playerId: String) {}
     actual fun saveGameMeta(gameId: String, json: String) {}
     actual fun loadGameMeta(gameId: String): String? = null
     actual fun listGameIds(): List<String> = emptyList()
