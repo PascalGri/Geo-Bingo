@@ -118,8 +118,8 @@ android {
         applicationId = "pg.geobingo.one"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 5
-        versionName = "1.3"
+        versionCode = 6
+        versionName = "1.2"
     }
     packaging {
         resources {
