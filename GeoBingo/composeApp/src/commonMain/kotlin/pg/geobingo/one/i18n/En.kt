@@ -485,6 +485,11 @@ object En : StringRes {
     override val redeemCodeErrorDepleted = "This code has already been fully used"
     override val redeemCodeErrorAlreadyUsed = "You've already redeemed this code"
     override val redeemCodeErrorNotLoggedIn = "Please sign in to redeem codes"
+    override val rejoinSoloTitle = "Resume solo round?"
+    override val rejoinSoloBody = "You have a solo round in progress. Want to keep playing?"
+    override fun rejoinSoloProgress(done: Int, total: Int) = "Progress: $done / $total photos"
+    override fun rejoinSoloRemaining(minutes: Int, seconds: Int) =
+        "${minutes}:${seconds.toString().padStart(2, '0')} left"
     override val profileUpdated = "Profile updated"
     override val displayName = "Display name"
     override val changeAvatar = "Change profile picture"

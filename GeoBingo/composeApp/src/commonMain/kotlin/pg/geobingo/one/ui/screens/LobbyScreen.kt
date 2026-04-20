@@ -99,12 +99,26 @@ fun LobbyScreen(gameState: GameState) {
         try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
     }
 
-    // Incoming lobby reactions — surface them as toasts so everyone in the
-    // lobby sees "Alice: Bereit!" when Alice taps the Ready button.
+    // Floating reaction bubbles keyed by the broadcasting player's id — show
+    // locally on tap AND when a remote reaction arrives via broadcast. The
+    // previous "toast-only" flow was unreliable: snackbars overlap poorly
+    // with the sticky Scaffold on Compose iOS, so users saw no feedback.
+    var localReactionBubble by remember { mutableStateOf<String?>(null) }
+    var remoteReactionBubble by remember { mutableStateOf<Pair<String, String>?>(null) }
+
     LaunchedEffect(gameId) {
         realtime?.lobbyReactions?.collect { r ->
-            gameState.ui.pendingToast = "${r.playerName}: ${r.label}"
+            AppLogger.d("Lobby", "Received reaction: ${r.playerName} ${r.label}")
+            if (r.playerName == pg.geobingo.one.platform.AppSettings.getString("last_player_name", "")) return@collect
+            remoteReactionBubble = r.playerName to r.label
+            kotlinx.coroutines.delay(2500)
+            remoteReactionBubble = null
         }
+    }
+    LaunchedEffect(localReactionBubble) {
+        if (localReactionBubble == null) return@LaunchedEffect
+        kotlinx.coroutines.delay(1800)
+        localReactionBubble = null
     }
 
     // Sync: player joined (realtime + polling via SyncManager)
@@ -223,7 +237,20 @@ fun LobbyScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
-    SystemBackHandler { gameState.resetGame(); nav.resetTo(Screen.HOME) }
+    SystemBackHandler {
+        // Host leaving the lobby must close the game on the server so every
+        // other player gets the "host left" signal via the status watcher
+        // and returns to home. Previously only the 5-min auto-timeout did.
+        if (gameState.session.isHost) {
+            scope.launch {
+                try { GameRepository.setGameStatus(gameId, "closed") } catch (e: Exception) {
+                    AppLogger.w("Lobby", "Host-close failed", e)
+                }
+            }
+        }
+        gameState.resetGame()
+        nav.resetTo(Screen.HOME)
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -830,13 +857,33 @@ fun LobbyScreen(gameState: GameState) {
                 }
             }
 
-            // Quick reactions
+            // Quick reactions — local bubble flashes above the row for the
+            // tapper, broadcast reaches everyone else in the lobby.
             item {
-                var lastReaction by remember { mutableStateOf<String?>(null) }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    val bubbleText = localReactionBubble
+                        ?: remoteReactionBubble?.let { "${it.first}: ${it.second}" }
+                    if (bubbleText != null) {
+                        Box(
+                            modifier = Modifier
+                                .padding(bottom = 6.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(modeGradient.first().copy(alpha = 0.18f))
+                                .border(1.dp, modeGradient.first().copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                bubbleText,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = modeGradient.first(),
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    ) {
                     val reactionItems = listOf(
                         Icons.Default.ThumbUp to S.current.ready,
                         Icons.Default.Timer to S.current.hurryUp,
@@ -845,11 +892,10 @@ fun LobbyScreen(gameState: GameState) {
                         val iconKey = if (icon == Icons.Default.ThumbUp) "thumb" else "timer"
                         OutlinedButton(
                             onClick = {
-                                lastReaction = label
-                                gameState.ui.pendingToast = label
-                                // Broadcast to everyone else in the lobby so
-                                // they see the reaction too — previously the
-                                // button was purely local.
+                                // Immediate local bubble + haptic — guarantees
+                                // visible feedback even if broadcast fails.
+                                localReactionBubble = label
+                                feedback.playerJoined()
                                 val myName = gameState.gameplay.lobbyPlayers
                                     .find { it.id == gameState.session.myPlayerId }?.name
                                     ?: pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Spieler")
@@ -883,6 +929,7 @@ fun LobbyScreen(gameState: GameState) {
                                 color = modeGradient.first(),
                             )
                         }
+                    }
                     }
                 }
             }

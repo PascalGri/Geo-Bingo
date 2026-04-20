@@ -444,7 +444,9 @@ private fun LeaderboardRow(
 
         pg.geobingo.one.ui.components.PlayerBanner(
             modifier = Modifier.weight(1f),
-            name = score.player_name,
+            // Some older rows have a blank player_name (pre-guest-flow or
+            // submission race). Fall back so the row always has a label.
+            name = score.player_name.ifBlank { if (isCurrentPlayer) "Du" else "Spieler" },
             cosmetics = cosmetics,
             avatarColor = if (isCurrentPlayer) ColorPrimary else Color(0xFF6366F1),
             size = pg.geobingo.one.ui.components.PlayerBannerSize.Compact,

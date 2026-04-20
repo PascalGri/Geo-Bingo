@@ -1,6 +1,9 @@
 package pg.geobingo.one.game
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import pg.geobingo.one.data.Category
+import pg.geobingo.one.game.state.SoloState
 import pg.geobingo.one.network.GameRepository
 import pg.geobingo.one.network.toCategory
 import pg.geobingo.one.network.toPlayer
@@ -8,6 +11,24 @@ import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.util.AppLogger
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+
+@Serializable
+private data class SoloCategoryDto(val id: String, val name: String, val emoji: String, val description: String = "")
+
+@Serializable
+private data class SoloSessionSnapshot(
+    val categories: List<SoloCategoryDto>,
+    val captured: List<String>,
+    val captureTimestamps: Map<String, Long>,
+    val ratings: Map<String, Int>,
+    val reasons: Map<String, String>,
+    val playerName: String,
+    val isOutdoor: Boolean,
+    val categoryCount: Int,
+    val totalDurationSeconds: Int,
+    val startTimeMillis: Long,
+    val savedAtMillis: Long,
+)
 
 /**
  * Persists the active game session to AppSettings so the player can
@@ -20,6 +41,8 @@ object ActiveSession {
     private const val KEY_PLAYER_NAME = "active_session_player_name"
     private const val KEY_IS_HOST = "active_session_is_host"
     private const val KEY_GAME_MODE = "active_session_game_mode"
+    private const val KEY_SOLO_SNAPSHOT = "active_session_solo_snapshot"
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     /** Save session when entering the game phase. */
     fun save(gameState: GameState) {
@@ -43,10 +66,11 @@ object ActiveSession {
         AppSettings.setString(KEY_PLAYER_NAME, "")
         AppSettings.setBoolean(KEY_IS_HOST, false)
         AppSettings.setString(KEY_GAME_MODE, "")
+        AppSettings.setString(KEY_SOLO_SNAPSHOT, "")
         AppLogger.d("ActiveSession", "Cleared session")
     }
 
-    /** Check if there's a persisted session to rejoin. */
+    /** Check if there's a multiplayer session to rejoin. */
     fun exists(): Boolean = AppSettings.getString(KEY_GAME_ID).isNotBlank()
 
     /** Get the persisted game code for display. */
@@ -54,6 +78,108 @@ object ActiveSession {
 
     /** Get the persisted player name for display. */
     fun getPlayerName(): String = AppSettings.getString(KEY_PLAYER_NAME)
+
+    // ── Solo-mode persistence ─────────────────────────────────────────────
+    //
+    // Solo rounds are time-boxed (5–10 min) and entirely client-side, so we
+    // snapshot the SoloState to disk on every capture. On relaunch we restore
+    // the same categories, captured set, ratings, player name and remaining
+    // time — continuing exactly where the user left off.
+
+    /** Snapshot the in-progress solo round to disk. */
+    fun saveSolo(solo: SoloState) {
+        if (solo.categories.isEmpty() || solo.startTimeMillis == 0L) return
+        val snap = SoloSessionSnapshot(
+            categories = solo.categories.map { SoloCategoryDto(it.id, it.name, it.emoji, it.description) },
+            captured = solo.capturedCategories.toList(),
+            captureTimestamps = solo.captureTimestamps,
+            ratings = solo.categoryRatings,
+            reasons = solo.categoryReasons,
+            playerName = solo.playerName,
+            isOutdoor = solo.isOutdoor,
+            categoryCount = solo.categoryCount,
+            totalDurationSeconds = solo.totalDurationSeconds,
+            startTimeMillis = solo.startTimeMillis,
+            savedAtMillis = Clock.System.now().toEpochMilliseconds(),
+        )
+        try {
+            AppSettings.setString(KEY_SOLO_SNAPSHOT, json.encodeToString(SoloSessionSnapshot.serializer(), snap))
+        } catch (e: Exception) {
+            AppLogger.w("ActiveSession", "saveSolo failed", e)
+        }
+    }
+
+    /** Wipe any solo snapshot (round finished, results shown, or manual leave). */
+    fun clearSolo() {
+        AppSettings.setString(KEY_SOLO_SNAPSHOT, "")
+    }
+
+    /** Does a (non-expired) solo snapshot exist? */
+    fun hasSoloSession(): Boolean = loadSoloSnapshot()?.let { it.remainingSeconds() > 10 } ?: false
+
+    /** Display metadata for the rejoin banner. */
+    data class SoloSessionMeta(
+        val playerName: String,
+        val capturedCount: Int,
+        val totalCategories: Int,
+        val remainingSeconds: Int,
+    )
+
+    fun getSoloSessionMeta(): SoloSessionMeta? {
+        val snap = loadSoloSnapshot() ?: return null
+        return SoloSessionMeta(
+            playerName = snap.playerName,
+            capturedCount = snap.captured.size,
+            totalCategories = snap.categories.size,
+            remainingSeconds = snap.remainingSeconds(),
+        )
+    }
+
+    /**
+     * Restore the snapshot into gameState.solo and return the SOLO_GAME screen
+     * so the caller can navigate. Returns null if the snapshot is missing or
+     * already expired (more time elapsed than the round's duration).
+     */
+    fun rejoinSolo(gameState: GameState): Screen? {
+        val snap = loadSoloSnapshot() ?: return null
+        val remaining = snap.remainingSeconds()
+        if (remaining <= 10) {
+            clearSolo()
+            return null
+        }
+        val solo = gameState.solo
+        solo.categories = snap.categories.map { Category(it.id, it.name, it.emoji, it.description) }
+        solo.capturedCategories = snap.captured.toSet()
+        solo.captureTimestamps = snap.captureTimestamps
+        solo.categoryRatings = snap.ratings
+        solo.categoryReasons = snap.reasons
+        solo.validatingCategories = emptySet()
+        solo.playerName = snap.playerName
+        solo.isOutdoor = snap.isOutdoor
+        solo.categoryCount = snap.categoryCount
+        solo.totalDurationSeconds = snap.totalDurationSeconds
+        solo.startTimeMillis = snap.startTimeMillis
+        solo.timeRemainingSeconds = remaining
+        solo.isRunning = true
+        return Screen.SOLO_GAME
+    }
+
+    private fun loadSoloSnapshot(): SoloSessionSnapshot? {
+        val raw = AppSettings.getString(KEY_SOLO_SNAPSHOT)
+        if (raw.isBlank()) return null
+        return try {
+            json.decodeFromString(SoloSessionSnapshot.serializer(), raw)
+        } catch (e: Exception) {
+            AppLogger.w("ActiveSession", "loadSoloSnapshot decode failed — clearing", e)
+            clearSolo()
+            null
+        }
+    }
+
+    private fun SoloSessionSnapshot.remainingSeconds(): Int {
+        val elapsed = ((Clock.System.now().toEpochMilliseconds() - startTimeMillis) / 1000L).toInt()
+        return (totalDurationSeconds - elapsed).coerceAtLeast(0)
+    }
 
     /**
      * Attempt to rejoin the persisted session.

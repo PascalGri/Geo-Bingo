@@ -70,14 +70,23 @@ fun HomeScreen(gameState: GameState) {
     }
 
     // ── Rejoin check ─────────────────────────────────────────────────
+    // Multiplayer rejoin (existing) + solo rejoin (NEW): either a persisted
+    // lobby/game exists server-side, or a solo snapshot is still in its
+    // time window. Solo takes precedence only when no multiplayer session.
     var showRejoinDialog by remember { mutableStateOf(false) }
     var rejoinLoading by remember { mutableStateOf(false) }
     val rejoinCode = remember { ActiveSession.getGameCode() }
     val rejoinName = remember { ActiveSession.getPlayerName() }
+    val soloMeta = remember { ActiveSession.getSoloSessionMeta() }
+    val soloSessionAvailable = soloMeta != null
+
+    var showSoloRejoinDialog by remember { mutableStateOf(false) }
+    var soloRejoinLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (ActiveSession.exists()) {
-            showRejoinDialog = true
+        when {
+            ActiveSession.exists() -> showRejoinDialog = true
+            soloSessionAvailable -> showSoloRejoinDialog = true
         }
     }
 
@@ -104,6 +113,30 @@ fun HomeScreen(gameState: GameState) {
             onDismiss = {
                 ActiveSession.clear()
                 showRejoinDialog = false
+            },
+        )
+    }
+
+    if (showSoloRejoinDialog && soloMeta != null) {
+        RejoinSoloDialog(
+            meta = soloMeta,
+            loading = soloRejoinLoading,
+            onRejoin = {
+                if (!soloRejoinLoading) {
+                    soloRejoinLoading = true
+                    val target = ActiveSession.rejoinSolo(gameState)
+                    if (target != null) {
+                        nav.resetTo(target)
+                    } else {
+                        showSoloRejoinDialog = false
+                        soloRejoinLoading = false
+                        gameState.ui.pendingToast = S.current.error
+                    }
+                }
+            },
+            onDismiss = {
+                ActiveSession.clearSolo()
+                showSoloRejoinDialog = false
             },
         )
     }
@@ -401,6 +434,57 @@ private fun RejoinGameDialog(
                 onClick = onDismiss,
                 enabled = !rejoinLoading,
             ) {
+                Text(S.current.rejoinDismiss, color = ColorOnSurfaceVariant)
+            }
+        },
+    )
+}
+
+@Composable
+private fun RejoinSoloDialog(
+    meta: ActiveSession.SoloSessionMeta,
+    loading: Boolean,
+    onRejoin: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { },
+        containerColor = ColorSurface,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.AutoAwesome, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(22.dp))
+                Text(S.current.rejoinSoloTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = ColorOnSurface)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(S.current.rejoinSoloBody, style = MaterialTheme.typography.bodyMedium, color = ColorOnSurfaceVariant)
+                Text(
+                    S.current.rejoinSoloProgress(meta.capturedCount, meta.totalCategories),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ColorOnSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    S.current.rejoinSoloRemaining(meta.remainingSeconds / 60, meta.remainingSeconds % 60),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorOnSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onRejoin, enabled = !loading) {
+                if (loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFF8B5CF6))
+                    Spacer(Modifier.width(8.dp))
+                    Text(S.current.rejoining, color = Color(0xFF8B5CF6))
+                } else {
+                    Text(S.current.rejoinButton, color = Color(0xFF8B5CF6), fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !loading) {
                 Text(S.current.rejoinDismiss, color = ColorOnSurfaceVariant)
             }
         },

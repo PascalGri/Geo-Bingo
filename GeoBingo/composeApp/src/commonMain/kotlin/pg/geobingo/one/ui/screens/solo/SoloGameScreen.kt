@@ -193,8 +193,13 @@ fun SoloGameScreen(gameState: GameState) {
     var endTimeMillis by remember { mutableStateOf(0L) }
     LaunchedEffect(solo.isRunning) {
         if (!solo.isRunning) return@LaunchedEffect
-        solo.startTimeMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        endTimeMillis = solo.startTimeMillis + solo.timeRemainingSeconds * 1000L
+        // On a fresh run start startTimeMillis is 0 → stamp it with now.
+        // On a rejoin the restored value points to the ORIGINAL start so
+        // capture-speed calculations stay correct; don't overwrite it.
+        if (solo.startTimeMillis == 0L) {
+            solo.startTimeMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        }
+        endTimeMillis = solo.startTimeMillis + solo.totalDurationSeconds * 1000L
         while (solo.isRunning && solo.timeRemainingSeconds > 0) {
             delay(250L)
             val remaining = ((endTimeMillis - kotlinx.datetime.Clock.System.now().toEpochMilliseconds()) / 1000).toInt().coerceAtLeast(0)
@@ -216,6 +221,13 @@ fun SoloGameScreen(gameState: GameState) {
         }
     }
 
+    // Persist a snapshot so the user can rejoin the same run if the app is
+    // killed / they switch apps. Keyed on capture + ratings so every scoring
+    // change triggers a new write.
+    LaunchedEffect(solo.capturedCategories, solo.categoryRatings, solo.isRunning) {
+        if (solo.isRunning) pg.geobingo.one.game.ActiveSession.saveSolo(solo)
+    }
+
     // Check all captured
     LaunchedEffect(solo.capturedCategories, solo.validatingCategories) {
         if (solo.capturedCategories.size == solo.categories.size
@@ -230,6 +242,8 @@ fun SoloGameScreen(gameState: GameState) {
     }
 
     SystemBackHandler {
+        // Manual leave → discard the rejoin snapshot; user chose to abandon.
+        pg.geobingo.one.game.ActiveSession.clearSolo()
         solo.reset()
         nav.resetTo(Screen.HOME)
     }

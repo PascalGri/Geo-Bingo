@@ -93,11 +93,19 @@ fun SoloResultsScreen(gameState: GameState) {
             gameState.history.saveSoloToHistory(solo, playerName)
         }
 
+        // Round is over — clear the rejoin snapshot so we don't offer to
+        // continue a solved game on next app launch.
+        pg.geobingo.one.game.ActiveSession.clearSolo()
+
         // Submit to server (rate-limited)
         if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_SOLO_SUBMIT, pg.geobingo.one.util.RateLimiter.SOLO_SUBMIT_COOLDOWN_MS)) return@LaunchedEffect
         try {
             GameRepository.submitSoloScore(
-                playerName = solo.playerName,
+                // Guard against a blank name sneaking through — leaderboard
+                // entries with empty names render as unlabelled rows.
+                playerName = solo.playerName
+                    .ifBlank { AppSettings.getString("last_player_name", "Spieler") }
+                    .ifBlank { "Spieler" },
                 score = solo.totalScore,
                 categoriesCount = solo.categoryCount,
                 timeBonus = solo.timeBonus,

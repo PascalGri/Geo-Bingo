@@ -524,6 +524,10 @@ interface StringRes {
     val redeemCodeErrorDepleted: String
     val redeemCodeErrorAlreadyUsed: String
     val redeemCodeErrorNotLoggedIn: String
+    val rejoinSoloTitle: String
+    val rejoinSoloBody: String
+    fun rejoinSoloProgress(done: Int, total: Int): String
+    fun rejoinSoloRemaining(minutes: Int, seconds: Int): String
     val profileUpdated: String
     val displayName: String
     val changeAvatar: String
