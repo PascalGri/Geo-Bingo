@@ -143,7 +143,10 @@ fun HomeScreen(gameState: GameState) {
                     onReward = {
                         gameState.stars.add(10)
                         gameState.stars.recordAdWatched()
-                        gameState.ui.pendingToast = S.current.starsEarned
+                        gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                            label = S.current.rewardVideoWatched,
+                            stars = 10,
+                        )
                     },
                     onDismiss = { showEarnStarsDialog = false },
                 )

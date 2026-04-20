@@ -66,6 +66,10 @@ object AppInitializer {
         val bonusGranted = gameState.stars.checkDailyLoginBonus()
         if (bonusGranted) {
             gameState.ui.showDailyBonusBanner = true
+            gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                label = pg.geobingo.one.i18n.S.current.rewardDailyBonus,
+                stars = 5,
+            )
         }
 
         // Preload sounds

@@ -19,6 +19,7 @@ import pg.geobingo.one.platform.rememberConnectivityState
 import pg.geobingo.one.ui.components.BottomNavBar
 import pg.geobingo.one.ui.components.NavTab
 import pg.geobingo.one.ui.components.NotificationBanners
+import pg.geobingo.one.ui.components.RewardEarnedOverlay
 import pg.geobingo.one.ui.components.ScrollToTopBus
 import pg.geobingo.one.ui.components.ScrollToTopTags
 import pg.geobingo.one.ui.components.SyncAvatars
@@ -82,6 +83,9 @@ fun App() {
             Box(modifier = Modifier.weight(1f)) {
                 SyncAvatars(gameState)
                 ScreenRouter(nav.currentScreen, gameState)
+                // Global "reward earned" overlay — shown above every screen
+                // when gameState.ui.pendingReward is set.
+                RewardEarnedOverlay(gameState)
             }
 
             // Global bottom navigation bar — hidden during games/transitions

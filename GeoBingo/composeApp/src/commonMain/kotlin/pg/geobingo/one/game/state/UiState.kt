@@ -12,6 +12,21 @@ import pg.geobingo.one.util.AppLogger
 private const val MAX_HISTORY_ENTRIES = 50
 private val historyJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
+/**
+ * Short-lived reward notification driving the global RewardEarnedOverlay.
+ * `stars` shows a star badge when > 0. `label` is the user-facing headline
+ * (e.g. the cosmetic name, "Daily Bonus", "Dankeschön"). Consumed exactly
+ * once — whoever reads it must set `pendingReward = null` when the animation
+ * finishes.
+ */
+data class RewardEvent(
+    val label: String,
+    val stars: Int = 0,
+    val emoji: String? = null,
+) {
+    val triggerKey: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+}
+
 class UiState {
     var soundEnabled by mutableStateOf(AppSettings.getBoolean(SettingsKeys.SOUND_ENABLED, true))
         private set
@@ -28,6 +43,7 @@ class UiState {
         AppSettings.setBoolean(SettingsKeys.HAPTIC_ENABLED, value)
     }
     var pendingToast by mutableStateOf<String?>(null)
+    var pendingReward by mutableStateOf<RewardEvent?>(null)
     var showDailyBonusBanner by mutableStateOf(false)
     var pendingGameInviteCode by mutableStateOf<String?>(null)
     var consecutiveNetworkErrors by mutableStateOf(0)

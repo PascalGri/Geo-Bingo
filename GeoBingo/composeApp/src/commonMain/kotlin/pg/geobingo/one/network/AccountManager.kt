@@ -91,7 +91,7 @@ object AccountManager {
     var profileVersion: Int by mutableIntStateOf(0)
         private set
 
-    private fun bumpProfileVersion() {
+    fun bumpProfileVersion() {
         profileVersion++
     }
 

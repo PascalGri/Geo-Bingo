@@ -86,6 +86,11 @@ fun SoloResultsScreen(gameState: GameState) {
             // Update persistent general stats
             val gamesPlayed = AppSettings.getInt(SettingsKeys.GAMES_PLAYED, 0) + 1
             AppSettings.setInt(SettingsKeys.GAMES_PLAYED, gamesPlayed)
+
+            // Append to shared game-history list so the user's Spielverlauf
+            // now also contains solo rounds (multiplayer had this already).
+            val playerName = AppSettings.getString("last_player_name", "Player")
+            gameState.history.saveSoloToHistory(solo, playerName)
         }
 
         // Submit to server (rate-limited)

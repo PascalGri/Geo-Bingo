@@ -42,7 +42,11 @@ fun PlayerAvatarView(
     photoBytes: ByteArray? = null,
     showFrame: Boolean = true,
 ) {
-    val frame = if (showFrame) remember { CosmeticsManager.getEquippedFrame() } else null
+    // Key on equippedRevision so switching cosmetics live updates every
+    // avatar on screen. Previously `remember { ... }` without a key cached
+    // the initial frame forever and the avatar kept showing the old ring.
+    val equipRev by CosmeticsManager.equippedRevision.collectAsState()
+    val frame = if (showFrame) remember(equipRev) { CosmeticsManager.getEquippedFrame() } else null
     val hasFrame = frame != null && frame.id != "frame_none" && frame.borderColors.any { it != Color.Transparent }
 
     var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
@@ -80,7 +84,11 @@ fun PlayerAvatarViewRaw(
     photoBytes: ByteArray? = null,
     showFrame: Boolean = true,
 ) {
-    val frame = if (showFrame) remember { CosmeticsManager.getEquippedFrame() } else null
+    // Key on equippedRevision so switching cosmetics live updates every
+    // avatar on screen. Previously `remember { ... }` without a key cached
+    // the initial frame forever and the avatar kept showing the old ring.
+    val equipRev by CosmeticsManager.equippedRevision.collectAsState()
+    val frame = if (showFrame) remember(equipRev) { CosmeticsManager.getEquippedFrame() } else null
     val hasFrame = frame != null && frame.id != "frame_none" && frame.borderColors.any { it != Color.Transparent }
 
     var imageBitmap by remember(photoBytes) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }

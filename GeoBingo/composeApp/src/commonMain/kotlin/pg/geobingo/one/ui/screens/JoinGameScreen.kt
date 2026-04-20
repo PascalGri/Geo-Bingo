@@ -60,8 +60,17 @@ fun JoinGameScreen(gameState: GameState) {
     LaunchedEffect(Unit) {
         if (gameState.ui.pendingGameInviteCode != null) gameState.ui.pendingGameInviteCode = null
     }
-    val nameInput = remember { AppSettings.getString("last_player_name", "") }
-    val selectedAvatarBytes = remember { LocalPhotoStore.loadAvatar("profile") }
+    // Name is editable directly here — supports guests who have never set
+    // a profile name. Pre-fills from cache if present.
+    var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
+    var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
+    val photoCapturer = pg.geobingo.one.platform.rememberPhotoCapturer { bytes ->
+        if (bytes != null) {
+            selectedAvatarBytes = bytes
+            // Save as the profile-wide avatar so the same pic follows the user.
+            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (_: Exception) {}
+        }
+    }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -197,30 +206,60 @@ fun JoinGameScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Compact profile card (read-only, editable in Settings)
+            // Inline profile row — editable name TextField + tappable avatar
+            // for guests. Works for both guests and logged-in users: the
+            // cached name pre-fills and the user can tweak it per-round.
             Row(
-                modifier = Modifier.fillMaxWidth().staggered(4)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ColorSurface)
-                    .clickable { nav.navigateTo(Screen.SETTINGS) }
-                    .padding(12.dp),
+                modifier = Modifier.fillMaxWidth().staggered(4),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                pg.geobingo.one.ui.theme.PlayerAvatarViewRaw(
-                    name = nameInput.ifBlank { "?" },
-                    color = ColorPrimary,
-                    size = 36.dp,
-                    photoBytes = selectedAvatarBytes,
-                )
-                Text(
-                    nameInput.ifBlank { S.current.enterName },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (nameInput.isBlank()) ColorOnSurfaceVariant else ColorOnSurface,
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(ColorSurface)
+                        .clickable { photoCapturer.launch() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (selectedAvatarBytes != null) {
+                        pg.geobingo.one.ui.theme.PlayerAvatarViewRaw(
+                            name = nameInput.ifBlank { "?" },
+                            color = ColorPrimary,
+                            size = 52.dp,
+                            photoBytes = selectedAvatarBytes,
+                            showFrame = false,
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.AddAPhoto,
+                            contentDescription = null,
+                            tint = ColorOnSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { if (it.length <= 24) nameInput = it },
+                    label = { Text(S.current.enterName, color = ColorOnSurfaceVariant) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorPrimary,
+                        unfocusedBorderColor = ColorOutline,
+                        focusedTextColor = ColorOnSurface,
+                        unfocusedTextColor = ColorOnSurface,
+                        focusedLabelColor = ColorPrimary,
+                        cursorColor = ColorPrimary,
+                        focusedContainerColor = ColorSurface,
+                        unfocusedContainerColor = ColorSurface,
+                    ),
                     modifier = Modifier.weight(1f),
                 )
-                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = ColorOnSurfaceVariant)
             }
 
             Spacer(Modifier.weight(1f))

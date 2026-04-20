@@ -80,9 +80,6 @@ fun SoloGameScreen(gameState: GameState) {
     var aiConsentAccepted by remember { mutableStateOf(AppSettings.getBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
     // Buffer photo bytes + catId while waiting for consent
-    var pendingConsentCatId by remember { mutableStateOf<String?>(null) }
-    var pendingConsentBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var pendingConsentIsRetake by remember { mutableStateOf(false) }
 
     fun trySpend(cost: Int, onSuccess: () -> Unit) {
         if (gameState.stars.spend(cost)) {
@@ -93,12 +90,25 @@ fun SoloGameScreen(gameState: GameState) {
         }
     }
 
-    // Shared validation logic to avoid duplicating the API call code
+    // Shared validation logic to avoid duplicating the API call code.
+    // Catches Throwable (not just Exception) because Kotlin/Native can bridge
+    // ObjC NSExceptions and other non-Exception Throwables that would otherwise
+    // crash the app as "unhandled coroutine exception". The extra
+    // CoroutineExceptionHandler is a second-line defense for anything that
+    // escapes even the Throwable catch.
     fun validatePhoto(catId: String, bytes: ByteArray, fallbackOnError: Boolean) {
         val category = solo.categories.find { it.id == catId } ?: return
         solo.validatingCategories = solo.validatingCategories + catId
         solo.captureTimestamps = solo.captureTimestamps + (catId to kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
-        scope.launch {
+        val handler = kotlinx.coroutines.CoroutineExceptionHandler { _, t ->
+            AppLogger.w("SoloGame", "Photo validation coroutine escaped: ${t::class.simpleName}", t)
+            solo.validatingCategories = solo.validatingCategories - catId
+            if (fallbackOnError) {
+                solo.categoryRatings = solo.categoryRatings + (catId to 5)
+                solo.categoryReasons = solo.categoryReasons + (catId to "")
+            }
+        }
+        scope.launch(handler) {
             try {
                 val result = GameRepository.validateSoloPhoto(
                     imageBytes = bytes,
@@ -122,8 +132,8 @@ fun SoloGameScreen(gameState: GameState) {
                     if (result.rating >= 3) SoundPlayer.play(SoundEffect.PhotoValidated)
                     else SoundPlayer.play(SoundEffect.PhotoRejected)
                 }
-            } catch (e: Exception) {
-                AppLogger.w("SoloGame", "Photo validation failed", e)
+            } catch (t: Throwable) {
+                AppLogger.w("SoloGame", "Photo validation failed: ${t::class.simpleName}", t)
                 if (fallbackOnError) {
                     solo.categoryRatings = solo.categoryRatings + (catId to 5)
                     solo.categoryReasons = solo.categoryReasons + (catId to "")
@@ -134,15 +144,13 @@ fun SoloGameScreen(gameState: GameState) {
         }
     }
 
+    // Consent is resolved at screen entry via the LaunchedEffect below, so
+    // by the time a photo is captured the user has either accepted (use AI)
+    // or declined (use a default rating). No more mid-game dialog.
     fun handleCapturedPhoto(catId: String, bytes: ByteArray, retake: Boolean) {
         if (retake) {
             if (aiConsentAccepted) {
                 validatePhoto(catId, bytes, fallbackOnError = false)
-            } else {
-                pendingConsentCatId = catId
-                pendingConsentBytes = bytes
-                pendingConsentIsRetake = true
-                showAiConsentDialog = true
             }
         } else if (catId !in solo.capturedCategories) {
             solo.capturedCategories = solo.capturedCategories + catId
@@ -150,18 +158,31 @@ fun SoloGameScreen(gameState: GameState) {
             if (aiConsentAccepted) {
                 validatePhoto(catId, bytes, fallbackOnError = true)
             } else {
-                pendingConsentCatId = catId
-                pendingConsentBytes = bytes
-                pendingConsentIsRetake = false
-                showAiConsentDialog = true
+                solo.categoryRatings = solo.categoryRatings + (catId to 3)
+                solo.categoryReasons = solo.categoryReasons + (catId to "")
             }
+        }
+    }
+
+    // Ask for AI consent on screen entry, before any photo is taken. This
+    // both matches the DSGVO expectation (consent before processing) and
+    // avoids the Compose iOS crash where a Dialog mount raced the
+    // UIImagePickerController dismiss animation.
+    LaunchedEffect(Unit) {
+        if (!aiConsentAccepted) {
+            showAiConsentDialog = true
         }
     }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         val catId = pendingCategoryId
-        if (bytes != null && catId != null) {
-            handleCapturedPhoto(catId, bytes, isRetake)
+        if (catId != null) {
+            if (bytes != null) {
+                handleCapturedPhoto(catId, bytes, isRetake)
+            } else {
+                AppLogger.w("SoloGame", "Photo capture returned null bytes for catId=$catId")
+                gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.uploadFailed
+            }
             isRetake = false
             pendingCategoryId = null
         }
@@ -242,17 +263,7 @@ fun SoloGameScreen(gameState: GameState) {
     // AI consent dialog
     if (showAiConsentDialog) {
         AlertDialog(
-            onDismissRequest = {
-                // User dismissed — treat as decline for this photo, give default rating
-                showAiConsentDialog = false
-                val catId = pendingConsentCatId
-                if (catId != null && !pendingConsentIsRetake) {
-                    solo.categoryRatings = solo.categoryRatings + (catId to 3)
-                    solo.categoryReasons = solo.categoryReasons + (catId to "")
-                }
-                pendingConsentBytes = null
-                pendingConsentCatId = null
-            },
+            onDismissRequest = { /* Block outside-tap dismiss — force explicit choice */ },
             icon = { Icon(Icons.Default.PhotoCamera, null, tint = AIGradient.first(), modifier = Modifier.size(28.dp)) },
             title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
             text = {
@@ -267,27 +278,15 @@ fun SoloGameScreen(gameState: GameState) {
                     AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)
                     aiConsentAccepted = true
                     showAiConsentDialog = false
-                    val catId = pendingConsentCatId
-                    val bytes = pendingConsentBytes
-                    if (catId != null && bytes != null) {
-                        validatePhoto(catId, bytes, fallbackOnError = !pendingConsentIsRetake)
-                    }
-                    pendingConsentBytes = null
-                    pendingConsentCatId = null
                 }) {
                     Text(S.current.aiConsentAccept)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
+                    // Decline: keep aiConsentAccepted=false; photos get default rating.
+                    // Not persisted so we can ask again next session.
                     showAiConsentDialog = false
-                    val catId = pendingConsentCatId
-                    if (catId != null && !pendingConsentIsRetake) {
-                        solo.categoryRatings = solo.categoryRatings + (catId to 3)
-                        solo.categoryReasons = solo.categoryReasons + (catId to "")
-                    }
-                    pendingConsentBytes = null
-                    pendingConsentCatId = null
                 }) {
                     Text(S.current.aiConsentDecline)
                 }

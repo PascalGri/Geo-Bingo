@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
@@ -126,6 +127,11 @@ fun ShopScreen(gameState: GameState) {
                 }
             }
 
+            // Redeem-code section — giveaways, influencer drops, apology gifts.
+            ShopSection(title = S.current.redeemCode, icon = Icons.Default.CardGiftcard) {
+                RedeemCodeCard(gameState = gameState)
+            }
+
             if (!BillingManager.isBillingSupported) {
                 BillingUnavailableNote()
             }
@@ -148,7 +154,12 @@ fun ShopScreen(gameState: GameState) {
                                         BillingManager.purchaseProduct(
                                             productId = pkg.productId,
                                             onSuccess = {
-                                                gameState.stars.add(pkg.stars + pkg.bonus)
+                                                val total = pkg.stars + pkg.bonus
+                                                gameState.stars.add(total)
+                                                gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                                    label = S.current.starsEarned,
+                                                    stars = total,
+                                                )
                                                 purchaseLoading = null
                                             },
                                             onError = { purchaseLoading = null },
@@ -185,6 +196,11 @@ fun ShopScreen(gameState: GameState) {
                                     productId = pkg.productId,
                                     onSuccess = {
                                         gameState.stars.addSkipCards(pkg.cards)
+                                        gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                            label = S.current.skipCardsEarned(pkg.cards),
+                                            stars = 0,
+                                            emoji = "\uD83C\uDCCF",
+                                        )
                                         purchaseLoading = null
                                     },
                                     onError = { purchaseLoading = null },
@@ -206,6 +222,11 @@ fun ShopScreen(gameState: GameState) {
                                 productId = "pg.geobingo.one.no_ads",
                                 onSuccess = {
                                     gameState.stars.updateNoAdsPurchased(true)
+                                    gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                        label = S.current.rewardAdsRemoved,
+                                        stars = 0,
+                                        emoji = "\uD83D\uDEAB",
+                                    )
                                     purchaseLoading = null
                                 },
                                 onError = { purchaseLoading = null },
@@ -396,6 +417,10 @@ private fun EarnStarsCard(gameState: GameState) {
                         onReward = {
                             gameState.stars.add(10)
                             gameState.stars.recordAdWatched()
+                            gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                label = S.current.rewardVideoWatched,
+                                stars = 10,
+                            )
                         },
                         onDismiss = {},
                     )
@@ -487,6 +512,115 @@ private fun tierGlowColor(tier: StarTier): Color = when (tier) {
     StarTier.SILVER -> Color(0xFFE5E5F0)
     StarTier.GOLD -> Color(0xFFFBBF24)
     StarTier.DIAMOND -> Color(0xFFC4B5FD)
+}
+
+@Composable
+private fun RedeemCodeCard(gameState: GameState) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var codeInput by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    fun attemptRedeem() {
+        if (codeInput.isBlank()) {
+            errorMessage = S.current.redeemCodeErrorInvalid
+            return
+        }
+        if (!pg.geobingo.one.network.AccountManager.isLoggedIn) {
+            errorMessage = S.current.redeemCodeErrorNotLoggedIn
+            return
+        }
+        loading = true
+        errorMessage = null
+        scope.launch {
+            when (val res = pg.geobingo.one.network.RedeemCodeManager.redeem(codeInput)) {
+                is pg.geobingo.one.network.RedeemCodeManager.Result.Success -> {
+                    gameState.stars.setBalance(res.newBalance)
+                    gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                        label = S.current.redeemCodeSuccess,
+                        stars = res.starsGranted,
+                    )
+                    codeInput = ""
+                }
+                pg.geobingo.one.network.RedeemCodeManager.Result.NotAuthenticated ->
+                    errorMessage = S.current.redeemCodeErrorNotLoggedIn
+                pg.geobingo.one.network.RedeemCodeManager.Result.InvalidCode ->
+                    errorMessage = S.current.redeemCodeErrorInvalid
+                pg.geobingo.one.network.RedeemCodeManager.Result.UnknownCode ->
+                    errorMessage = S.current.redeemCodeErrorUnknown
+                pg.geobingo.one.network.RedeemCodeManager.Result.Expired ->
+                    errorMessage = S.current.redeemCodeErrorExpired
+                pg.geobingo.one.network.RedeemCodeManager.Result.Depleted ->
+                    errorMessage = S.current.redeemCodeErrorDepleted
+                pg.geobingo.one.network.RedeemCodeManager.Result.AlreadyRedeemed ->
+                    errorMessage = S.current.redeemCodeErrorAlreadyUsed
+                is pg.geobingo.one.network.RedeemCodeManager.Result.Error ->
+                    errorMessage = S.current.purchaseFailed
+            }
+            loading = false
+        }
+    }
+
+    GradientBorderCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        borderColors = GradientGold,
+        backgroundColor = ColorSurface,
+        borderWidth = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = codeInput,
+                    onValueChange = { codeInput = it.uppercase().take(24) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text(S.current.redeemCodePlaceholder, color = ColorOnSurfaceVariant) },
+                    enabled = !loading,
+                    textStyle = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    ),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onDone = { attemptRedeem() },
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = GradientGold.first(),
+                        unfocusedBorderColor = ColorOutlineVariant,
+                    ),
+                )
+                FilledTonalButton(
+                    onClick = { attemptRedeem() },
+                    enabled = !loading && codeInput.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(S.current.redeemCodeRedeem, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            if (errorMessage != null) {
+                Text(
+                    errorMessage!!,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorError,
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -57,10 +57,17 @@ fun AnimatedGradientText(
     gradientColors: List<Color> = GradientPrimary,
     durationMillis: Int = 5000,
 ) {
+    // TextStyle.copy's brush-overload forbids passing `color` simultaneously,
+    // so we clear color in a separate copy call first. Without this, a
+    // caller-supplied style.color overrides the brush on some Compose
+    // Multiplatform targets and cosmetic name-effect previews in the shop
+    // render as plain white text.
+    fun TextStyle.withBrush(brush: Brush) = copy(color = Color.Unspecified).copy(brush = brush)
+
     val reduceMotion = LocalReduceMotion.current
     if (reduceMotion) {
         val brush = Brush.linearGradient(colors = gradientColors, start = Offset(0f, 0f), end = Offset(500f, 300f))
-        Text(text = text, style = style.copy(brush = brush), modifier = modifier)
+        Text(text = text, style = style.withBrush(brush), modifier = modifier)
         return
     }
     val transition = rememberInfiniteTransition(label = "gradText")
@@ -80,7 +87,7 @@ fun AnimatedGradientText(
     )
     Text(
         text = text,
-        style = style.copy(brush = brush),
+        style = style.withBrush(brush),
         modifier = modifier,
     )
 }

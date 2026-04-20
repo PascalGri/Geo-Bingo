@@ -3,6 +3,7 @@ package pg.geobingo.one.game
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.game.state.GamePlayState
 import pg.geobingo.one.game.state.SessionState
+import pg.geobingo.one.game.state.SoloState
 import pg.geobingo.one.game.state.UiState
 import pg.geobingo.one.network.toHex
 
@@ -29,6 +30,38 @@ class HistoryManager(
             date = now,
             gameId = session.gameId ?: "",
             categories = gameplay.selectedCategories.map { HistoryCategory(id = it.id, name = it.name) },
+        )
+        ui.gameHistory = listOf(entry) + ui.gameHistory
+    }
+
+    /**
+     * Append a completed solo round to the shared game-history list. Solo
+     * rounds used to only update `SoloStatsManager` (for the profile-page
+     * aggregates) and never showed up in the per-round "Spielverlauf"
+     * history — so the user's history looked empty for solo-only players.
+     * Uses the "SOLO" gameCode sentinel so HistoryScreen can render it
+     * differently if needed.
+     */
+    fun saveSoloToHistory(solo: SoloState, playerName: String) {
+        if (solo.categories.isEmpty()) return
+        val now = kotlinx.datetime.Clock.System.now().toString()
+        val entry = GameHistoryEntry(
+            gameCode = "SOLO",
+            playerName = playerName,
+            score = solo.totalScore,
+            totalCategories = solo.categoryCount,
+            players = listOf(
+                HistoryPlayer(
+                    id = session.myPlayerId ?: "solo",
+                    name = playerName,
+                    score = solo.totalScore,
+                    colorHex = "#6366F1",
+                )
+            ),
+            jokerMode = false,
+            date = now,
+            gameId = "",
+            categories = solo.categories.map { HistoryCategory(id = it.id, name = it.name) },
         )
         ui.gameHistory = listOf(entry) + ui.gameHistory
     }

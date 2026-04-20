@@ -78,6 +78,10 @@ fun MiniShopPopup(
                                     productId = pkg.productId,
                                     onSuccess = {
                                         gameState.stars.add(pkg.stars)
+                                        gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                            label = pg.geobingo.one.i18n.S.current.starsEarned,
+                                            stars = pkg.stars,
+                                        )
                                         purchaseLoading = null
                                         onPurchased()
                                     },

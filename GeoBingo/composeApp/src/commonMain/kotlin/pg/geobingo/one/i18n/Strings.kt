@@ -449,6 +449,14 @@ interface StringRes {
     fun skipCardsPackage(cards: Int, price: String): String
     val interstitialDisabledNote: String
     val starsEarned: String
+    fun skipCardsEarned(count: Int): String
+    val rewardDailyBonus: String
+    val rewardDailyChallenge: String
+    val rewardWeeklyChallenge: String
+    val rewardVideoWatched: String
+    val rewardUnlocked: String
+    val rewardAdsRemoved: String
+    val rewardAchievementBonus: String
     fun needMoreStars(needed: Int, have: Int): String
     val buyExtraTime: String
     val retakePhoto: String
@@ -498,6 +506,24 @@ interface StringRes {
     val profileSetupNameRequired: String
     val nameContainsProfanity: String
     val editProfile: String
+    val tapAvatarToChange: String
+    val myCollection: String
+    val bestScore: String
+    val perfectGames: String
+    val categoriesCaptured: String
+    val fullBingos: String
+    val multiplayerGames: String
+    val starsEarnedLifetime: String
+    val redeemCode: String
+    val redeemCodeSuccess: String
+    val redeemCodePlaceholder: String
+    val redeemCodeRedeem: String
+    val redeemCodeErrorInvalid: String
+    val redeemCodeErrorUnknown: String
+    val redeemCodeErrorExpired: String
+    val redeemCodeErrorDepleted: String
+    val redeemCodeErrorAlreadyUsed: String
+    val redeemCodeErrorNotLoggedIn: String
     val profileUpdated: String
     val displayName: String
     val changeAvatar: String

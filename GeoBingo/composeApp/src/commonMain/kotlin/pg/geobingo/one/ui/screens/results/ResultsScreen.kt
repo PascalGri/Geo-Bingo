@@ -198,7 +198,10 @@ fun ResultsScreen(gameState: GameState) {
                 }
                 if (challengeCompleted) {
                     gameState.stars.completeDailyChallenge(challenge.reward)
-                    gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.dailyChallengeCompleted} +${challenge.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                    gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                        label = pg.geobingo.one.i18n.S.current.rewardDailyChallenge,
+                        stars = challenge.reward,
+                    )
                 }
             }
 
@@ -227,7 +230,10 @@ fun ResultsScreen(gameState: GameState) {
                 }
                 if (gameState.stars.weeklyChallengeProgress >= weekly.target) {
                     gameState.stars.completeWeeklyChallenge(weekly.reward)
-                    gameState.ui.pendingToast = "${pg.geobingo.one.i18n.S.current.weeklyChallengeCompleted} +${weekly.reward} ${pg.geobingo.one.i18n.S.current.stars}"
+                    gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                        label = pg.geobingo.one.i18n.S.current.rewardWeeklyChallenge,
+                        stars = weekly.reward,
+                    )
                 }
             }
 
@@ -448,7 +454,10 @@ fun ResultsScreen(gameState: GameState) {
                             Analytics.track(Analytics.AD_WATCHED)
                             gameState.stars.add(10)
                             gameState.stars.recordAdWatched()
-                            gameState.ui.pendingToast = S.current.starsEarned
+                            gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                                label = S.current.rewardVideoWatched,
+                                stars = 10,
+                            )
                         },
                                         onDismiss = { rewardedAdLoading = false }
                                     )

@@ -111,11 +111,16 @@ fun PlayerBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FramedAvatar(frameId = frame.id, size = avatarSize) {
+                // `showFrame = false` — FramedAvatar already draws the
+                // current frame. Without this the inner avatar re-drew its
+                // OWN (remember-cached = stale) frame, so swapping frames
+                // left the previous colour as a visible inner ring.
                 PlayerAvatarViewRaw(
                     name = name,
                     color = avatarColor,
                     size = avatarSize - (frame.borderWidth.dp * 2),
                     photoBytes = avatarBytes,
+                    showFrame = false,
                 )
             }
             Spacer(Modifier.width(12.dp))

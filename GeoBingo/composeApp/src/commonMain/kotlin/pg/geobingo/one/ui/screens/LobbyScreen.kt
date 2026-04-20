@@ -99,6 +99,14 @@ fun LobbyScreen(gameState: GameState) {
         try { gameState.gameplay.lobbyPlayers = GameRepository.getPlayers(gameId) } catch (e: Exception) { AppLogger.w("Lobby", "Operation failed", e) }
     }
 
+    // Incoming lobby reactions — surface them as toasts so everyone in the
+    // lobby sees "Alice: Bereit!" when Alice taps the Ready button.
+    LaunchedEffect(gameId) {
+        realtime?.lobbyReactions?.collect { r ->
+            gameState.ui.pendingToast = "${r.playerName}: ${r.label}"
+        }
+    }
+
     // Sync: player joined (realtime + polling via SyncManager)
     LaunchedEffect(gameId) {
         sync.playerJoined.collect {
@@ -834,10 +842,26 @@ fun LobbyScreen(gameState: GameState) {
                         Icons.Default.Timer to S.current.hurryUp,
                     )
                     reactionItems.forEach { (icon, label) ->
+                        val iconKey = if (icon == Icons.Default.ThumbUp) "thumb" else "timer"
                         OutlinedButton(
                             onClick = {
                                 lastReaction = label
                                 gameState.ui.pendingToast = label
+                                // Broadcast to everyone else in the lobby so
+                                // they see the reaction too — previously the
+                                // button was purely local.
+                                val myName = gameState.gameplay.lobbyPlayers
+                                    .find { it.id == gameState.session.myPlayerId }?.name
+                                    ?: pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Spieler")
+                                scope.launch {
+                                    realtime?.sendLobbyReaction(
+                                        pg.geobingo.one.network.LobbyReaction(
+                                            playerName = myName,
+                                            label = label,
+                                            icon = iconKey,
+                                        )
+                                    )
+                                }
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                             border = androidx.compose.foundation.BorderStroke(

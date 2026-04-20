@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -67,17 +68,43 @@ fun CosmeticShopScreen(gameState: GameState) {
 
     // Unified purchase flow: server-authoritative when logged in (via purchase_cosmetic RPC),
     // local-only for guests. Caller only supplies item ID + fallback cost.
+    // Resolves the cosmetic's display name across all categories so the
+    // reward overlay can show "Galaxie freigeschaltet" instead of a bare ID.
+    fun resolveCosmeticName(id: String): String {
+        CosmeticsManager.ALL_FRAMES.firstOrNull { it.id == id }?.let { return it.name }
+        CosmeticsManager.ALL_NAME_EFFECTS.firstOrNull { it.id == id }?.let { return it.name }
+        CosmeticsManager.ALL_TITLES.firstOrNull { it.id == id }?.let { return it.name }
+        CosmeticsManager.ALL_BANNER_BACKGROUNDS.firstOrNull { it.id == id }?.let { return it.name }
+        CosmeticsManager.ALL_CARD_DESIGNS.firstOrNull { it.id == id }?.let { return it.name }
+        return id
+    }
+
     fun tryPurchase(
         cosmeticId: String,
         localCost: Int,
         onAcquired: () -> Unit,
     ) {
+        val fireRewardOverlay = {
+            gameState.ui.pendingReward = pg.geobingo.one.game.state.RewardEvent(
+                label = resolveCosmeticName(cosmeticId),
+                stars = 0,
+                emoji = "\u2728", // sparkles
+            )
+        }
         if (AccountManager.isLoggedIn) {
             purchaseScope.launch {
+                // Push local star count to the server FIRST so daily bonuses,
+                // ad rewards and challenge payouts that only updated locally
+                // are reflected before the purchase_cosmetic RPC runs its
+                // `star_count >= cost` check. Without this, a user who's
+                // earned stars offline sees "insufficient stars" even when
+                // their visible balance is enough.
+                AccountManager.currentUserId?.let { AccountManager.syncLocalToCloud(it) }
                 when (val res = CosmeticsManager.purchaseCosmeticCloud(cosmeticId)) {
                     is CosmeticsManager.PurchaseResult.Success -> {
                         gameState.stars.setBalance(res.newStarBalance)
                         onAcquired()
+                        fireRewardOverlay()
                     }
                     is CosmeticsManager.PurchaseResult.InsufficientStars -> {
                         miniShopNeeded = localCost
@@ -90,6 +117,7 @@ fun CosmeticShopScreen(gameState: GameState) {
                         if (gameState.stars.spend(localCost)) {
                             CosmeticsManager.purchase(cosmeticId)
                             onAcquired()
+                            fireRewardOverlay()
                         } else {
                             miniShopNeeded = localCost
                             showMiniShop = true
@@ -101,6 +129,7 @@ fun CosmeticShopScreen(gameState: GameState) {
             if (gameState.stars.spend(localCost)) {
                 CosmeticsManager.purchase(cosmeticId)
                 onAcquired()
+                fireRewardOverlay()
             } else {
                 miniShopNeeded = localCost
                 showMiniShop = true
@@ -152,34 +181,47 @@ fun CosmeticShopScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
+        // Layout: Tab switcher + live preview are pinned under the TopAppBar
+        // so the user always sees what the current cosmetic loadout looks
+        // like — only the category lists below scroll.
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(padding),
         ) {
-            // ── Stars / Cosmetics Tab Switcher ──────────────────────────
-            ShopTabSwitcher(activeScreen = pg.geobingo.one.game.Screen.COSMETIC_SHOP)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screenHorizontal, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                ShopTabSwitcher(activeScreen = pg.geobingo.one.game.Screen.COSMETIC_SHOP)
+                PreviewHero(
+                    playerName = playerName,
+                    avatarBytes = avatarBytes,
+                    cosmetics = PlayerCosmetics(
+                        frameId = equippedFrameId,
+                        nameEffectId = equippedNameId,
+                        titleId = equippedTitleId,
+                        bannerBackgroundId = equippedBannerBgId,
+                    ),
+                )
+            }
 
-            // ── Live preview banner (Rocket-League-style) ───────────────
-            PreviewHero(
-                playerName = playerName,
-                avatarBytes = avatarBytes,
-                cosmetics = PlayerCosmetics(
-                    frameId = equippedFrameId,
-                    nameEffectId = equippedNameId,
-                    titleId = equippedTitleId,
-                    bannerBackgroundId = equippedBannerBgId,
-                ),
-            )
-
-            // ── Profile Frames ──────────────────────────────────────────
-            CosmeticSectionHeader(title = S.current.profileFrames, icon = Icons.Default.AccountCircle)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Spacing.screenHorizontal)
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                // ── Profile Frames ──────────────────────────────────────────
+                CosmeticSectionHeader(title = S.current.profileFrames, icon = Icons.Default.AccountCircle)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CosmeticsManager.ALL_FRAMES.chunked(2).forEach { row ->
+                CosmeticsManager.ALL_FRAMES.sortedBy { it.starsCost }.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -211,7 +253,7 @@ fun CosmeticShopScreen(gameState: GameState) {
             CosmeticSectionHeader(title = S.current.nameEffects, icon = Icons.Default.AutoAwesome)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CosmeticsManager.ALL_NAME_EFFECTS.chunked(2).forEach { row ->
+                CosmeticsManager.ALL_NAME_EFFECTS.sortedBy { it.starsCost }.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -244,7 +286,7 @@ fun CosmeticShopScreen(gameState: GameState) {
             CosmeticSectionHeader(title = S.current.playerTitles, icon = Icons.Default.MilitaryTech)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CosmeticsManager.ALL_TITLES.chunked(2).forEach { row ->
+                CosmeticsManager.ALL_TITLES.sortedBy { it.starsCost }.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -276,7 +318,7 @@ fun CosmeticShopScreen(gameState: GameState) {
             CosmeticSectionHeader(title = S.current.bannerBackgrounds, icon = Icons.Default.Wallpaper)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CosmeticsManager.ALL_BANNER_BACKGROUNDS.chunked(2).forEach { row ->
+                CosmeticsManager.ALL_BANNER_BACKGROUNDS.sortedBy { it.starsCost }.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -309,7 +351,7 @@ fun CosmeticShopScreen(gameState: GameState) {
             CosmeticSectionHeader(title = S.current.cardDesigns, icon = Icons.Default.Palette)
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                CosmeticsManager.ALL_CARD_DESIGNS.chunked(2).forEach { row ->
+                CosmeticsManager.ALL_CARD_DESIGNS.sortedBy { it.starsCost }.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -337,7 +379,8 @@ fun CosmeticShopScreen(gameState: GameState) {
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -353,14 +396,23 @@ private fun FrameCard(
 ) {
     val borderColors = if (frame.borderColors.any { it != Color.Transparent } && frame.borderColors.size >= 2)
         frame.borderColors else GradientPrimary
+    val premium = isPremium(frame.starsCost, isOwned)
 
     Box(modifier = modifier) {
         GradientBorderCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            borderColors = if (isEquipped) borderColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+            borderColors = when {
+                isEquipped -> borderColors
+                premium -> PremiumBorderGradient
+                else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
+            },
             backgroundColor = ColorSurface,
-            borderWidth = if (isEquipped) 2.dp else 1.dp,
+            borderWidth = when {
+                isEquipped -> 2.dp
+                premium -> 1.5.dp
+                else -> 1.dp
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp).padding(12.dp),
@@ -420,6 +472,7 @@ private fun FrameCard(
             }
         }
         if (isOwned && !isEquipped) OwnedCornerBadge()
+        if (premium) PremiumCornerBadge(modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 
@@ -433,13 +486,22 @@ private fun NameEffectCard(
     onEquip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val premium = isPremium(effect.starsCost, isOwned)
     Box(modifier = modifier) {
         GradientBorderCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            borderColors = if (isEquipped && effect.gradientColors.size >= 2) effect.gradientColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+            borderColors = when {
+                isEquipped && effect.gradientColors.size >= 2 -> effect.gradientColors
+                premium -> PremiumBorderGradient
+                else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
+            },
             backgroundColor = ColorSurface,
-            borderWidth = if (isEquipped) 2.dp else 1.dp,
+            borderWidth = when {
+                isEquipped -> 2.dp
+                premium -> 1.5.dp
+                else -> 1.dp
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp).padding(12.dp),
@@ -473,6 +535,7 @@ private fun NameEffectCard(
             }
         }
         if (isOwned && !isEquipped) OwnedCornerBadge()
+        if (premium) PremiumCornerBadge(modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 
@@ -485,13 +548,22 @@ private fun PlayerTitleCard(
     onEquip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val premium = isPremium(title.starsCost, isOwned)
     Box(modifier = modifier) {
         GradientBorderCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            borderColors = if (isEquipped) listOf(title.color, title.color.copy(alpha = 0.6f)) else listOf(ColorOutlineVariant, ColorOutlineVariant),
+            borderColors = when {
+                isEquipped -> listOf(title.color, title.color.copy(alpha = 0.6f))
+                premium -> PremiumBorderGradient
+                else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
+            },
             backgroundColor = ColorSurface,
-            borderWidth = if (isEquipped) 2.dp else 1.dp,
+            borderWidth = when {
+                isEquipped -> 2.dp
+                premium -> 1.5.dp
+                else -> 1.dp
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp).padding(12.dp),
@@ -526,6 +598,7 @@ private fun PlayerTitleCard(
             }
         }
         if (isOwned && !isEquipped) OwnedCornerBadge()
+        if (premium) PremiumCornerBadge(modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 
@@ -539,14 +612,23 @@ private fun CardDesignCard(
     modifier: Modifier = Modifier,
 ) {
     val borderColors = if (design.backgroundColors.size >= 2) design.backgroundColors else GradientPrimary
+    val premium = isPremium(design.starsCost, isOwned)
 
     Box(modifier = modifier) {
         GradientBorderCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            borderColors = if (isEquipped) borderColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+            borderColors = when {
+                isEquipped -> borderColors
+                premium -> PremiumBorderGradient
+                else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
+            },
             backgroundColor = ColorSurface,
-            borderWidth = if (isEquipped) 2.dp else 1.dp,
+            borderWidth = when {
+                isEquipped -> 2.dp
+                premium -> 1.5.dp
+                else -> 1.dp
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(12.dp),
@@ -592,6 +674,7 @@ private fun CardDesignCard(
             }
         }
         if (isOwned && !isEquipped) OwnedCornerBadge()
+        if (premium) PremiumCornerBadge(modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 
@@ -606,14 +689,23 @@ private fun BannerBackgroundCard(
     modifier: Modifier = Modifier,
 ) {
     val borderColors = if (background.gradientColors.size >= 2) background.gradientColors else GradientPrimary
+    val premium = isPremium(background.starsCost, isOwned)
 
     Box(modifier = modifier) {
         GradientBorderCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            borderColors = if (isEquipped) borderColors else listOf(ColorOutlineVariant, ColorOutlineVariant),
+            borderColors = when {
+                isEquipped -> borderColors
+                premium -> PremiumBorderGradient
+                else -> listOf(ColorOutlineVariant, ColorOutlineVariant)
+            },
             backgroundColor = ColorSurface,
-            borderWidth = if (isEquipped) 2.dp else 1.dp,
+            borderWidth = when {
+                isEquipped -> 2.dp
+                premium -> 1.5.dp
+                else -> 1.dp
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(12.dp),
@@ -662,6 +754,7 @@ private fun BannerBackgroundCard(
             }
         }
         if (isOwned && !isEquipped) OwnedCornerBadge()
+        if (premium) PremiumCornerBadge(modifier = Modifier.align(Alignment.TopEnd))
     }
 }
 
@@ -669,43 +762,74 @@ private fun BannerBackgroundCard(
 //  Shared pills
 // ──────────────────────────────────────────────────────────────────────
 
+// Matte gold palette — desaturated so the cost pill reads calm rather than
+// glitzy. A single subtle top-bottom gradient gives a soft sheen without
+// the tri-color shiny look the user flagged.
+private val MatteGoldTop = Color(0xFFCA8A04)
+private val MatteGoldBottom = Color(0xFFA16207)
+
+// Cosmetics priced at or above this threshold get a shimmering gold border
+// + "Premium" corner badge so the most valuable items catch the eye first.
+private const val PREMIUM_STAR_THRESHOLD = 120
+private val PremiumBorderGradient = listOf(
+    Color(0xFFFBBF24),
+    Color(0xFFF59E0B),
+    Color(0xFFEAB308),
+    Color(0xFFFBBF24),
+)
+
+private fun isPremium(cost: Int, isOwned: Boolean): Boolean =
+    !isOwned && cost >= PREMIUM_STAR_THRESHOLD
+
+@Composable
+private fun PremiumCornerBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 16.dp, bottomStart = 10.dp, bottomEnd = 0.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B)),
+                )
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Icon(Icons.Default.AutoAwesome, null, tint = Color(0xFFFEF3C7), modifier = Modifier.size(10.dp))
+            Text(
+                "PREMIUM",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFFFEF9C3),
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.sp,
+                letterSpacing = 0.5.sp,
+            )
+        }
+    }
+}
+
 @Composable
 private fun BuyPill(cost: Int, onClick: () -> Unit) {
-    val reduceMotion = LocalReduceMotion.current
-    val transition = rememberInfiniteTransition(label = "buyPillPulse")
-    val scale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (reduceMotion) 1f else 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "buyPillScale",
-    )
+    val pillShape = RoundedCornerShape(50)
     Box(
         modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(14.dp))
-            .background(Brush.linearGradient(GradientGold))
+            .clip(pillShape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(MatteGoldTop, MatteGoldBottom),
+                )
+            )
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {
-        // Subtle top-shine overlay.
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.25f), Color.Transparent),
-                    )
-                ),
-        )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(Icons.Default.Star, null, modifier = Modifier.size(14.dp), tint = Color.White)
+            Icon(Icons.Default.Star, null, modifier = Modifier.size(14.dp), tint = Color(0xFFFEF3C7))
             Text(
                 "$cost",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
+                color = Color(0xFFFEF9C3),
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -759,49 +883,17 @@ private fun PreviewHero(
     avatarBytes: ByteArray?,
     cosmetics: PlayerCosmetics,
 ) {
-    val reduceMotion = LocalReduceMotion.current
-    val transition = rememberInfiniteTransition(label = "heroCosmeticShimmer")
-    val shimmer by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (reduceMotion) 0f else 600f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cosmeticShimmer",
-    )
-    Column(
+    // Compact pinned preview: the banner itself already has its own
+    // gradient background and title row, so we drop the outer card chrome
+    // (VORSCHAU label, padding, extra border) to reclaim vertical space on
+    // iPhone — the banner stays Hero-sized so the cosmetic details remain
+    // readable.
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF1A0B2E),
-                        Color(0xFF2B0F45),
-                        Color(0xFF3D0A45),
-                    ),
-                    start = Offset(shimmer, 0f),
-                    end = Offset(shimmer + 500f, 500f),
-                )
-            )
-            .border(1.dp, ColorPrimary.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 14.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .border(1.dp, ColorPrimary.copy(alpha = 0.28f), RoundedCornerShape(18.dp)),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(Icons.Default.AutoAwesome, null, tint = ColorPrimary, modifier = Modifier.size(14.dp))
-            Text(
-                "VORSCHAU",
-                style = MaterialTheme.typography.labelSmall,
-                color = ColorPrimary,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-            )
-        }
         PlayerBanner(
             name = playerName,
             cosmetics = cosmetics,
