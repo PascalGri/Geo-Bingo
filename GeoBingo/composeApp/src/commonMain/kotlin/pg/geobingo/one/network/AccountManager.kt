@@ -110,25 +110,39 @@ object AccountManager {
         // then follow every future auth event via the StateFlow. Running a single
         // long-lived collector on an object-scope keeps the contract simple: UI
         // state == sessionStatus, always.
-        val seeded = supabase.auth.currentUserOrNull()
-        _currentUser = seeded
-        _isLoggedIn = seeded != null
+        //
+        // Wrapped defensively: if the Supabase client failed to initialize (e.g.
+        // iPad-only iOS 26.4.x networking regression), don't take the whole app
+        // down — leave the user unauthenticated and let sign-in retry later.
+        try {
+            val seeded = supabase.auth.currentUserOrNull()
+            _currentUser = seeded
+            _isLoggedIn = seeded != null
+        } catch (t: Throwable) {
+            AppLogger.e(TAG, "Initial auth read failed", t)
+            _currentUser = null
+            _isLoggedIn = false
+        }
         scope.launch {
-            supabase.auth.sessionStatus.collect { status ->
-                when (status) {
-                    is SessionStatus.Authenticated -> {
-                        _currentUser = status.session.user
-                        _isLoggedIn = status.session.user != null
+            try {
+                supabase.auth.sessionStatus.collect { status ->
+                    when (status) {
+                        is SessionStatus.Authenticated -> {
+                            _currentUser = status.session.user
+                            _isLoggedIn = status.session.user != null
+                        }
+                        is SessionStatus.NotAuthenticated -> {
+                            _currentUser = null
+                            _isLoggedIn = false
+                            // Bump so screens reading `profileVersion` (name/avatar caches)
+                            // also refresh — sessionStatus alone only covers _isLoggedIn/_currentUser.
+                            if (status.isSignOut) bumpProfileVersion()
+                        }
+                        else -> Unit  // LoadingFromStorage, RefreshFailure, etc. — keep current state
                     }
-                    is SessionStatus.NotAuthenticated -> {
-                        _currentUser = null
-                        _isLoggedIn = false
-                        // Bump so screens reading `profileVersion` (name/avatar caches)
-                        // also refresh — sessionStatus alone only covers _isLoggedIn/_currentUser.
-                        if (status.isSignOut) bumpProfileVersion()
-                    }
-                    else -> Unit  // LoadingFromStorage, RefreshFailure, etc. — keep current state
                 }
+            } catch (t: Throwable) {
+                AppLogger.e(TAG, "sessionStatus collector failed", t)
             }
         }
     }

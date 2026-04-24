@@ -8,10 +8,22 @@ import ComposeApp
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        FirebaseApp.configure()
-        Messaging.messaging().delegate = self
+        // Only call FirebaseApp.configure if the plist is present + parseable.
+        // Apple's automated iPad review runs in a sandbox where an invalid/missing
+        // GoogleService-Info.plist (or one whose GOOGLE_APP_ID doesn't match the
+        // signed bundle id) makes configure() NSAssert-abort → hard launch crash.
+        if
+            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            let plist = NSDictionary(contentsOfFile: path),
+            plist["GOOGLE_APP_ID"] as? String != nil,
+            plist["BUNDLE_ID"] as? String == Bundle.main.bundleIdentifier
+        {
+            FirebaseApp.configure()
+            Messaging.messaging().delegate = self
+        } else {
+            NSLog("KatchIt: Skipping FirebaseApp.configure — plist missing or bundle id mismatch")
+        }
         UNUserNotificationCenter.current().delegate = self
-        // Request notification permission
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
             if granted {
                 DispatchQueue.main.async {
