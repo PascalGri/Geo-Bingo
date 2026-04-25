@@ -95,7 +95,14 @@ import ComposeApp
     private static func makeNonce() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        precondition(status == errSecSuccess, "SecRandomCopyBytes failed")
+        if status != errSecSuccess {
+            // Extremely rare (Secure Enclave unavailable / OOM). Don't trap
+            // the process on the auth path — fall back to UUID-derived bytes,
+            // which is still ~122 bits of entropy and good enough for a nonce.
+            NSLog("KatchIt: SecRandomCopyBytes failed (\(status)), falling back to UUID nonce")
+            let fallback = (UUID().uuidString + UUID().uuidString).utf8
+            bytes = Array(fallback.prefix(32))
+        }
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
 

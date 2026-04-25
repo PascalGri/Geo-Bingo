@@ -20,7 +20,12 @@ import ComposeApp
                     return
                 }
 
-                ConsentForm.loadAndPresentIfRequired(from: topViewController()) { formError in
+                guard let presenter = topViewController() else {
+                    NSLog("KatchIt: Skipping consent form — no foreground scene available")
+                    ConsentManagerBridgeCompanion.shared.onConsentReady(canPersonalize: false)
+                    return
+                }
+                ConsentForm.loadAndPresentIfRequired(from: presenter) { formError in
                     let status = ConsentInformation.shared.consentStatus
                     let canPersonalize = (status == .obtained || status == .notRequired)
                     ConsentManagerBridgeCompanion.shared.onConsentReady(canPersonalize: canPersonalize)
@@ -30,23 +35,29 @@ import ComposeApp
     }
 
     @objc static func showPrivacyOptionsForm() {
-        ConsentForm.presentPrivacyOptionsForm(from: topViewController()) { _ in
+        guard let presenter = topViewController() else {
+            NSLog("KatchIt: Skipping privacy options form — no foreground scene available")
+            ConsentManagerBridgeCompanion.shared.privacyOptionsCallback?()
+            ConsentManagerBridgeCompanion.shared.privacyOptionsCallback = nil
+            return
+        }
+        ConsentForm.presentPrivacyOptionsForm(from: presenter) { _ in
             ConsentManagerBridgeCompanion.shared.privacyOptionsCallback?()
             ConsentManagerBridgeCompanion.shared.privacyOptionsCallback = nil
         }
     }
 
-    private static func topViewController() -> UIViewController {
-        // iPad-safe: pick the foreground-active scene, not just "first" — Stage Manager
-        // and multi-window mode can put an inactive scene at index 0.
+    /// Resolves the topmost view controller suitable for presenting a sheet.
+    /// Returns nil instead of a detached UIViewController() when no
+    /// foreground-attached window exists — UMP's loadAndPresentIfRequired
+    /// crashes when handed a viewcontroller that isn't in any scene.
+    private static func topViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let scene = scenes.first(where: { $0.activationState == .foregroundActive })
             ?? scenes.first(where: { $0.activationState == .foregroundInactive })
-            ?? scenes.first
-        let window = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first
-        guard let root = window?.rootViewController else {
-            return UIViewController()
-        }
+        guard let scene = scene else { return nil }
+        let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
+        guard let root = window?.rootViewController else { return nil }
         var top = root
         while let presented = top.presentedViewController {
             top = presented
