@@ -10,6 +10,15 @@ import ComposeApp
 /// crashes on iPad in multi-scene scenarios. This bridge does it the native way:
 /// ASAuthorizationController anchors to the active UIWindow, returns an identity token
 /// + nonce that we feed straight to Supabase via signInWith(IDToken).
+///
+/// iPad crash note: ASAuthorizationController calls `presentationAnchor(for:)`
+/// synchronously from `performRequests()`. If we returned a freshly constructed
+/// `ASPresentationAnchor()` (i.e. a detached UIWindow with no scene) on iPad in
+/// iPhone-compat mode under iPadOS 26.x multi-scene, the framework crashes
+/// while trying to attach its presentation context to the window's scene. We
+/// resolve a real, scene-attached UIWindow up-front and fail the auth request
+/// cleanly via `onError` if none can be found, instead of presenting on a
+/// detached anchor.
 @objc class AppleSignInBridgeImpl: NSObject {
 
     static let shared = AppleSignInBridgeImpl()
@@ -30,6 +39,12 @@ import ComposeApp
 
     @MainActor
     private func startSignIn(rawNonce: String) {
+        guard let anchor = Self.resolveAnchor() else {
+            NSLog("KatchIt: Apple Sign-In aborted — no foreground window scene available")
+            AppleSignInBridge.shared.onError(message: "no_presentation_anchor")
+            return
+        }
+
         let hashed = Self.sha256(rawNonce)
 
         let provider = ASAuthorizationAppleIDProvider()
@@ -39,6 +54,7 @@ import ComposeApp
 
         let delegate = AppleSignInDelegate(
             rawNonce: rawNonce,
+            anchor: anchor,
             onComplete: { [weak self] in
                 self?.activeDelegate = nil
             }
@@ -51,6 +67,16 @@ import ComposeApp
         controller.performRequests()
     }
 
+    @MainActor
+    private static func resolveAnchor() -> ASPresentationAnchor? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first(where: { $0.activationState == .foregroundActive })
+            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
+        guard let scene = scene else { return nil }
+        return scene.windows.first(where: { $0.isKeyWindow })
+            ?? scene.windows.first
+    }
+
     private static func sha256(_ input: String) -> String {
         let data = Data(input.utf8)
         let digest = SHA256.hash(data: data)
@@ -61,24 +87,17 @@ import ComposeApp
 private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
 
     private let rawNonce: String
+    private let anchor: ASPresentationAnchor
     private let onComplete: () -> Void
 
-    init(rawNonce: String, onComplete: @escaping () -> Void) {
+    init(rawNonce: String, anchor: ASPresentationAnchor, onComplete: @escaping () -> Void) {
         self.rawNonce = rawNonce
+        self.anchor = anchor
         self.onComplete = onComplete
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        // Prefer the foreground-active window; fall back to any attached window so we
-        // never hand back a detached UIWindow() (which crashes on iPad).
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let scene = scenes.first(where: { $0.activationState == .foregroundActive })
-            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
-            ?? scenes.first
-        if let window = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first {
-            return window
-        }
-        return ASPresentationAnchor()
+        return anchor
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {

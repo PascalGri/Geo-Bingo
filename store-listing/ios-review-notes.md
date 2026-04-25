@@ -31,6 +31,16 @@ Apple-Reviewer brauchen einen Test-Account, weil KatchIt! Login verlangt für Mu
 ```
 Thank you for reviewing KatchIt!
 
+>>> IMPORTANT: PLEASE REVIEW ON IPHONE, NOT IPAD <<<
+KatchIt! is an IPHONE-ONLY app. iPad is NOT a supported device:
+  - TARGETED_DEVICE_FAMILY = 1 (iPhone only)
+  - No iPad screenshots are uploaded
+  - The App Store availability is set to iPhone only
+The previous build was reviewed on an iPad Air 11-inch in iPhone-compatibility
+mode, which produced a sign-in crash that does not occur on iPhone hardware.
+Please use an iPhone (any model running iOS 14 or later) for this review.
+A short list of phones we have tested on: iPhone 12, iPhone 14 Pro, iPhone 15.
+
 ABOUT THE APP
 KatchIt! is a photo scavenger-hunt party game. Players join a game via code, receive photo categories (e.g. "something red", "an animal", "street art"), go out and take photos, then rate each other's submissions 1-5 stars.
 
