@@ -45,6 +45,13 @@ import ComposeApp
             return
         }
 
+        // Verify the anchor is attached to a valid scene before proceeding
+        guard let scene = anchor.windowScene, scene.activationState != .unattached else {
+            NSLog("KatchIt: Apple Sign-In aborted — presentation anchor not attached to a scene")
+            AppleSignInBridge.shared.onError(message: "invalid_presentation_context")
+            return
+        }
+
         let hashed = Self.sha256(rawNonce)
 
         let provider = ASAuthorizationAppleIDProvider()
@@ -64,7 +71,12 @@ import ComposeApp
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = delegate
         controller.presentationContextProvider = delegate
-        controller.performRequests()
+        do {
+            try controller.performRequests()
+        } catch {
+            NSLog("KatchIt: Apple Sign-In performRequests failed: %@", error.localizedDescription)
+            AppleSignInBridge.shared.onError(message: "performRequests_failed")
+        }
     }
 
     @MainActor
