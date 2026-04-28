@@ -31,6 +31,8 @@ private val FeedGradient = listOf(Color(0xFFF59E0B), Color(0xFFEF4444))
 @Composable
 fun ActivityFeedScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showAuthDialog by remember { mutableStateOf(false) }
     var activities by remember { mutableStateOf<List<GameRepository.ActivityDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var loadingMore by remember { mutableStateOf(false) }
@@ -57,6 +59,7 @@ fun ActivityFeedScreen(gameState: GameState) {
     SystemBackHandler { nav.goBack() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -86,7 +89,7 @@ fun ActivityFeedScreen(gameState: GameState) {
                     title = S.current.signInRequired,
                     description = S.current.signInRequiredDesc,
                     signInLabel = S.current.signIn,
-                    onSignIn = { nav.navigateTo(pg.geobingo.one.game.Screen.ACCOUNT) },
+                    onSignIn = { showAuthDialog = true },
                 )
             }
             return@Scaffold
@@ -188,6 +191,13 @@ fun ActivityFeedScreen(gameState: GameState) {
             }
         }
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 private fun formatTimeAgo(isoTimestamp: String): String {

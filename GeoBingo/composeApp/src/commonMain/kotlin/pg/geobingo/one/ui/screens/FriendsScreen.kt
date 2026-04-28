@@ -61,6 +61,7 @@ fun FriendsScreen(gameState: GameState) {
     var showAddDialog by remember { mutableStateOf(false) }
     var showRemoveDialog by remember { mutableStateOf<FriendInfo?>(null) }
     var friendAvatars by remember { mutableStateOf<Map<String, ByteArray>>(emptyMap()) }
+    var showAuthDialog by remember { mutableStateOf(false) }
     val friendsListState = rememberLazyListState()
     CollectScrollToTop(ScrollToTopTags.FRIENDS, friendsListState)
 
@@ -208,7 +209,7 @@ fun FriendsScreen(gameState: GameState) {
                     Spacer(Modifier.height(20.dp))
                     GradientButton(
                         text = S.current.signIn,
-                        onClick = { nav.navigateTo(Screen.ACCOUNT) },
+                        onClick = { showAuthDialog = true },
                         gradientColors = FriendsGradient,
                         modifier = Modifier.fillMaxWidth(0.6f),
                     )
@@ -350,6 +351,13 @@ fun FriendsScreen(gameState: GameState) {
             }
         }
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 // ── Sub-components ──────────────────────────────────────────────────

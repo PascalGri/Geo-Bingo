@@ -61,6 +61,12 @@ fun SettingsScreen(gameState: GameState) {
     val scrollState = rememberScrollState()
     CollectScrollToTop(ScrollToTopTags.SETTINGS, scrollState)
 
+    // Auth dialog state — opening sign-in directly from Settings (instead of
+    // routing through AccountScreen) saves the user one tap and matches what
+    // App Review expects: tapping "Anmelden" should immediately show the
+    // login UI, not another screen with another "Anmelden" button.
+    var showAuthDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -93,6 +99,7 @@ fun SettingsScreen(gameState: GameState) {
         ) {
             AccountQuickSection(
                 onNavigate = { nav.navigateTo(it) },
+                onSignInClick = { showAuthDialog = true },
             )
 
             SoundAndHapticSection(
@@ -119,6 +126,13 @@ fun SettingsScreen(gameState: GameState) {
             VersionFooter(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 // ── Account Quick Section (navigate to account screen) ──────────────────────
@@ -126,6 +140,7 @@ fun SettingsScreen(gameState: GameState) {
 @Composable
 private fun AccountQuickSection(
     onNavigate: (Screen) -> Unit,
+    onSignInClick: () -> Unit,
 ) {
     SettingsSection(title = S.current.account) {
         val profileVersion = AccountManager.profileVersion
@@ -144,7 +159,7 @@ private fun AccountQuickSection(
                 icon = Icons.Default.PersonAdd,
                 title = S.current.signIn,
                 subtitle = S.current.syncDataDesc,
-                onClick = { onNavigate(Screen.ACCOUNT) },
+                onClick = onSignInClick,
             )
         }
     }
@@ -664,6 +679,58 @@ private fun AccountSection(
             onDismiss = { showChangePasswordDialog = false },
             onResult = { msg ->
                 showChangePasswordDialog = false
+                scope.launch { snackbarHostState.showSnackbar(msg) }
+            },
+        )
+    }
+}
+
+// ── Reusable host that wires AuthDialog + ResetPasswordDialog ────────────────
+// Used by every screen that has a "Sign in" CTA (Settings, Friends, History,
+// Stats, Activity, Profile). Lets each screen open the login UI directly
+// instead of bouncing the user through AccountScreen first.
+@Composable
+internal fun SignInDialogHost(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    gameState: GameState,
+    snackbarHostState: SnackbarHostState,
+) {
+    val nav = remember { ServiceLocator.navigation }
+    val scope = rememberCoroutineScope()
+    var authLoading by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    if (visible) {
+        AuthDialog(
+            onDismiss = { if (!authLoading) onDismiss() },
+            authLoading = authLoading,
+            onAuthLoadingChange = { authLoading = it },
+            onSuccess = { isSignUp ->
+                onDismiss()
+                gameState.stars.reload()
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        if (isSignUp) S.current.accountCreated else S.current.signedIn
+                    )
+                }
+                if (isSignUp && AccountManager.needsProfileSetup) {
+                    nav.navigateTo(Screen.PROFILE_SETUP)
+                }
+            },
+            onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } },
+            onShowResetPassword = {
+                onDismiss()
+                showResetDialog = true
+            },
+        )
+    }
+
+    if (showResetDialog) {
+        ResetPasswordDialog(
+            onDismiss = { showResetDialog = false },
+            onResult = { msg ->
+                showResetDialog = false
                 scope.launch { snackbarHostState.showSnackbar(msg) }
             },
         )

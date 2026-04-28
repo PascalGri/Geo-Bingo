@@ -55,6 +55,8 @@ fun ProfileScreen(gameState: GameState) {
     val profileVersion = AccountManager.profileVersion
     val isLoggedIn = AccountManager.isLoggedIn
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showAuthDialog by remember { mutableStateOf(false) }
 
     val playerName = remember(profileVersion) { AppSettings.getString("last_player_name", "Player") }
     val avatarBytes = remember(profileVersion) { LocalPhotoStore.loadAvatar("profile") }
@@ -75,6 +77,7 @@ fun ProfileScreen(gameState: GameState) {
     SystemBackHandler { nav.goBack() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -208,7 +211,7 @@ fun ProfileScreen(gameState: GameState) {
                 Spacer(Modifier.height(16.dp))
                 GradientButton(
                     text = S.current.signIn,
-                    onClick = { nav.navigateTo(Screen.ACCOUNT) },
+                    onClick = { showAuthDialog = true },
                     gradientColors = ProfileGradient,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -238,6 +241,13 @@ fun ProfileScreen(gameState: GameState) {
             },
         )
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @Composable

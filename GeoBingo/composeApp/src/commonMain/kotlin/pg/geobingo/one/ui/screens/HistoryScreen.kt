@@ -58,6 +58,8 @@ import pg.geobingo.one.util.AppLogger
 @Composable
 fun HistoryScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showAuthDialog by remember { mutableStateOf(false) }
     SystemBackHandler { nav.goBack() }
 
     // Fade-in animation for content
@@ -72,6 +74,7 @@ fun HistoryScreen(gameState: GameState) {
     var expandedEntryKey by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -102,7 +105,7 @@ fun HistoryScreen(gameState: GameState) {
                     title = S.current.signInRequired,
                     description = S.current.signInRequiredDesc,
                     signInLabel = S.current.signIn,
-                    onSignIn = { nav.navigateTo(pg.geobingo.one.game.Screen.ACCOUNT) },
+                    onSignIn = { showAuthDialog = true },
                 )
             }
         } else if (gameState.ui.gameHistory.isEmpty()) {
@@ -173,6 +176,13 @@ fun HistoryScreen(gameState: GameState) {
             }
         }
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 /** A single photo loaded from local storage, associated with a player and category. */

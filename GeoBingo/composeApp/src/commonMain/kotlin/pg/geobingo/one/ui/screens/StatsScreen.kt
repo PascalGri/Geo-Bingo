@@ -7,8 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +31,8 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun StatsScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showAuthDialog by remember { mutableStateOf(false) }
     SystemBackHandler { nav.goBack() }
 
     // Core stats
@@ -94,6 +95,7 @@ fun StatsScreen(gameState: GameState) {
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -124,7 +126,7 @@ fun StatsScreen(gameState: GameState) {
                     title = S.current.signInRequired,
                     description = S.current.signInRequiredDesc,
                     signInLabel = S.current.signIn,
-                    onSignIn = { nav.navigateTo(Screen.ACCOUNT) },
+                    onSignIn = { showAuthDialog = true },
                 )
             }
         } else if (gamesPlayed == 0) {
@@ -362,6 +364,13 @@ fun StatsScreen(gameState: GameState) {
             }
         }
     }
+
+    SignInDialogHost(
+        visible = showAuthDialog,
+        onDismiss = { showAuthDialog = false },
+        gameState = gameState,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @Composable
