@@ -593,6 +593,9 @@ object AccountManager {
 
         val email = currentUser?.email ?: ""
         createProfileIfNeeded(userId, email)
+        // syncCloudToLocal pulls profile data + cosmetics in one go now —
+        // see the cosmetics block inside syncCloudToLocal. After it returns,
+        // the new user's unlocks and equipped state are visible.
         syncCloudToLocal(userId)
         // After cloud->local sync, refresh the in-memory StarsState so any UI
         // that already composed with the pre-sync values picks up the new ones.
@@ -661,6 +664,14 @@ object AccountManager {
         AppSettings.setInt(SettingsKeys.WEEKLY_CHALLENGE_PROGRESS, 0)
         AppSettings.setBoolean(SettingsKeys.WEEKLY_CHALLENGE_COMPLETED, false)
         AppSettings.setString(SettingsKeys.LAST_WEEKLY_WEEK, "")
+        // AI/data-sharing consent must be re-obtained per user (Apple guideline
+        // 5.1.1(i)) — it's a privacy decision tied to the user, not the device.
+        AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)
+        // Cosmetics: owned + equipped + migration flag. Without this, user A's
+        // unlocks register as owned for user B until cloud sync overrides them
+        // (and cloud sync is additive, so equipped-state never gets pushed back
+        // to "_none"). See CosmeticsManager.clearLocalUserState for details.
+        pg.geobingo.one.game.state.CosmeticsManager.clearLocalUserState()
         // Cached avatar blob — actually remove the file (writing empty bytes
         // leaves a 0-byte file that some decoders still try to parse, causing
         // the old photo to linger after sign-out).
@@ -759,6 +770,17 @@ object AccountManager {
                 }
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Avatar sync failed", e)
+            }
+            // Cosmetics live in their own tables (owned_cosmetics + the
+            // equipped_* columns on profiles). Pull them here so every
+            // sign-in path picks up the new user's unlocks/equipped state
+            // — without this, switching accounts on the same device would
+            // leave the previous user's wiped-then-empty cosmetic mirror
+            // until the next app restart.
+            try {
+                pg.geobingo.one.game.state.CosmeticsManager.syncFromCloud()
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Cosmetics sync from cloud failed", e)
             }
             // Notify UI — display name and/or avatar may have changed
             bumpProfileVersion()

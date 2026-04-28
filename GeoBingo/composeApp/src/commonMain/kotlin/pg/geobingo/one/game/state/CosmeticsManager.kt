@@ -440,6 +440,53 @@ object CosmeticsManager {
     }
 
     /**
+     * Wipe all per-user cosmetic state from the local mirror. Called from
+     * AccountManager.clearUserScopedLocalState() on sign-out and on
+     * user-switch. Without this, cosmetics owned/equipped by user A on a
+     * device leak into user B's session: `syncFromCloud` is additive
+     * (only sets owned flags to true, never to false), so user A's
+     * `cosmetic_owned_*` flags would still register as owned after user B
+     * logs in. Equipped state would also be visually wrong until the cloud
+     * pull lands — and if the network is offline, indefinitely.
+     *
+     * Device-level preferences (sound, haptic, language) are NOT touched
+     * because they live in different keys.
+     */
+    fun clearLocalUserState() {
+        // Clear all owned flags by iterating every known cosmetic id.
+        // `setBoolean(..., false)` is safer than reaching into the
+        // platform-specific underlying store with a key-prefix wipe.
+        val allIds = (
+            ALL_FRAMES.map { it.id } +
+            ALL_NAME_EFFECTS.map { it.id } +
+            ALL_TITLES.map { it.id } +
+            ALL_CARD_DESIGNS.map { it.id } +
+            ALL_BANNER_BACKGROUNDS.map { it.id }
+        )
+        allIds.forEach { id ->
+            AppSettings.setBoolean("$OWNED_PREFIX$id", false)
+        }
+        // Reset equipped to the free defaults — UI immediately shows a
+        // "fresh" profile, then syncFromCloud will overwrite with the
+        // new user's cloud-equipped state.
+        AppSettings.setString(EQUIPPED_FRAME, "frame_none")
+        AppSettings.setString(EQUIPPED_NAME_EFFECT, "name_none")
+        AppSettings.setString(EQUIPPED_TITLE, "title_none")
+        AppSettings.setString(EQUIPPED_CARD_DESIGN, "card_none")
+        AppSettings.setString(EQUIPPED_BANNER, "banner_none")
+        // Reset migration flag — otherwise user B's first sync would skip
+        // the local→cloud migration even though their own AppSettings is
+        // empty (harmless), but worse: if user B happens to purchase
+        // something offline before their first cloud sync, that purchase
+        // would never get pushed because the flag was set by user A.
+        AppSettings.setBoolean(MIGRATED_TO_CLOUD, false)
+        // Invalidate the PlayerCosmeticsRepository cache so leaderboards /
+        // lobbies don't render with user A's cached cosmetics.
+        pg.geobingo.one.network.PlayerCosmeticsRepository.invalidateAll()
+        bump()
+    }
+
+    /**
      * Pull cloud state into the local mirror. Call after sign-in / app start.
      * On failure, the local mirror remains untouched (offline-friendly).
      */
