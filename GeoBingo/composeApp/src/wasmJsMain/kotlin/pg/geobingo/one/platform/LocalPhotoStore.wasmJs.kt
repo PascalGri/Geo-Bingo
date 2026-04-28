@@ -10,4 +10,5 @@ actual object LocalPhotoStore {
     actual fun saveGameMeta(gameId: String, json: String) {}
     actual fun loadGameMeta(gameId: String): String? = null
     actual fun listGameIds(): List<String> = emptyList()
+    actual fun deleteAllGameData() {}
 }

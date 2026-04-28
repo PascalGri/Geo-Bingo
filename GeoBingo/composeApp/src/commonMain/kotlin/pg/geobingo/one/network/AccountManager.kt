@@ -680,6 +680,19 @@ object AccountManager {
         } catch (e: Exception) {
             AppLogger.w(TAG, "Avatar clear failed", e)
         }
+        // Recursively wipe every cached game folder. Each folder contains
+        // photos (with EXIF location + faces) and a meta.json — privacy-
+        // sensitive per-user data that must not survive a sign-out into the
+        // next user's session. Until now these folders were leaking on disk
+        // (UI couldn't reach them because the gameHistory was cleared, but
+        // they'd be backed up to iCloud and visible to anyone with file
+        // access). Apple guideline 5.1.1: account-bound data should be
+        // removed on logout.
+        try {
+            LocalPhotoStore.deleteAllGameData()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Game data clear failed", e)
+        }
         // Refresh in-memory StarsState so the UI picks up the cleared values
         try {
             ServiceLocator.gameState.stars.reload()

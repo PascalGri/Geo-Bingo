@@ -15,4 +15,12 @@ expect object LocalPhotoStore {
     fun saveGameMeta(gameId: String, json: String)
     fun loadGameMeta(gameId: String): String?
     fun listGameIds(): List<String>
+    /**
+     * Recursively removes the entire `games/` directory — all photos and
+     * meta.json files for every game. Called on sign-out / user-switch so
+     * the previous user's per-game personal data (photos contain location +
+     * faces) doesn't sit on disk for the next user. No-op if the directory
+     * doesn't exist.
+     */
+    fun deleteAllGameData()
 }

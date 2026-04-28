@@ -75,6 +75,16 @@ actual object LocalPhotoStore {
         return contents.filter { fm.fileExistsAtPath("$gamesDir/$it/meta.json") }
     }
 
+    actual fun deleteAllGameData() {
+        val gamesDir = "$baseDir/games"
+        val fm = NSFileManager.defaultManager
+        // removeItemAtPath recursively deletes the directory + everything
+        // under it. No-op (returns false + sets error) when the path is
+        // missing — we ignore both because the goal is "make sure nothing
+        // is there afterwards".
+        fm.removeItemAtPath(gamesDir, error = null)
+    }
+
     private fun ByteArray.toNSData(): NSData = usePinned { pinned ->
         NSData.create(bytes = pinned.addressOf(0), length = size.toULong())
     }

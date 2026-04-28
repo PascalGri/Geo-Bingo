@@ -53,4 +53,9 @@ actual object LocalPhotoStore {
             ?.map { it.name }
             ?: emptyList()
     }
+
+    actual fun deleteAllGameData() {
+        val gamesDir = File(baseDir, "games")
+        if (gamesDir.exists()) gamesDir.deleteRecursively()
+    }
 }
