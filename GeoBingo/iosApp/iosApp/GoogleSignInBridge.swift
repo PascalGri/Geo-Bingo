@@ -52,11 +52,17 @@ import ComposeApp
 
     @MainActor
     private func startSignIn() {
+        NSLog("KatchIt: Google Sign-In start (idiom=%d, scenes=%d, configured=%d)",
+              UIDevice.current.userInterfaceIdiom.rawValue,
+              UIApplication.shared.connectedScenes.count,
+              isConfigured ? 1 : 0)
         guard isConfigured else {
+            NSLog("KatchIt: Google Sign-In aborted — bridge not configured")
             GoogleSignInBridge.shared.onError(message: "not_configured")
             return
         }
         guard let presenter = presentingViewController() else {
+            NSLog("KatchIt: Google Sign-In aborted — no presenting view controller resolvable")
             GoogleSignInBridge.shared.onError(message: "no_presenter")
             return
         }

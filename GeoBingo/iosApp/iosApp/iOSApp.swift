@@ -64,26 +64,6 @@ struct iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     init() {
-        // Reject iPad: app is iPhone-only.
-        // Some Apple reviewers test on iPad despite TARGETED_DEVICE_FAMILY=1,
-        // so we fail explicitly rather than silently allowing iPad compatibility.
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            let alert = UIAlertController(
-                title: "KatchIt! ist nur für iPhone verfügbar",
-                message: "Diese App ist für iPhone optimiert. Bitte installieren Sie KatchIt! auf einem iPhone.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .cancel) { _ in
-                exit(0)
-            })
-            // Present on the app window; defer presentation until the window is available
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                      let window = windowScene.windows.first else { return }
-                window.rootViewController?.present(alert, animated: true)
-            }
-        }
-
         // Disable verbose logging in release builds
         #if !DEBUG
         AppLogger.shared.minLevel = LogLevel.error

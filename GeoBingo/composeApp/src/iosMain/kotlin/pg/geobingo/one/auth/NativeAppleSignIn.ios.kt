@@ -1,6 +1,7 @@
 package pg.geobingo.one.auth
 
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -14,8 +15,19 @@ actual object NativeAppleSignIn {
             onSuccess = { token, nonce ->
                 if (cont.isActive) cont.resume(NativeSignInResult(idToken = token, rawNonce = nonce))
             },
-            onError = {
-                if (cont.isActive) cont.resume(null)
+            onError = { message ->
+                if (!cont.isActive) return@install
+                // "cancelled" → resume(null) so the caller treats it as a quiet
+                // user cancel. Any other message (no_presentation_anchor,
+                // invalid_presentation_context, …) is a real failure that the
+                // UI must surface — propagate it via an exception so
+                // friendlyAuthError can show a generic "auth failed" toast
+                // instead of swallowing it as a cancel.
+                if (message.equals("cancelled", ignoreCase = true)) {
+                    cont.resume(null)
+                } else {
+                    cont.resumeWithException(IllegalStateException(message))
+                }
             },
         )
         AppleSignInBridgeCompanion.start(rawNonce = rawNonce)

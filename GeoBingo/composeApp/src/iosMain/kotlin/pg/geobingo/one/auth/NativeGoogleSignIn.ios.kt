@@ -1,6 +1,7 @@
 package pg.geobingo.one.auth
 
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 actual object NativeGoogleSignIn {
@@ -14,7 +15,17 @@ actual object NativeGoogleSignIn {
                 onSuccess = { idToken, rawNonce ->
                     if (cont.isActive) cont.resume(NativeSignInResult(idToken, rawNonce))
                 },
-                onError = { if (cont.isActive) cont.resume(null) },
+                onError = { message ->
+                    if (!cont.isActive) return@install
+                    // "cancelled" → silent (user dismissed sheet); any other
+                    // failure (no_presenter, not_configured, network, …) is
+                    // surfaced as an exception so the UI can show feedback.
+                    if (message.equals("cancelled", ignoreCase = true)) {
+                        cont.resume(null)
+                    } else {
+                        cont.resumeWithException(IllegalStateException(message))
+                    }
+                },
             )
             GoogleSignInBridgeCompanion.start()
         }

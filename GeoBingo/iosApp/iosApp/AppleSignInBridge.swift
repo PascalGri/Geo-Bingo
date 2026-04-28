@@ -39,18 +39,17 @@ import ComposeApp
 
     @MainActor
     private func startSignIn(rawNonce: String) {
+        NSLog("KatchIt: Apple Sign-In start (idiom=%d, scenes=%d)",
+              UIDevice.current.userInterfaceIdiom.rawValue,
+              UIApplication.shared.connectedScenes.count)
+
         guard let anchor = Self.resolveAnchor() else {
-            NSLog("KatchIt: Apple Sign-In aborted — no foreground window scene available")
+            NSLog("KatchIt: Apple Sign-In aborted — no presentation anchor resolvable")
             AppleSignInBridge.shared.onError(message: "no_presentation_anchor")
             return
         }
-
-        // Verify the anchor is attached to a valid scene before proceeding
-        guard let scene = anchor.windowScene, scene.activationState != .unattached else {
-            NSLog("KatchIt: Apple Sign-In aborted — presentation anchor not attached to a scene")
-            AppleSignInBridge.shared.onError(message: "invalid_presentation_context")
-            return
-        }
+        NSLog("KatchIt: Apple Sign-In anchor resolved (scene=%@)",
+              anchor.windowScene?.session.persistentIdentifier ?? "nil")
 
         let hashed = Self.sha256(rawNonce)
 
@@ -71,22 +70,34 @@ import ComposeApp
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = delegate
         controller.presentationContextProvider = delegate
-        do {
-            try controller.performRequests()
-        } catch {
-            NSLog("KatchIt: Apple Sign-In performRequests failed: %@", error.localizedDescription)
-            AppleSignInBridge.shared.onError(message: "performRequests_failed")
-        }
+        controller.performRequests()
+        NSLog("KatchIt: Apple Sign-In performRequests dispatched")
     }
 
+    /// Find a window suitable for hosting an ASAuthorizationController.
+    /// Tries foregroundActive → foregroundInactive → any window scene as a
+    /// last resort. iPad iPhone-compat mode under iPadOS 26.x can leave the
+    /// scene in an unexpected state, so we don't want to silently bail when
+    /// there's still a window we could anchor to.
     @MainActor
     private static func resolveAnchor() -> ASPresentationAnchor? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let scene = scenes.first(where: { $0.activationState == .foregroundActive })
+        let preferred = scenes.first(where: { $0.activationState == .foregroundActive })
             ?? scenes.first(where: { $0.activationState == .foregroundInactive })
-        guard let scene = scene else { return nil }
-        return scene.windows.first(where: { $0.isKeyWindow })
-            ?? scene.windows.first
+            ?? scenes.first
+        guard let scene = preferred else {
+            NSLog("KatchIt: resolveAnchor — no UIWindowScene in connectedScenes")
+            return nil
+        }
+        if let key = scene.windows.first(where: { $0.isKeyWindow }) {
+            return key
+        }
+        if let any = scene.windows.first {
+            NSLog("KatchIt: resolveAnchor — falling back to non-key window")
+            return any
+        }
+        NSLog("KatchIt: resolveAnchor — scene has no windows")
+        return nil
     }
 
     private static func sha256(_ input: String) -> String {

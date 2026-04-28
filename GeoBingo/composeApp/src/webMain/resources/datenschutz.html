@@ -100,19 +100,19 @@
 
         <h3>d) KI-Fotobewertung (Solo-Modus und Multiplayer mit KI-Bewerter)</h3>
         <p>
-            Die App bietet einen optionalen Modus mit automatischer KI-Fotobewertung. Dabei werden Ihre Fotos zur Bewertung an einen KI-Dienst übermittelt.
-        </p>
-        <p>
-            <strong>Solo-Modus:</strong> Es werden Cloudflare Workers AI verwendet. <strong>Multiplayer-Modus (KI-Bewerter):</strong> Es werden Google Gemini API (Google LLC) verwendet.
+            Die App bietet zwei Modi mit automatischer KI-Fotobewertung. In beiden Fällen werden Ihre Fotos zur Bewertung an einen KI-Dienst übermittelt:
         </p>
         <ul>
-            <li>Die Fotos werden ausschließlich zur Bewertung übertragen und nicht dauerhaft gespeichert</li>
-            <li>Es werden keine personenbezogenen Daten an den KI-Dienst übermittelt (kein Name, keine ID, keine E-Mail)</li>
-            <li>Übertragen werden nur das Foto und der Kategoriename</li>
-            <li>Die Bewertung erfolgt in Echtzeit und die Daten werden nach der Verarbeitung sofort verworfen</li>
-            <li>Für den Multiplayer-Modus mit KI-Bewerter wird vor der Übermittlung explizit die Einwilligung des Gastgebers eingeholt</li>
+            <li><strong>Solo-Modus:</strong> Verarbeitung durch Cloudflare Workers AI (Cloudflare Inc., USA).</li>
+            <li><strong>Multiplayer-Modus „KI-Bewerter":</strong> Verarbeitung durch Google Gemini API (Google LLC, USA). Vor der Übermittlung wird der Spielgastgeber explizit um Einwilligung gebeten („Einverstanden" / „Ablehnen"). Bei Ablehnung wird eine Standardbewertung verwendet.</li>
         </ul>
-        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) und Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
+        <p>In beiden Fällen gilt:</p>
+        <ul>
+            <li>Übertragen werden nur das Foto und der Kategoriename — keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID)</li>
+            <li>Die Fotos werden ausschließlich zur Echtzeit-Bewertung übertragen und nicht dauerhaft gespeichert</li>
+            <li>Die Daten werden nach der Verarbeitung sofort verworfen</li>
+        </ul>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) für den Multiplayer-Modus mit KI-Bewerter; Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) für den Solo-Modus.</p>
 
         <h3>e) Solo-Bestenliste</h3>
         <p>
@@ -188,17 +188,17 @@
         <h3>c) Google Gemini API (KI-Fotobewertung im Multiplayer-Modus)</h3>
         <table>
             <tr><th>Anbieter</th><td>Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA</td></tr>
-            <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Multiplayer-Modus mit KI-Bewerter mittels Google Gemini</td></tr>
-            <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine ID, keine E-Mail).</td></tr>
+            <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Multiplayer-Modus „KI-Bewerter" mittels Google Gemini Vision-KI</td></tr>
+            <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID).</td></tr>
             <tr><th>Serverstandort</th><td>USA und weltweit (Google Cloud-Rechenzentren)</td></tr>
             <tr><th>Speicherdauer</th><td>Keine Speicherung — Fotos werden nur zur Echtzeit-Verarbeitung übertragen und sofort verworfen</td></tr>
-            <tr><th>Einwilligung</th><td>Explizite Einwilligung durch den Spielgastgeber vor dem Start der KI-Bewertung</td></tr>
+            <tr><th>Einwilligung</th><td>Explizite In-App-Einwilligung des Spielgastgebers vor Beginn der KI-Bewertung. Bei Ablehnung erfolgt die Bewertung mittels Standardwerten.</td></tr>
             <tr><th>Datenschutz</th><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
         </table>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).</p>
-        <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) gemäß Art. 45 DSGVO. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) als Absicherung eingesetzt. Diese Übermittlung findet nur statt, sofern Sie im App-Dialog eingewilligt haben.</p>
+        <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) gemäß Art. 45 DSGVO. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt. Diese Übermittlung findet nur statt, sofern der Spielgastgeber im App-Dialog eingewilligt hat.</p>
 
-        <h3>e) Cloudflare Workers AI (KI-Fotobewertung im Solo-Modus)</h3>
+        <h3>d) Cloudflare Workers AI (KI-Fotobewertung im Solo-Modus)</h3>
         <table>
             <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
             <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Solo-Modus mittels KI-Bilderkennung</td></tr>
@@ -210,7 +210,7 @@
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung — Bereitstellung der Spielfunktion).</p>
         <p><strong>Drittlandübermittlung:</strong> Cloudflare hat seinen Sitz in den USA und ist unter dem EU-U.S. Data Privacy Framework (DPF) zertifiziert. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt.</p>
 
-        <h3>f) Firebase Crashlytics (Absturzberichte — nur iOS und Android)</h3>
+        <h3>e) Firebase Crashlytics (Absturzberichte — nur iOS und Android)</h3>
         <table>
             <tr><th>Anbieter</th><td>Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland</td></tr>
             <tr><th>Zweck</th><td>Automatische Erfassung von App-Abstuerzen und Fehlermeldungen zur Verbesserung der App-Stabilitaet</td></tr>
@@ -222,7 +222,7 @@
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Stabilitaet und Fehlerbehebung der App).</p>
         <p><strong>Drittlanduebermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenuebermittlung erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) sowie ergaenzend auf Basis von Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).</p>
 
-        <h3>g) Vercel (Web-Hosting)</h3>
+        <h3>f) Vercel (Web-Hosting)</h3>
         <table>
             <tr><th>Anbieter</th><td>Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA</td></tr>
             <tr><th>Zweck</th><td>Hosting und Auslieferung der Web-Version von KatchIt! unter katchit.app</td></tr>
