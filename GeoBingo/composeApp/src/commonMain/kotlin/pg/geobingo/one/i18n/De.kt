@@ -648,7 +648,7 @@ object De : StringRes {
 
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "KI-Fotobewertung"
-    override val aiConsentMessage = "Zur automatischen Bewertung werden deine Fotos an den KI-Dienst Google Gemini der Google LLC (USA) übermittelt. Übertragen werden nur das Bild und der Kategoriename — keine personenbezogenen Daten wie Name, E-Mail oder Nutzer-ID. Die Fotos werden nicht gespeichert und unmittelbar nach der Bewertung verworfen. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Du kannst jederzeit ablehnen — die App funktioniert dann mit einer Standardbewertung. Weitere Details findest du in unserer Datenschutzerklärung."
+    override val aiConsentMessage = "Dieser Modus nutzt eine KI zur automatischen Fotobewertung. Deine Fotos werden dafür an einen KI-Dienst übermittelt: im Solo-Modus an Cloudflare Workers AI (Cloudflare Inc., USA), im Multiplayer-Modus „KI-Bewerter\" an Google Gemini (Google LLC, USA). Übertragen werden nur das Bild und der Kategoriename — keine personenbezogenen Daten wie Name, E-Mail oder Nutzer-ID. Die Fotos werden nicht gespeichert und unmittelbar nach der Bewertung verworfen. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Bei Ablehnung startet die Runde nicht — du kannst stattdessen einen anderen Spielmodus wählen. Weitere Details findest du in unserer Datenschutzerklärung."
     override val aiConsentAccept = "Einverstanden"
     override val aiConsentDecline = "Ablehnen"
 }

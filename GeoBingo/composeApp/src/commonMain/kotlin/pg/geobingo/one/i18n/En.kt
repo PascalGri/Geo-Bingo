@@ -648,7 +648,7 @@ object En : StringRes {
 
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "AI Photo Rating"
-    override val aiConsentMessage = "For automatic rating, your photos are sent to the AI service Google Gemini, operated by Google LLC (USA). Only the image and category name are transmitted — no personal data such as your name, email, or user ID. Photos are not stored and are discarded immediately after rating. Legal basis: Art. 6(1)(a) GDPR (consent). You can decline at any time — the app will use a default rating instead. See our Privacy Policy for full details."
+    override val aiConsentMessage = "This mode uses AI for automatic photo rating. Your photos will be sent to an AI service: Cloudflare Workers AI (Cloudflare Inc., USA) for Solo mode, or Google Gemini (Google LLC, USA) for the Multiplayer \"AI Judge\" mode. Only the image and category name are transmitted — no personal data such as your name, email, or user ID. Photos are not stored and are discarded immediately after rating. Legal basis: Art. 6(1)(a) GDPR (consent). If you decline, the round will not start — you can choose a different game mode instead. See our Privacy Policy for full details."
     override val aiConsentAccept = "Accept"
     override val aiConsentDecline = "Decline"
 }

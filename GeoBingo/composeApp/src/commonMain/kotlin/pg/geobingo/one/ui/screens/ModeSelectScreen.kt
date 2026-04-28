@@ -58,6 +58,26 @@ fun ModeSelectScreen(gameState: GameState) {
     var soloOutdoor by remember { mutableStateOf(true) }
     var soloCategoryCount by remember { mutableStateOf(5) }
 
+    // Up-front consent for the AI-powered modes (Solo + Multiplayer AI Judge).
+    // Both modes send photos to a third-party AI service (Cloudflare or
+    // Google Gemini), so per Apple guideline 5.1.1(i) we must obtain
+    // permission BEFORE any data leaves the device. Asking right when the
+    // user confirms an AI-powered mode means the round can't even start
+    // without consent.
+    var aiConsentAccepted by remember {
+        mutableStateOf(AppSettings.getBoolean(pg.geobingo.one.platform.SettingsKeys.AI_CONSENT_ACCEPTED, false))
+    }
+    var showAiConsentDialog by remember { mutableStateOf(false) }
+    var pendingAiAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val gateAi: (() -> Unit) -> Unit = { action ->
+        if (aiConsentAccepted) {
+            action()
+        } else {
+            pendingAiAction = action
+            showAiConsentDialog = true
+        }
+    }
+
     SystemBackHandler { nav.goBack() }
 
     Scaffold(
@@ -80,25 +100,33 @@ fun ModeSelectScreen(gameState: GameState) {
             onSelectSoloOutdoor = { soloOutdoor = it },
             onSelectSoloCategoryCount = { soloCategoryCount = it },
             onConfirmSolo = {
-                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
-                val duration = if (soloCategoryCount == 10) 600 else 300
-                gameState.solo.isOutdoor = soloOutdoor
-                gameState.solo.categoryCount = soloCategoryCount
-                gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
-                gameState.solo.totalDurationSeconds = duration
-                gameState.solo.timeRemainingSeconds = duration
-                gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
-                nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                gateAi {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
+                    val duration = if (soloCategoryCount == 10) 600 else 300
+                    // Clear any leftover state from a previous round (captures, ratings,
+                    // and especially startTimeMillis — a stale value made the timer
+                    // expire instantly and skip straight to the results screen).
+                    gameState.solo.reset()
+                    gameState.solo.isOutdoor = soloOutdoor
+                    gameState.solo.categoryCount = soloCategoryCount
+                    gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
+                    gameState.solo.totalDurationSeconds = duration
+                    gameState.solo.timeRemainingSeconds = duration
+                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                }
             },
             aiJudgeExpanded = aiJudgeExpanded,
             aiJudgeOutdoor = aiJudgeOutdoor,
             onToggleAiJudgeExpand = { aiJudgeExpanded = !aiJudgeExpanded },
             onSelectAiJudgeOutdoor = { aiJudgeOutdoor = it },
             onConfirmAiJudge = {
-                Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
-                gameState.session.gameMode = GameMode.AI_JUDGE
-                gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
-                nav.navigateTo(Screen.CREATE_GAME)
+                gateAi {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
+                    gameState.session.gameMode = GameMode.AI_JUDGE
+                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
+                    nav.navigateTo(Screen.CREATE_GAME)
+                }
             },
             quickStartExpanded = quickStartExpanded,
             quickStartOutdoor = quickStartOutdoor,
@@ -126,6 +154,54 @@ fun ModeSelectScreen(gameState: GameState) {
                 Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "WEIRD_CORE"))
                 gameState.session.gameMode = GameMode.WEIRD_CORE
                 nav.navigateTo(Screen.CREATE_GAME)
+            },
+        )
+    }
+
+    if (showAiConsentDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                // Tap-outside / back: treat as decline. Don't run the pending
+                // action; user stays on the mode-select screen and can pick a
+                // non-AI mode (Classic / Blind Bingo / Weird Core / Quick).
+                showAiConsentDialog = false
+                pendingAiAction = null
+            },
+            icon = {
+                Icon(
+                    Icons.Default.PhotoCamera,
+                    contentDescription = null,
+                    tint = Color(0xFF8B5CF6),
+                    modifier = Modifier.size(28.dp),
+                )
+            },
+            title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    S.current.aiConsentMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ColorOnSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    AppSettings.setBoolean(pg.geobingo.one.platform.SettingsKeys.AI_CONSENT_ACCEPTED, true)
+                    aiConsentAccepted = true
+                    showAiConsentDialog = false
+                    val action = pendingAiAction
+                    pendingAiAction = null
+                    action?.invoke()
+                }) {
+                    Text(S.current.aiConsentAccept)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAiConsentDialog = false
+                    pendingAiAction = null
+                }) {
+                    Text(S.current.aiConsentDecline)
+                }
             },
         )
     }
