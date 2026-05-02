@@ -164,13 +164,7 @@ private fun AiJudgeTransition(
             },
             icon = { Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(28.dp)) },
             title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    S.current.aiConsentMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = ColorOnSurfaceVariant,
-                )
-            },
+            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
             confirmButton = {
                 TextButton(onClick = {
                     AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)

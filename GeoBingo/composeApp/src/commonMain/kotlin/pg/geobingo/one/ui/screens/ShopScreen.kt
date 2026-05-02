@@ -79,7 +79,35 @@ fun ShopScreen(gameState: GameState) {
     val snackbarHostState = remember { SnackbarHostState() }
     var purchaseLoading by remember { mutableStateOf<String?>(null) }
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     CollectScrollToTop(ScrollToTopTags.SHOP_STARS, scrollState)
+
+    // Centralised error surfacing for IAP failures. Apple App Review (build
+    // 15) was rejected under 2.1(b) "unable to make a purchase" because the
+    // shop swallowed StoreKit errors silently — the loading spinner just
+    // disappeared and the user thought the tap did nothing. Now every failure
+    // path lands in a snackbar with the actual reason. The "USER_CANCELLED"
+    // sentinel from BillingBridge is intentionally suppressed (user chose to
+    // back out of the StoreKit sheet — that's not an error worth reporting).
+    fun showPurchaseError(msg: String) {
+        purchaseLoading = null
+        if (msg == "USER_CANCELLED") return
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                message = "${S.current.purchaseFailed}: $msg",
+                withDismissAction = true,
+            )
+        }
+    }
+    fun showRestoreError(msg: String) {
+        if (msg == "USER_CANCELLED") return
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                message = "${S.current.restoreFailed}: $msg",
+                withDismissAction = true,
+            )
+        }
+    }
 
     LaunchedEffect(Unit) { gameState.stars.resetDailyChallengeIfNewDay() }
 
@@ -162,7 +190,7 @@ fun ShopScreen(gameState: GameState) {
                                                 )
                                                 purchaseLoading = null
                                             },
-                                            onError = { purchaseLoading = null },
+                                            onError = { msg -> showPurchaseError(msg) },
                                         )
                                     },
                                 )
@@ -203,7 +231,7 @@ fun ShopScreen(gameState: GameState) {
                                         )
                                         purchaseLoading = null
                                     },
-                                    onError = { purchaseLoading = null },
+                                    onError = { msg -> showPurchaseError(msg) },
                                 )
                             },
                         )
@@ -229,7 +257,7 @@ fun ShopScreen(gameState: GameState) {
                                     )
                                     purchaseLoading = null
                                 },
-                                onError = { purchaseLoading = null },
+                                onError = { msg -> showPurchaseError(msg) },
                             )
                         },
                     )
@@ -248,8 +276,15 @@ fun ShopScreen(gameState: GameState) {
                             if ("pg.geobingo.one.no_ads" in products) {
                                 gameState.stars.updateNoAdsPurchased(true)
                             }
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = if (products.isEmpty()) S.current.noPurchasesToRestore
+                                              else S.current.purchasesRestored,
+                                    withDismissAction = true,
+                                )
+                            }
                         },
-                        onError = {},
+                        onError = { msg -> showRestoreError(msg) },
                     )
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally),

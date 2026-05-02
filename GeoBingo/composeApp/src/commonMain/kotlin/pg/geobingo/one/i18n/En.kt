@@ -47,6 +47,8 @@ object En : StringRes {
     override val onboardingBody3 = "Find subjects for each category and take a photo. First to capture gets bonus points!"
     override val onboardingTitle4 = "Rate & Win"
     override val onboardingBody4 = "After time runs out, rate all photos with 1-5 stars. Most points wins!"
+    override val onboardingTitle5 = "Optional AI Modes"
+    override val onboardingBody5 = "Two optional game modes use AI to rate your photos automatically. Both modes send the photo to Google Gemini (Google LLC, USA) as the primary AI processor, with Cloudflare Workers AI as automatic fallback. Both act solely as data processors and do not train on your photos. Before every AI round, you'll be asked for explicit consent — and you can always pick a non-AI mode instead."
     override val onboardingSkip = "Skip"
     override val onboardingNext = "Next"
     override val onboardingStart = "Let's go!"
@@ -648,7 +650,12 @@ object En : StringRes {
 
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "AI Photo Rating"
-    override val aiConsentMessage = "This mode uses AI for automatic photo rating. Your photos will be sent to an AI service: Cloudflare Workers AI (Cloudflare Inc., USA) for Solo mode, or Google Gemini (Google LLC, USA) for the Multiplayer \"AI Judge\" mode. Only the image and category name are transmitted — no personal data such as your name, email, or user ID. Photos are not stored and are discarded immediately after rating. Legal basis: Art. 6(1)(a) GDPR (consent). If you decline, the round will not start — you can choose a different game mode instead. See our Privacy Policy for full details."
-    override val aiConsentAccept = "Accept"
+    override val aiConsentMessage = "This mode uses AI for automatic photo rating. Your photos will be sent to our AI processors:\n\n• Primary: Google Gemini API (Google LLC, USA)\n• Automatic fallback: Cloudflare Workers AI (Cloudflare Inc., USA) — used only if Gemini is temporarily unavailable\n\nBoth providers act solely as data processors under their enterprise agreements and do not use your photos to train their AI models. Only the image and the category name are transmitted — no personal data such as your name, email address, or user ID. Photos are not stored by the AI providers and are discarded immediately after rating.\n\nNote: independently of this AI rating, every photo you upload to a multiplayer game (and every avatar) also passes through a separate Cloudflare Workers AI safety check before storage — required to filter unsafe content per App Store guideline 1.2.\n\nLegal basis: Art. 6(1)(a) GDPR (consent) for the AI rating; Art. 6(1)(f) GDPR (legitimate interest in user safety) for the moderation check. Data is transferred to the USA under the EU-U.S. Data Privacy Framework and Standard Contractual Clauses.\n\nIf you decline, the AI round will not start — you can choose a different (non-AI) game mode instead."
+    override val aiConsentAccept = "Continue with AI"
     override val aiConsentDecline = "Decline"
+    override val aiConsentPrivacyPolicy = "View Privacy Policy"
+    override val aiConsentPrivacyUrl = "https://katchit.app/privacy.html"
+
+    // ── IAP Errors / Feedback ───────────────────────────────────────────
+    override val purchaseFailedNoForegroundScene = "Couldn't open the App Store dialog. Please bring KatchIt to the foreground and try again."
 }

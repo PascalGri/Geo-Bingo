@@ -280,13 +280,7 @@ fun SoloGameScreen(gameState: GameState) {
             onDismissRequest = { /* Block outside-tap dismiss — force explicit choice */ },
             icon = { Icon(Icons.Default.PhotoCamera, null, tint = AIGradient.first(), modifier = Modifier.size(28.dp)) },
             title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    S.current.aiConsentMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = ColorOnSurfaceVariant,
-                )
-            },
+            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
             confirmButton = {
                 TextButton(onClick = {
                     AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)

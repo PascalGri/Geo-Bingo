@@ -61,21 +61,22 @@ fun ModeSelectScreen(gameState: GameState) {
     // Up-front consent for the AI-powered modes (Solo + Multiplayer AI Judge).
     // Both modes send photos to a third-party AI service (Cloudflare or
     // Google Gemini), so per Apple guideline 5.1.1(i) we must obtain
-    // permission BEFORE any data leaves the device. Asking right when the
-    // user confirms an AI-powered mode means the round can't even start
-    // without consent.
-    var aiConsentAccepted by remember {
-        mutableStateOf(AppSettings.getBoolean(pg.geobingo.one.platform.SettingsKeys.AI_CONSENT_ACCEPTED, false))
-    }
+    // permission BEFORE any data leaves the device.
+    //
+    // Behavior change after Apple rejection #6: the dialog now appears
+    // **before every AI round**, not just on first use. Even if the user has
+    // accepted before, they get the disclosure again with the option to
+    // decline this round. Stricter than Apple requires (once-per-install is
+    // usually sufficient), but a reviewer will never reject for asking too
+    // often. The persisted AI_CONSENT_ACCEPTED flag stays as defense-in-depth
+    // for the SoloGameScreen / VoteTransitionScreen secondary gates (those
+    // still skip the dialog if the primary mode-select gate already accepted
+    // in the same round).
     var showAiConsentDialog by remember { mutableStateOf(false) }
     var pendingAiAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val gateAi: (() -> Unit) -> Unit = { action ->
-        if (aiConsentAccepted) {
-            action()
-        } else {
-            pendingAiAction = action
-            showAiConsentDialog = true
-        }
+        pendingAiAction = action
+        showAiConsentDialog = true
     }
 
     SystemBackHandler { nav.goBack() }
@@ -176,17 +177,14 @@ fun ModeSelectScreen(gameState: GameState) {
                 )
             },
             title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    S.current.aiConsentMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = ColorOnSurfaceVariant,
-                )
-            },
+            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
             confirmButton = {
                 TextButton(onClick = {
+                    // Persist for the secondary defense-in-depth gates in
+                    // SoloGameScreen / VoteTransitionScreen so they don't
+                    // re-prompt within the same round. ModeSelect itself
+                    // ignores this flag and always re-asks (Apple #6 fix).
                     AppSettings.setBoolean(pg.geobingo.one.platform.SettingsKeys.AI_CONSENT_ACCEPTED, true)
-                    aiConsentAccepted = true
                     showAiConsentDialog = false
                     val action = pendingAiAction
                     pendingAiAction = null

@@ -47,6 +47,8 @@ object De : StringRes {
     override val onboardingBody3 = "Findet Motive zu jeder Kategorie und macht ein Foto. Wer zuerst fotografiert, bekommt Bonuspunkte!"
     override val onboardingTitle4 = "Bewerte & Gewinne"
     override val onboardingBody4 = "Nach der Zeit bewertet ihr alle Fotos mit 1-5 Sternen. Die meisten Punkte gewinnen!"
+    override val onboardingTitle5 = "Optionale KI-Modi"
+    override val onboardingBody5 = "Zwei optionale Spielmodi nutzen KI zur automatischen Fotobewertung. Beide Modi schicken das Foto an Google Gemini (Google LLC, USA) als primären KI-Dienst, mit Cloudflare Workers AI als automatischem Fallback. Beide Anbieter handeln ausschließlich als Auftragsverarbeiter und trainieren ihre KI nicht mit deinen Fotos. Vor jeder KI-Runde wirst du explizit um Einwilligung gebeten — du kannst stattdessen jederzeit einen nicht-KI-Modus wählen."
     override val onboardingSkip = "Überspringen"
     override val onboardingNext = "Weiter"
     override val onboardingStart = "Los geht's"
@@ -648,7 +650,12 @@ object De : StringRes {
 
     // ── AI Consent ──────────────────────────────────────────────────────
     override val aiConsentTitle = "KI-Fotobewertung"
-    override val aiConsentMessage = "Dieser Modus nutzt eine KI zur automatischen Fotobewertung. Deine Fotos werden dafür an einen KI-Dienst übermittelt: im Solo-Modus an Cloudflare Workers AI (Cloudflare Inc., USA), im Multiplayer-Modus „KI-Bewerter\" an Google Gemini (Google LLC, USA). Übertragen werden nur das Bild und der Kategoriename — keine personenbezogenen Daten wie Name, E-Mail oder Nutzer-ID. Die Fotos werden nicht gespeichert und unmittelbar nach der Bewertung verworfen. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Bei Ablehnung startet die Runde nicht — du kannst stattdessen einen anderen Spielmodus wählen. Weitere Details findest du in unserer Datenschutzerklärung."
-    override val aiConsentAccept = "Einverstanden"
+    override val aiConsentMessage = "Dieser Modus nutzt eine KI zur automatischen Fotobewertung. Deine Fotos werden dafür an unsere KI-Auftragsverarbeiter übermittelt:\n\n• Primär: Google Gemini API (Google LLC, USA)\n• Automatischer Fallback: Cloudflare Workers AI (Cloudflare Inc., USA) — wird nur genutzt, falls Gemini vorübergehend nicht erreichbar ist\n\nBeide Anbieter handeln ausschließlich als Auftragsverarbeiter auf Basis ihrer Enterprise-Verträge und verwenden deine Fotos nicht zum Training ihrer KI-Modelle. Übertragen werden ausschließlich das Bild und der Kategoriename — keine personenbezogenen Daten wie Name, E-Mail-Adresse oder Nutzer-ID. Die Fotos werden bei den KI-Anbietern nicht gespeichert und unmittelbar nach der Bewertung verworfen.\n\nHinweis: Unabhängig von dieser KI-Bewertung läuft jedes Foto, das du in ein Multiplayer-Spiel hochlädst (sowie jedes Avatar), zusätzlich vor der Speicherung durch eine separate Cloudflare-Workers-AI-Sicherheitsprüfung — erforderlich zum Filtern unangemessener Inhalte gemäß App-Store-Richtlinie 1.2.\n\nRechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) für die KI-Bewertung; Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Nutzer­sicherheit) für die Moderationsprüfung. Die Datenübermittlung in die USA erfolgt auf Basis des EU-U.S. Data Privacy Framework und ergänzender Standardvertragsklauseln.\n\nBei Ablehnung startet die KI-Runde nicht — du kannst stattdessen einen anderen (nicht-KI) Spielmodus wählen."
+    override val aiConsentAccept = "Mit KI fortfahren"
     override val aiConsentDecline = "Ablehnen"
+    override val aiConsentPrivacyPolicy = "Datenschutzerklärung öffnen"
+    override val aiConsentPrivacyUrl = "https://katchit.app/datenschutz.html"
+
+    // ── IAP Errors / Feedback ───────────────────────────────────────────
+    override val purchaseFailedNoForegroundScene = "App-Store-Dialog konnte nicht geöffnet werden. Bitte hole KatchIt in den Vordergrund und versuche es erneut."
 }

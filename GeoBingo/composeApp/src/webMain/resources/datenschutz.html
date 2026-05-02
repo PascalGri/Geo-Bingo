@@ -100,19 +100,34 @@
 
         <h3>d) KI-Fotobewertung (Solo-Modus und Multiplayer mit KI-Bewerter)</h3>
         <p>
-            Die App bietet zwei Modi mit automatischer KI-Fotobewertung. In beiden Fällen werden Ihre Fotos zur Bewertung an einen KI-Dienst übermittelt:
+            Die App bietet zwei optionale Modi mit automatischer KI-Fotobewertung: Solo-Modus und Multiplayer-Modus „KI-Bewerter". In beiden Modi werden Fotos zur Bewertung an einen KI-Auftragsverarbeiter übermittelt — mit folgendem Routing:
         </p>
         <ul>
-            <li><strong>Solo-Modus:</strong> Verarbeitung durch Cloudflare Workers AI (Cloudflare Inc., USA).</li>
-            <li><strong>Multiplayer-Modus „KI-Bewerter":</strong> Verarbeitung durch Google Gemini API (Google LLC, USA). Vor der Übermittlung wird der Spielgastgeber explizit um Einwilligung gebeten („Einverstanden" / „Ablehnen"). Bei Ablehnung wird eine Standardbewertung verwendet.</li>
+            <li><strong>Primär (beide Modi):</strong> Google Gemini API (Google LLC, USA). Wird standardmäßig genutzt, sofern der Gemini-API-Key serverseitig konfiguriert ist.</li>
+            <li><strong>Automatischer Fallback (beide Modi):</strong> Cloudflare Workers AI (Cloudflare Inc., USA). Wird nur aufgerufen, wenn der Gemini-Aufruf fehlschlägt (z.B. Outage, Rate-Limit). Modell: <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>.</li>
         </ul>
         <p>In beiden Fällen gilt:</p>
         <ul>
-            <li>Übertragen werden nur das Foto und der Kategoriename — keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID)</li>
-            <li>Die Fotos werden ausschließlich zur Echtzeit-Bewertung übertragen und nicht dauerhaft gespeichert</li>
+            <li>Übertragen werden ausschließlich das Foto und der Kategoriename — keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID)</li>
+            <li>Die Fotos werden ausschließlich zur Echtzeit-Bewertung übertragen und von keinem der beiden Anbieter dauerhaft gespeichert</li>
             <li>Die Daten werden nach der Verarbeitung sofort verworfen</li>
+            <li><strong>Beide Anbieter handeln ausschließlich als Auftragsverarbeiter auf Basis ihrer Enterprise-Verträge und verwenden übermittelte Fotos nicht zum Training ihrer KI-Modelle.</strong></li>
+            <li>Vor jeder KI-Runde wird der Nutzer explizit um Einwilligung gebeten („Mit KI fortfahren" / „Ablehnen"). Bei Ablehnung startet die Runde nicht.</li>
         </ul>
-        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) für den Multiplayer-Modus mit KI-Bewerter; Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) für den Solo-Modus.</p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) — explizite In-App-Einwilligung wird vor jedem Foto in einem KI-Modus eingeholt.</p>
+
+        <h3>d2) Bild-Sicherheits-Moderation (alle Multiplayer-Aufnahmen und Avatare)</h3>
+        <p>
+            Unabhängig von der optionalen KI-Bewertung in (d) durchläuft jedes Foto, das für ein Multiplayer-Spiel aufgenommen wird, sowie jedes hochgeladene Profil-Avatar eine automatische Inhaltsprüfung über Cloudflare Workers AI BEVOR es gespeichert wird. Dies ist erforderlich, um zu verhindern, dass unangemessene Inhalte (sexuelle Inhalte, grafische Gewalt, Hasssymbole etc.) mit anderen Spielern geteilt oder auf unseren Servern gespeichert werden, gemäß App-Store-Richtlinie 1.2.
+        </p>
+        <table>
+            <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
+            <tr><th>Modell</th><td><code>@cf/meta/llama-4-scout-17b-16e-instruct</code></td></tr>
+            <tr><th>Wann aufgerufen</th><td>Einmal vor jedem Multiplayer-Spielfoto-Upload und jedem Avatar-Upload (NICHT für Solo-Modus-Fotos, NICHT für die Multiplayer-„KI-Bewerter"-Bewertung — letztere ist durch (d) abgedeckt)</td></tr>
+            <tr><th>Übertragene Daten</th><td>Nur Bild-Bytes. Kein Name, keine E-Mail, keine Nutzer-ID, kein Standort.</td></tr>
+            <tr><th>Speicherdauer</th><td>Keine — Bild wird in-memory zur Sicherheits-Beurteilung verarbeitet und sofort verworfen</td></tr>
+            <tr><th>Rechtsgrundlage</th><td>Art. 6 Abs. 1 lit. f DSGVO — berechtigtes Interesse am Schutz der Nutzer vor unangemessenen Inhalten und an der Einhaltung von App-Store-Richtlinie 1.2. Diese Sicherheitsprüfung ist eine technische Schutzmaßnahme, kein optionales KI-Feature, daher wird keine individuelle Einwilligung eingeholt; sie ist hier zur Transparenz dokumentiert.</td></tr>
+        </table>
 
         <h3>e) Solo-Bestenliste</h3>
         <p>
@@ -185,29 +200,34 @@
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Ohne Einwilligung werden ausschließlich nicht-personalisierte Werbeanzeigen gezeigt oder keine Werbung eingeblendet.</p>
         <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) sowie ergänzend auf Basis von Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).</p>
 
-        <h3>c) Google Gemini API (KI-Fotobewertung im Multiplayer-Modus)</h3>
+        <h3>c) Google Gemini API (KI-Fotobewertung — primärer Auftragsverarbeiter für beide KI-Modi)</h3>
         <table>
             <tr><th>Anbieter</th><td>Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA</td></tr>
-            <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Multiplayer-Modus „KI-Bewerter" mittels Google Gemini Vision-KI</td></tr>
+            <tr><th>Zweck</th><td>Primärer KI-Auftragsverarbeiter für SOWOHL die Solo-Modus-KI-Bewertung ALS AUCH die Multiplayer-„KI-Bewerter"-Bewertung. Modell: <code>gemini-2.5-flash</code>. Cloudflare Workers AI (siehe Abschnitt 5d) wird automatisch als Fallback genutzt, falls Gemini vorübergehend nicht erreichbar ist.</td></tr>
             <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID).</td></tr>
             <tr><th>Serverstandort</th><td>USA und weltweit (Google Cloud-Rechenzentren)</td></tr>
             <tr><th>Speicherdauer</th><td>Keine Speicherung — Fotos werden nur zur Echtzeit-Verarbeitung übertragen und sofort verworfen</td></tr>
-            <tr><th>Einwilligung</th><td>Explizite In-App-Einwilligung des Spielgastgebers vor Beginn der KI-Bewertung. Bei Ablehnung erfolgt die Bewertung mittels Standardwerten.</td></tr>
+            <tr><th>Einwilligung</th><td>Explizite In-App-Einwilligung vor JEDER KI-Runde (per-Runde, nicht nur beim ersten Mal). Bei Ablehnung startet die Runde nicht.</td></tr>
+            <tr><th>Verarbeiter-Status</th><td><strong>Google LLC handelt ausschließlich als Auftragsverarbeiter unter Googles kommerziellen Gemini-API-Bedingungen und verwendet übermittelte Fotos nicht zum Training von Googles KI-Modellen.</strong></td></tr>
             <tr><th>Datenschutz</th><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
         </table>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).</p>
         <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) gemäß Art. 45 DSGVO. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt. Diese Übermittlung findet nur statt, sofern der Spielgastgeber im App-Dialog eingewilligt hat.</p>
 
-        <h3>d) Cloudflare Workers AI (KI-Fotobewertung im Solo-Modus)</h3>
+        <h3>d) Cloudflare Workers AI — zwei verschiedene Verwendungen</h3>
+        <p>
+            Wir nutzen Cloudflare Workers AI für zwei separate Zwecke. Beide Verwendungen übertragen ausschließlich Bild-Bytes (und für die KI-Bewertung einen Kategoriename) — keine personenbezogenen Daten.
+        </p>
         <table>
             <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
-            <tr><th>Zweck</th><td>Automatische Bewertung von Spielfotos im Solo-Modus mittels KI-Bilderkennung</td></tr>
-            <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine ID).</td></tr>
+            <tr><th>Verwendung 1 — KI-Bewertung-Fallback</th><td>Falls der primäre Gemini-Aufruf (Abschnitt 5c) fehlschlägt (z.B. temporäre Ausfälle, Rate-Limits), wird dasselbe Bild + Kategoriename stattdessen an Cloudflare Workers AI gesendet (Modell <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>). Abgedeckt durch dieselbe Per-Runden-In-App-KI-Einwilligung, die auch Gemini abdeckt.</td></tr>
+            <tr><th>Verwendung 2 — Bild-Sicherheits-Moderation</th><td>Jedes Multiplayer-Spielfoto und jedes Profil-Avatar wird durch Cloudflare Workers AI (gleiches Modell) auf inhaltliche Sicherheit geprüft, BEVOR es auf unseren Servern gespeichert wird. Erkennt unangemessene Inhalte (sexuelle Inhalte, Gewalt, Hasssymbole etc.) gemäß App-Store-Richtlinie 1.2. Unabhängig von der KI-Bewertungs-Einwilligung — dies ist eine technische Schutzmaßnahme nach Art. 6 Abs. 1 lit. f DSGVO.</td></tr>
             <tr><th>Serverstandort</th><td>Weltweit (Cloudflare Edge Network), Verarbeitung auf dem nächstgelegenen Rechenzentrum</td></tr>
-            <tr><th>Speicherdauer</th><td>Keine Speicherung — Fotos werden nur zur Echtzeit-Verarbeitung übertragen und sofort verworfen</td></tr>
+            <tr><th>Speicherdauer</th><td>Keine — Bilder werden in-memory zur Beurteilung verarbeitet und sofort verworfen</td></tr>
+            <tr><th>Verarbeiter-Status</th><td><strong>Cloudflare Inc. handelt ausschließlich als Auftragsverarbeiter unter Cloudflares Workers-AI-Geschäftsbedingungen und verwendet übermittelte Bilder nicht zum Training seiner KI-Modelle.</strong></td></tr>
             <tr><th>Datenschutz</th><td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a></td></tr>
         </table>
-        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung — Bereitstellung der Spielfunktion).</p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) für Verwendung 1 — abgedeckt durch dieselbe Per-Runden-KI-Einwilligung wie Gemini. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Nutzersicherheit + Compliance mit App-Store-Richtlinie 1.2) für Verwendung 2.</p>
         <p><strong>Drittlandübermittlung:</strong> Cloudflare hat seinen Sitz in den USA und ist unter dem EU-U.S. Data Privacy Framework (DPF) zertifiziert. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt.</p>
 
         <h3>e) Firebase Crashlytics (Absturzberichte — nur iOS und Android)</h3>

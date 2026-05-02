@@ -92,12 +92,18 @@ private let interstitialAdUnitId = "ca-app-pub-4871207394525716/3537450244"
     }
 
     private func topViewController() -> UIViewController? {
-        // iPad-safe scene pick (see ConsentManagerBridge for rationale).
+        // iPad-safe scene pick — return nil rather than fall back to a
+        // backgrounded scene. AdMob's full-screen present(from:) crashes or
+        // silently no-ops when handed a viewcontroller in a detached/
+        // background scene on iPad. Same antipattern fix as BillingBridge.
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let scene = scenes.first(where: { $0.activationState == .foregroundActive })
             ?? scenes.first(where: { $0.activationState == .foregroundInactive })
-            ?? scenes.first
-        let window = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first
+        guard let scene = scene else {
+            NSLog("KatchIt[Ads]: no foreground scene — refusing to present ad")
+            return nil
+        }
+        let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first
         guard let root = window?.rootViewController else { return nil }
         var top = root
         while let presented = top.presentedViewController { top = presented }

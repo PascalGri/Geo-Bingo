@@ -71,6 +71,8 @@ interface StringRes {
     val onboardingBody3: String
     val onboardingTitle4: String
     val onboardingBody4: String
+    val onboardingTitle5: String
+    val onboardingBody5: String
     val onboardingSkip: String
     val onboardingNext: String
     val onboardingStart: String
@@ -686,4 +688,9 @@ interface StringRes {
     val aiConsentMessage: String
     val aiConsentAccept: String
     val aiConsentDecline: String
+    val aiConsentPrivacyPolicy: String
+    val aiConsentPrivacyUrl: String
+
+    // ── IAP Errors / Feedback ───────────────────────────────────────────
+    val purchaseFailedNoForegroundScene: String
 }

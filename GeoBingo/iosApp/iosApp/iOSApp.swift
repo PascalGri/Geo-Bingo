@@ -100,11 +100,15 @@ struct iOSApp: App {
     }
 
     private func requestTrackingAuthorization() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            ATTrackingManager.requestTrackingAuthorization { _ in
-                ConsentManagerBridge.requestConsent()
-                MobileAds.shared.start(completionHandler: nil)
-            }
+        // No artificial delay — request ATT immediately so the consent flow
+        // resolves before any AdMob preload ever fires. The previous 1-second
+        // asyncAfter created a window where ContentView.onAppear could trigger
+        // preloadAds() before ATT/UMP completed (Apple guideline 4.3.2 risk).
+        // Apple recommends presenting the ATT prompt as soon as it makes sense,
+        // and on cold-start that's right after the SwiftUI scene is initialized.
+        ATTrackingManager.requestTrackingAuthorization { _ in
+            ConsentManagerBridge.requestConsent()
+            MobileAds.shared.start(completionHandler: nil)
         }
     }
 }

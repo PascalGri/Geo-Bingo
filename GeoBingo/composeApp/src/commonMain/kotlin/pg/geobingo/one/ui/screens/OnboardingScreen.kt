@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.GridView
@@ -65,6 +66,16 @@ private val slides = listOf(
         icon = Icons.Default.Star,
         titleKey = { S.current.onboardingTitle4 },
         bodyKey = { S.current.onboardingBody4 },
+    ),
+    // Apple guideline 5.1.1(i) — pre-disclose third-party AI processors at
+    // first-launch onboarding, in addition to the per-round consent dialog at
+    // mode-select. Reviewers in the past have flagged consent-only flows as
+    // insufficient because the user didn't see a high-level disclosure before
+    // they ever encountered the mode picker.
+    OnboardingSlide(
+        icon = Icons.Default.AutoAwesome,
+        titleKey = { S.current.onboardingTitle5 },
+        bodyKey = { S.current.onboardingBody5 },
     ),
 )
 

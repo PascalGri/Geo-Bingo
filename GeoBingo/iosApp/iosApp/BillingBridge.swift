@@ -79,15 +79,58 @@ import ComposeApp
         }
     }
 
-    /// Best-effort active window scene. On iPad (multi-scene) and on iOS 17+ StoreKit
-    /// strongly prefers being given an explicit scene so the purchase sheet can anchor
-    /// to the right window — without this, purchase() silently no-ops on iPad.
+    /// Active foreground window scene. Returns nil if no scene is foregroundActive
+    /// or foregroundInactive — passing a backgrounded / unattached scene to
+    /// `Product.purchase(confirmIn:)` on iOS 17+ makes StoreKit silently no-op
+    /// on iPad (no sheet, no callback, no error). That was the App Review 2.1(b)
+    /// rejection on builds 13–15: the previous fallback to `scenes.first` quietly
+    /// handed StoreKit a bad scene and the purchase tap appeared to do nothing.
     @MainActor
     private func activeWindowScene() -> UIWindowScene? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        return scenes.first(where: { $0.activationState == .foregroundActive })
-            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
-            ?? scenes.first
+        if let active = scenes.first(where: { $0.activationState == .foregroundActive }) {
+            return active
+        }
+        if let inactive = scenes.first(where: { $0.activationState == .foregroundInactive }) {
+            NSLog("KatchIt[Billing]: no foregroundActive scene, using foregroundInactive")
+            return inactive
+        }
+        NSLog("KatchIt[Billing]: no foreground scene available — falling back to scene-less purchase()")
+        return nil
+    }
+
+    /// User-facing message strings for IAP failure paths. Hardcoded (rather
+    /// than routed through Kotlin `S.current`) because the bridged Compose
+    /// `mutableStateOf` accessor is fragile and these paths run on the
+    /// StoreKit error edge. Locale-aware so an English-locale Apple Reviewer
+    /// doesn't see German-only error toasts (the previous "Produkt nicht
+    /// gefunden" / "Verifizierung fehlgeschlagen" prose was a likely
+    /// contributor to the 5.1.1(i) reviewer-confusion).
+    @MainActor
+    private func msg(_ en: String, _ de: String) -> String {
+        let isGerman = Locale.current.language.languageCode?.identifier == "de"
+        return isGerman ? de : en
+    }
+    @MainActor private func noForegroundSceneMessage() -> String {
+        msg(
+            "Couldn't open the App Store dialog. Please bring KatchIt to the foreground and try again.",
+            "App-Store-Dialog konnte nicht geöffnet werden. Bitte hole KatchIt in den Vordergrund und versuche es erneut."
+        )
+    }
+    @MainActor private func productNotFoundMessage() -> String {
+        msg("Product not found in the App Store.", "Produkt nicht gefunden.")
+    }
+    @MainActor private func verificationFailedMessage() -> String {
+        msg("Purchase verification failed.", "Verifizierung fehlgeschlagen.")
+    }
+    @MainActor private func purchasePendingMessage() -> String {
+        msg(
+            "Purchase pending — waiting for approval (e.g. Ask to Buy).",
+            "Kauf ausstehend — wartet auf Genehmigung (z. B. Ask to Buy)."
+        )
+    }
+    @MainActor private func unknownErrorMessage() -> String {
+        msg("Unknown error.", "Unbekannter Fehler.")
     }
 
     private func purchase(productId: String) {
@@ -99,7 +142,7 @@ import ComposeApp
                 } else {
                     let products = try await Product.products(for: [productId])
                     guard let fetched = products.first else {
-                        BillingBridge.shared.onPurchaseError(message: "Produkt nicht gefunden")
+                        BillingBridge.shared.onPurchaseError(message: productNotFoundMessage())
                         return
                     }
                     productCache[productId] = fetched
@@ -107,13 +150,15 @@ import ComposeApp
                 }
 
                 let result: Product.PurchaseResult
-                if let scene = activeWindowScene() {
-                    // iOS 17+ API — required for iPad to actually present the sheet.
-                    if #available(iOS 17.0, *) {
-                        result = try await product.purchase(confirmIn: scene)
-                    } else {
-                        result = try await product.purchase()
+                if #available(iOS 17.0, *) {
+                    // iOS 17+ requires an explicit scene. Without one, the
+                    // purchase sheet silently never presents on iPad — fail
+                    // visibly instead of hanging.
+                    guard let scene = activeWindowScene() else {
+                        BillingBridge.shared.onPurchaseError(message: noForegroundSceneMessage())
+                        return
                     }
+                    result = try await product.purchase(confirmIn: scene)
                 } else {
                     result = try await product.purchase()
                 }
@@ -124,14 +169,17 @@ import ComposeApp
                         await transaction.finish()
                         BillingBridge.shared.onPurchaseSuccess(productId: productId)
                     } else {
-                        BillingBridge.shared.onPurchaseError(message: "Verifizierung fehlgeschlagen")
+                        BillingBridge.shared.onPurchaseError(message: verificationFailedMessage())
                     }
                 case .userCancelled:
-                    BillingBridge.shared.onPurchaseError(message: "Kauf abgebrochen")
+                    // Sentinel — Kotlin side recognises this and silently
+                    // resets the loading spinner without showing an error
+                    // snackbar (user explicitly cancelled, not a failure).
+                    BillingBridge.shared.onPurchaseError(message: "USER_CANCELLED")
                 case .pending:
-                    BillingBridge.shared.onPurchaseError(message: "Kauf ausstehend")
+                    BillingBridge.shared.onPurchaseError(message: purchasePendingMessage())
                 @unknown default:
-                    BillingBridge.shared.onPurchaseError(message: "Unbekannter Fehler")
+                    BillingBridge.shared.onPurchaseError(message: unknownErrorMessage())
                 }
             } catch {
                 BillingBridge.shared.onPurchaseError(message: error.localizedDescription)

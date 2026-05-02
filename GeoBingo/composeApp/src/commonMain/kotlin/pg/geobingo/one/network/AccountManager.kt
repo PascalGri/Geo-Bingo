@@ -20,6 +20,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -431,15 +432,30 @@ object AccountManager {
         return try {
             val session = supabase.auth.currentSessionOrNull()
                 ?: return Result.failure(Exception("Not logged in"))
-            // Call Edge Function to delete auth user, profile, and avatar server-side
+            // Call Edge Function to delete auth user, profile, and avatar server-side.
+            // We MUST verify the HTTP response — previously this code ignored the
+            // status and signed the user out even on a 5xx, leaving server-side
+            // data intact while the UI signalled "deleted". Apple guideline
+            // 5.1.1(v) requires server-side deletion to actually happen, so a
+            // silent failure here is a real reject risk.
             val url = "${SupabaseConfig.current.url}/functions/v1/delete-account"
-            ServiceLocator.httpClient.post(url) {
+            val response = ServiceLocator.httpClient.post(url) {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
                     append("apikey", SupabaseConfig.current.anonKey)
                 }
             }
-            // Clear all local per-user state and sign out locally
+            if (!response.status.isSuccess()) {
+                // Try to surface the server's error body for the toast/log so
+                // the user sees a real reason instead of "deletion failed" with
+                // no detail. Body read may fail (e.g. empty response) — treat
+                // that as best-effort.
+                val body = try { response.body<String>() } catch (_: Exception) { "" }
+                val msg = "delete-account ${response.status.value}: ${body.take(200)}"
+                AppLogger.w(TAG, msg)
+                return Result.failure(Exception(msg))
+            }
+            // Server confirmed deletion — only NOW clear local state and sign out.
             clearUserScopedLocalState()
             AppSettings.setString("last_known_user_id", "")
             try { supabase.auth.signOut() } catch (e: Exception) {

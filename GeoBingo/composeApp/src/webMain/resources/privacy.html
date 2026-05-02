@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — KatchIt!</title>
+    <meta name="description" content="Privacy Policy of KatchIt! — information about data processing, Google AdSense, Supabase, third-party AI processors, and your GDPR rights.">
+    <link rel="canonical" href="https://katchit.app/privacy.html">
+    <link rel="alternate" hreflang="de" href="https://katchit.app/datenschutz.html">
+    <link rel="alternate" hreflang="en" href="https://katchit.app/privacy.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #050508;
+            color: #F0ECFF;
+            line-height: 1.7;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        a { color: #D946EF; text-decoration: none; }
+        a:hover { text-decoration: underline; color: #E879F9; }
+        .back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; color: #CBB8F0; font-size: 14px; }
+        .lang-switch { display: inline-block; margin-bottom: 24px; font-size: 13px; color: #CBB8F0; }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #F43F5E, #D946EF, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 { font-size: 18px; font-weight: 600; margin-top: 28px; margin-bottom: 8px; color: #D946EF; }
+        h3 { font-size: 16px; font-weight: 600; margin-top: 20px; margin-bottom: 6px; color: #E879F9; }
+        p, li { font-size: 15px; color: #CBB8F0; margin-bottom: 8px; }
+        ul { padding-left: 20px; margin-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #2E1F50; font-size: 14px; color: #CBB8F0; }
+        th { color: #D946EF; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back">&larr; Back to KatchIt!</a><br>
+        <span class="lang-switch">Available in: <a href="/datenschutz.html">Deutsch</a> · <strong>English</strong></span>
+        <h1>Privacy Policy</h1>
+        <p style="font-size: 13px; color: #5A3D8A;">Last updated: 2 May 2026</p>
+
+        <h2>1. Privacy at a Glance</h2>
+        <h3>General Information</h3>
+        <p>
+            The following notes provide a simple overview of what happens to your personal data when you use KatchIt!. Personal data is any data that can be used to personally identify you.
+        </p>
+        <p>
+            KatchIt! is a multiplayer photo game available as a web app, iOS app, and Android app. The app deliberately collects as little data as possible. Optional user accounts can be created via Google, Apple, or email to synchronise game state across devices. The iOS and Android versions display advertising from Google AdMob (see Section 5b). Ads are only loaded after explicit consent. The web version contains no ads.
+        </p>
+
+        <h2>2. Data Controller</h2>
+        <p>
+            Controller within the meaning of the GDPR:<br><br>
+            Pascal Grimm<br>
+            Wiederholdstraße 2<br>
+            70714 Stuttgart, Germany<br><br>
+            Email: <a href="mailto:support@katchit.app">support@katchit.app</a>
+        </p>
+
+        <h2>3. Data Collection in the App</h2>
+
+        <h3>a) User Account (optional)</h3>
+        <p>
+            You may optionally create a user account to synchronise game state and settings across devices. Sign-in is via Google, Apple, or email (magic link). The following data is processed:
+        </p>
+        <ul>
+            <li>Email address (for authentication)</li>
+            <li>Display name and avatar photo (freely chosen)</li>
+            <li>Game statistics (stars, settings)</li>
+        </ul>
+        <p>
+            The app is fully usable without a user account. An account can be deleted at any time in Settings — all associated data is then removed server-side.
+        </p>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent through voluntary registration).</p>
+
+        <h3>b) Player Name and Avatar</h3>
+        <p>
+            When playing, you enter a freely chosen player name and may optionally take an avatar photo. Both are temporarily stored on our servers for the duration of the game and shown to other players. After the game ends, this data is deleted.
+        </p>
+        <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (performance of contract — provision of the game service).</p>
+
+        <h3>c) Photos</h3>
+        <p>
+            During the game, you take photos that are assigned to the respective game categories. These photos are:
+        </p>
+        <ul>
+            <li>Temporarily cached locally on your device</li>
+            <li>Transferred to our cloud storage over an encrypted connection (HTTPS/TLS)</li>
+            <li>Made visible to other players in the same round (via time-limited signed URLs)</li>
+            <li>Automatically deleted after the game ends</li>
+        </ul>
+        <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (performance of contract).</p>
+
+        <h3>d) AI Photo Rating (Solo mode and Multiplayer with AI Judge)</h3>
+        <p>
+            The app offers two optional modes with automatic AI photo rating: Solo mode and the Multiplayer "AI Judge" mode. In both modes, your photos are transmitted to an AI processor for rating, with the following routing:
+        </p>
+        <ul>
+            <li><strong>Primary processor (both modes):</strong> Google Gemini API (Google LLC, USA). Used by default whenever the Gemini API key is configured server-side.</li>
+            <li><strong>Automatic fallback (both modes):</strong> Cloudflare Workers AI (Cloudflare Inc., USA). Called only if the primary Gemini call fails (e.g. temporary outage, rate limit). The fallback uses the model <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>.</li>
+        </ul>
+        <p>In both cases the following applies:</p>
+        <ul>
+            <li>Only the photo and the category name are transmitted — no personal data (no name, no email, no user ID)</li>
+            <li>Photos are transmitted exclusively for real-time rating and are not stored permanently by either provider</li>
+            <li>Data is discarded immediately after processing</li>
+            <li><strong>Both providers act solely as data processors under their enterprise / commercial agreements and do not use submitted photos to train their AI models.</strong></li>
+            <li>Before every AI round, the user is asked for explicit in-app consent ("Continue with AI" / "Decline"). If the user declines, the round will not start.</li>
+        </ul>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent) — explicit in-app consent is required before any photo is captured in an AI mode.</p>
+
+        <h3>d2) Image Safety Moderation (all multiplayer captures and avatars)</h3>
+        <p>
+            Independently of the optional AI rating in (d), every photo captured for a multiplayer game and every profile avatar uploaded to the app passes through an automated content-safety check via Cloudflare Workers AI before it is stored. This is required to prevent unsafe content (sexual content, graphic violence, hate symbols, etc.) from being shared with other players or stored on our servers, in line with App Store guideline 1.2.
+        </p>
+        <table>
+            <tr><th>Provider</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
+            <tr><th>Model</th><td><code>@cf/meta/llama-4-scout-17b-16e-instruct</code></td></tr>
+            <tr><th>When called</th><td>Once before every multiplayer game-photo upload and every avatar upload (NOT for solo-mode photos, NOT for the Multiplayer "AI Judge" rating which is covered by (d))</td></tr>
+            <tr><th>Data sent</th><td>Image bytes only. No name, email, user ID, or location.</td></tr>
+            <tr><th>Retention</th><td>None — image is processed in-memory for the safety verdict and discarded immediately</td></tr>
+            <tr><th>Legal basis</th><td>Art. 6(1)(f) GDPR — legitimate interest in protecting users from unsafe content and complying with App Store guideline 1.2. This safety check is a technical security measure rather than an optional AI feature, so individual consent is not solicited; it is documented here for transparency.</td></tr>
+        </table>
+
+        <h3>e) Solo Leaderboard</h3>
+        <p>
+            In solo mode, your game result (player name, score, category count, time bonus) is transmitted to our server and displayed in a public leaderboard. The player name is visible to all users.
+        </p>
+        <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (performance of contract).</p>
+
+        <h3>f) Game Data</h3>
+        <p>
+            Game-related data such as chosen categories, ratings (star awards), and game state are stored for the duration of the game and deleted after the game ends.
+        </p>
+        <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (performance of contract).</p>
+
+        <h3>g) Location Data (GPS)</h3>
+        <p>
+            When taking a game photo — provided you have granted the location permission — your current GPS location (latitude and longitude) is captured and stored on our servers together with the photo. This data is used to display the capture location in the photo gallery and game timeline.
+        </p>
+        <ul>
+            <li>Location is captured only at the moment a photo is taken, not continuously</li>
+            <li>Location data is only visible to fellow players of the same round</li>
+            <li>Location data is deleted after the game ends together with the photos</li>
+            <li>Location permission can be revoked at any time in your device settings — the app also functions without GPS, in which case no location data is stored</li>
+        </ul>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent through granting the location permission).</p>
+
+        <h3>h) Camera Access</h3>
+        <p>
+            The app requires access to your device's camera in order to take game photos. This access is requested via the operating system's permission dialogs and can be revoked at any time in device settings. Without camera access, the core function of the app cannot be used.
+        </p>
+
+        <h3>i) Local Storage</h3>
+        <p>
+            The app uses your device's local storage (Local Storage / app-internal storage) to temporarily cache game photos, avatars, and game statistics. This data remains on your device and is not transmitted to third parties.
+        </p>
+
+        <h2>4. Data NOT Collected</h2>
+        <p>KatchIt! deliberately does not collect:</p>
+        <ul>
+            <li>Our own analytics or tracking data</li>
+            <li>Contacts, calendar, or other device data</li>
+        </ul>
+        <p>
+            <strong>Note on advertising:</strong> In the iOS and Android versions, Google AdMob may collect device- and interest-related data (advertising ID, device fingerprint) for ad serving. You will be asked for your consent before ads are shown for the first time. See Section 5b for details. The web version contains no ads.
+        </p>
+
+        <h2>5. Third Parties and Data Processors</h2>
+
+        <h3>a) Supabase (Backend and Database)</h3>
+        <table>
+            <tr><th>Provider</th><td>Supabase Inc., 970 Toa Payoh North #07-04, Singapore 318992</td></tr>
+            <tr><th>Purpose</th><td>Database (PostgreSQL), real-time communication (WebSocket), file storage (photos), authentication</td></tr>
+            <tr><th>Data Processed</th><td>Player names, avatar photos, game photos, game state, ratings, game metadata, solo leaderboard, optional: email address and profile data on account creation</td></tr>
+            <tr><th>Server Location</th><td>EU (Frankfurt, Germany)</td></tr>
+            <tr><th>Retention</th><td>Game data: only for the duration of the game, automatically deleted after game end. Account data: until account deletion. Solo leaderboard: permanent.</td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a></td></tr>
+        </table>
+        <p><strong>Legal basis:</strong> Art. 6(1)(b) GDPR (performance of contract) and Art. 28 GDPR (processor agreement).</p>
+
+        <h3>b) Google AdMob (Advertising — iOS and Android only)</h3>
+        <table>
+            <tr><th>Provider</th><td>Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Ireland</td></tr>
+            <tr><th>Purpose</th><td>Display of ads (rewarded ads, interstitial ads) in the iOS and Android versions</td></tr>
+            <tr><th>Data Processed</th><td>Advertising ID (GAID/IDFA), IP address, device information (type, OS), app usage data, possibly coarse location (if granted), interaction data with ads</td></tr>
+            <tr><th>Server Location</th><td>USA and EU (Google data centres worldwide)</td></tr>
+            <tr><th>Retention</th><td>According to Google's Privacy Policy (max. 18 months for personalised advertising data)</td></tr>
+            <tr><th>Consent</th><td>Only after explicit consent in the in-app consent dialog at app start (GDPR-compliant via Google UMP)</td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
+            <tr><th>Opt-Out</th><td>Consent can be revoked at any time in app settings under "Ad Settings"</td></tr>
+        </table>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent). Without consent, only non-personalised ads are shown, or no ads are loaded at all.</p>
+        <p><strong>Third-country transfer:</strong> Google LLC is based in the USA. Data transfer to the USA takes place on the basis of the EU-U.S. Data Privacy Framework (DPF) and additionally on the basis of Standard Contractual Clauses (Art. 46(2)(c) GDPR).</p>
+
+        <h3>c) Google Gemini API (AI Photo Rating — primary processor for both AI modes)</h3>
+        <table>
+            <tr><th>Provider</th><td>Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA</td></tr>
+            <tr><th>Purpose</th><td>Primary AI processor for BOTH the Solo mode AI rating AND the Multiplayer "AI Judge" rating. Uses model <code>gemini-2.5-flash</code>. Cloudflare Workers AI (see Section 5d) is the automatic fallback if Gemini is temporarily unavailable.</td></tr>
+            <tr><th>Data Processed</th><td>Game photos (as image data), category name (as text). No personal data (no name, no email, no user ID).</td></tr>
+            <tr><th>Server Location</th><td>USA and worldwide (Google Cloud data centres)</td></tr>
+            <tr><th>Retention</th><td>No retention — photos are transmitted only for real-time processing and discarded immediately</td></tr>
+            <tr><th>Consent</th><td>Explicit in-app consent before EVERY AI round (per-round, not just first use). If declined, the round does not start.</td></tr>
+            <tr><th>Processor Status</th><td><strong>Google LLC acts solely as a data processor under Google's commercial Gemini API terms and does not use submitted photos to train Google's AI models.</strong></td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
+        </table>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent).</p>
+        <p><strong>Third-country transfer:</strong> Google LLC is based in the USA. Data transfer to the USA takes place on the basis of the EU-U.S. Data Privacy Framework (DPF) under Art. 45 GDPR. Standard Contractual Clauses (Art. 46(2)(c) GDPR) are used as additional safeguards. This transfer only takes place if the game host has consented in the in-app dialog.</p>
+
+        <h3>d) Cloudflare Workers AI — two distinct uses</h3>
+        <p>
+            We use Cloudflare Workers AI for two separate purposes. Both uses transmit only image bytes (and, for AI rating, a category name) — no personal data.
+        </p>
+        <table>
+            <tr><th>Provider</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
+            <tr><th>Use 1 — AI rating fallback</th><td>If the primary Gemini call (Section 5c) fails (e.g. temporary outage or rate limit), the same image + category name is sent to Cloudflare Workers AI (model <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>) instead. Covered by the same per-round in-app AI consent that covers Gemini.</td></tr>
+            <tr><th>Use 2 — Image safety moderation</th><td>Every multiplayer game photo and every profile avatar is run through Cloudflare Workers AI (same model) for content-safety screening BEFORE it is stored on our servers. This catches unsafe content (sexual content, violence, hate symbols, etc.) per App Store guideline 1.2. Independent of the AI rating consent — this is a technical security measure under Art. 6(1)(f) GDPR. Solo-mode photos are NOT moderated separately because they go straight to the AI rater (which performs its own safety check).</td></tr>
+            <tr><th>Server Location</th><td>Worldwide (Cloudflare Edge Network), processed on the nearest data centre</td></tr>
+            <tr><th>Retention</th><td>No retention — images are processed in-memory for the verdict and discarded immediately</td></tr>
+            <tr><th>Processor Status</th><td><strong>Cloudflare Inc. acts solely as a data processor under Cloudflare's Workers AI commercial terms and does not use submitted images to train its AI models.</strong></td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a></td></tr>
+        </table>
+        <p><strong>Legal basis:</strong> Art. 6(1)(a) GDPR (consent) for Use 1 — covered by the same per-round AI consent that covers Gemini. Art. 6(1)(f) GDPR (legitimate interest in user safety + App Store guideline 1.2 compliance) for Use 2.</p>
+        <p><strong>Third-country transfer:</strong> Cloudflare is based in the USA and is certified under the EU-U.S. Data Privacy Framework (DPF). Standard Contractual Clauses (Art. 46(2)(c) GDPR) are used as additional safeguards.</p>
+
+        <h3>e) Firebase Crashlytics (Crash Reports — iOS and Android only)</h3>
+        <table>
+            <tr><th>Provider</th><td>Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Ireland</td></tr>
+            <tr><th>Purpose</th><td>Automatic collection of app crashes and error reports to improve app stability</td></tr>
+            <tr><th>Data Processed</th><td>Crash logs (stack traces), device type, OS version, app version, crash timestamp. No personal data (no name, no email).</td></tr>
+            <tr><th>Server Location</th><td>USA and EU (Google data centres)</td></tr>
+            <tr><th>Retention</th><td>90 days (per Firebase policy)</td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">firebase.google.com/support/privacy</a></td></tr>
+        </table>
+        <p><strong>Legal basis:</strong> Art. 6(1)(f) GDPR (legitimate interest in app stability and bug fixing).</p>
+        <p><strong>Third-country transfer:</strong> Google LLC is based in the USA. Data transfer takes place on the basis of the EU-U.S. Data Privacy Framework (DPF) and additionally on the basis of Standard Contractual Clauses (Art. 46(2)(c) GDPR).</p>
+
+        <h3>f) Vercel (Web Hosting)</h3>
+        <table>
+            <tr><th>Provider</th><td>Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA</td></tr>
+            <tr><th>Purpose</th><td>Hosting and delivery of the web version of KatchIt! at katchit.app</td></tr>
+            <tr><th>Data Processed</th><td>IP address, access timestamp, browser type, operating system, referrer URL (server log data)</td></tr>
+            <tr><th>Server Location</th><td>Worldwide (Edge Network), primarily USA and EU</td></tr>
+            <tr><th>Retention</th><td>Server logs are deleted after a maximum of 30 days per Vercel policy</td></tr>
+            <tr><th>Privacy Policy</th><td><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">vercel.com/legal/privacy-policy</a></td></tr>
+        </table>
+        <p><strong>Note:</strong> Web hosting via Vercel only concerns the web version of the app. The iOS and Android versions communicate directly with Supabase.</p>
+        <p><strong>Legal basis:</strong> Art. 6(1)(f) GDPR (legitimate interest in reliable provision of the web app).</p>
+
+        <h2>6. Third-Country Data Transfers</h2>
+        <p>
+            Vercel Inc. is based in the USA. Data transfer to the USA takes place on the basis of the EU-U.S. Data Privacy Framework (DPF) under Art. 45 GDPR, where Vercel is certified under the DPF. Standard Contractual Clauses (Art. 46(2)(c) GDPR) are used as additional safeguards.
+        </p>
+        <p>
+            Supabase stores KatchIt!'s data on servers in the EU (Frankfurt). Transfer to third countries by Supabase does not generally take place for this project.
+        </p>
+        <p>
+            Google LLC (AdMob, iOS/Android only) is based in the USA. Data transfer to the USA takes place on the basis of the EU-U.S. Data Privacy Framework (DPF) and on the basis of Standard Contractual Clauses (Art. 46(2)(c) GDPR). This transfer only takes place if you have consented in the consent dialog.
+        </p>
+        <p>
+            Cloudflare Inc. is based in the USA and is certified under the EU-U.S. Data Privacy Framework (DPF). Photos are transmitted only for real-time processing and are not stored.
+        </p>
+
+        <h2>7. SSL/TLS Encryption</h2>
+        <p>
+            For security reasons, this app uses SSL/TLS encryption for all data transmissions. All communication between the app and our servers takes place over HTTPS.
+        </p>
+
+        <h2>8. Retention Periods</h2>
+        <table>
+            <tr><th>Data Type</th><th>Retention Period</th></tr>
+            <tr><td>User account (optional)</td><td>Until account is deleted by the user</td></tr>
+            <tr><td>Player name</td><td>Until game ends, then deleted</td></tr>
+            <tr><td>Avatar photo</td><td>Until game ends, then deleted</td></tr>
+            <tr><td>Game photos</td><td>Until game ends, then deleted</td></tr>
+            <tr><td>Location data (GPS)</td><td>Until game ends, then deleted (together with photos)</td></tr>
+            <tr><td>Ratings / game state</td><td>Until game ends, then deleted</td></tr>
+            <tr><td>Solo leaderboard</td><td>Permanent (player name and score)</td></tr>
+            <tr><td>AI photo rating</td><td>No retention (real-time processing)</td></tr>
+            <tr><td>Server log data (web)</td><td>Max. 30 days (Vercel)</td></tr>
+            <tr><td>Advertising data (AdMob, iOS/Android)</td><td>Per Google's Privacy Policy (max. 18 months); only after consent</td></tr>
+            <tr><td>Local device storage</td><td>Until manual deletion or app uninstall</td></tr>
+        </table>
+
+        <h2>9. Your Rights</h2>
+        <p>You have the following rights under the GDPR:</p>
+        <ul>
+            <li><strong>Right of access</strong> (Art. 15 GDPR) — what data we store about you</li>
+            <li><strong>Right to rectification</strong> (Art. 16 GDPR) — correction of inaccurate data</li>
+            <li><strong>Right to erasure</strong> (Art. 17 GDPR) — deletion of your data ("right to be forgotten")</li>
+            <li><strong>Right to restriction of processing</strong> (Art. 18 GDPR)</li>
+            <li><strong>Right to data portability</strong> (Art. 20 GDPR)</li>
+            <li><strong>Right to object</strong> (Art. 21 GDPR) — to processing of your data</li>
+        </ul>
+        <p>
+            If you have created a user account, you can delete it at any time in the app settings. All associated data will then be completely removed. Without a user account, all game data is automatically deleted after the game ends, so subsequent attribution to individual persons is not possible.
+        </p>
+
+        <h2>10. Right to Lodge a Complaint with a Supervisory Authority</h2>
+        <p>
+            If you believe that the processing of your personal data violates the GDPR, you have the right to lodge a complaint with a data protection supervisory authority (Art. 77 GDPR). You may, in particular, address the supervisory authority of your habitual residence, your place of work, or the place of the alleged infringement.
+        </p>
+
+        <h2>11. Changes to This Privacy Policy</h2>
+        <p>
+            We reserve the right to adapt this Privacy Policy to changes in the legal situation or to changes in the service. The current version is always available at <a href="https://katchit.app/privacy.html">katchit.app/privacy.html</a>.
+        </p>
+
+        <h2>12. Contact</h2>
+        <p>
+            For questions about data protection, please contact us at:<br>
+            <a href="mailto:support@katchit.app">support@katchit.app</a>
+        </p>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #5A3D8A;">
+            This English version is provided as a translation of the legally binding German original at <a href="https://katchit.app/datenschutz.html">katchit.app/datenschutz.html</a>. In case of discrepancies, the German version prevails.
+        </p>
+    </div>
+</body>
+</html>
