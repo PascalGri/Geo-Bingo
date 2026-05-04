@@ -19,8 +19,12 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -430,21 +434,42 @@ object AccountManager {
 
     suspend fun deleteAccount(): Result<Unit> {
         return try {
-            // Force-refresh the session FIRST. The cached access token expires
-            // after ~1h; the Edge Function gateway then returns 401 and the
-            // delete silently fails. Production logs showed exactly this 401
-            // pattern, which is why Apple-Review-style account deletion was
-            // not actually completing on the server.
-            try {
-                supabase.auth.refreshCurrentSession()
-            } catch (e: Exception) {
-                // If refresh fails (network down, refresh token revoked, etc.)
-                // we still try with whatever session we have — the post-call
-                // status check will surface a real failure to the UI.
-                AppLogger.w(TAG, "refreshCurrentSession failed before deleteAccount", e)
-            }
-            val session = supabase.auth.currentSessionOrNull()
+            val initialSession = supabase.auth.currentSessionOrNull()
                 ?: return Result.failure(Exception("Not logged in"))
+
+            // Force-refresh the access token via REST directly, bypassing the
+            // SDK's session cache. Production logs showed three back-to-back
+            // 401s from the delete-account gateway even after calling
+            // supabase.auth.refreshCurrentSession() — meaning the SDK kept
+            // handing us a stale token. Going through /auth/v1/token directly
+            // guarantees we either get a brand-new access_token from the
+            // server or fail loud here (so the UI shows a clear error instead
+            // of an opaque 401 from the function gateway).
+            val freshAccessToken = try {
+                val refreshUrl = "${SupabaseConfig.current.url}/auth/v1/token?grant_type=refresh_token"
+                val refreshBody = kotlinx.serialization.json.buildJsonObject {
+                    put("refresh_token", kotlinx.serialization.json.JsonPrimitive(initialSession.refreshToken))
+                }.toString()
+                val refreshResponse = ServiceLocator.httpClient.post(refreshUrl) {
+                    headers {
+                        append("apikey", SupabaseConfig.current.anonKey)
+                    }
+                    setBody(io.ktor.http.content.TextContent(refreshBody, io.ktor.http.ContentType.Application.Json))
+                }
+                if (!refreshResponse.status.isSuccess()) {
+                    val errBody = try { refreshResponse.body<String>() } catch (_: Exception) { "" }
+                    val msg = "Token refresh failed (${refreshResponse.status.value}): ${errBody.take(150)}. Please sign out and sign in again, then retry."
+                    AppLogger.w(TAG, msg)
+                    return Result.failure(Exception(msg))
+                }
+                val refreshJson = kotlinx.serialization.json.Json.parseToJsonElement(refreshResponse.body<String>()).jsonObject
+                refreshJson["access_token"]?.jsonPrimitive?.contentOrNull
+                    ?: return Result.failure(Exception("Token refresh returned no access_token"))
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Manual token refresh threw", e)
+                return Result.failure(e)
+            }
+
             // Call Edge Function to delete auth user, profile, and avatar server-side.
             // We MUST verify the HTTP response — previously this code ignored the
             // status and signed the user out even on a 5xx, leaving server-side
@@ -454,7 +479,7 @@ object AccountManager {
             val url = "${SupabaseConfig.current.url}/functions/v1/delete-account"
             val response = ServiceLocator.httpClient.post(url) {
                 headers {
-                    append(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+                    append(HttpHeaders.Authorization, "Bearer $freshAccessToken")
                     append("apikey", SupabaseConfig.current.anonKey)
                 }
             }
