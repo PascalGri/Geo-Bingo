@@ -510,6 +510,8 @@ object De : StringRes {
     override val deleteAccountConfirm = "Account wirklich löschen?"
     override val deleteAccountDesc = "Alle Daten werden unwiderruflich gelöscht"
     override val accountDeleted = "Account gelöscht"
+    override val accountDeleting = "Account wird gelöscht…"
+    override val accountDeleteFailed = "Account konnte nicht gelöscht werden"
 
     // ── Account Management ──────────────────────────────────────────
     override val changeEmail = "E-Mail ändern"

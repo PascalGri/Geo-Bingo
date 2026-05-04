@@ -160,9 +160,26 @@ fun AccountScreen(gameState: GameState) {
                 TextButton(onClick = {
                     showDeleteDialog = false
                     scope.launch {
+                        // Show progress snackbar so the user immediately sees
+                        // something happening — the call now refreshes the
+                        // session + hits the edge function which can take 1-3s.
+                        snackbarHostState.showSnackbar(S.current.accountDeleting)
                         val result = AccountManager.deleteAccount()
                         if (result.isSuccess) {
                             snackbarHostState.showSnackbar(S.current.accountDeleted)
+                            // Boot the user out — local session was already
+                            // wiped inside deleteAccount(); make sure they land
+                            // on Home (away from any account-required screen).
+                            nav.resetTo(Screen.HOME)
+                        } else {
+                            // Surface the actual reason so failures aren't
+                            // silent. Apple's reviewer must see a clear error
+                            // path under guideline 5.1.1(v).
+                            val reason = result.exceptionOrNull()?.message?.take(120).orEmpty()
+                            snackbarHostState.showSnackbar(
+                                if (reason.isNotBlank()) "${S.current.accountDeleteFailed}: $reason"
+                                else S.current.accountDeleteFailed
+                            )
                         }
                     }
                 }) { Text(S.current.delete, color = ColorError, fontWeight = FontWeight.SemiBold) }

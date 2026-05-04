@@ -548,6 +548,8 @@ interface StringRes {
     val deleteAccountConfirm: String
     val deleteAccountDesc: String
     val accountDeleted: String
+    val accountDeleting: String
+    val accountDeleteFailed: String
 
     // ── Account Management ──────────────────────────────────────────
     val changeEmail: String

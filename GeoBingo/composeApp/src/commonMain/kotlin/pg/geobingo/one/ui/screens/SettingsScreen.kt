@@ -645,9 +645,25 @@ private fun AccountSection(
                 TextButton(onClick = {
                     showDeleteDialog = false
                     scope.launch {
+                        // Show progress snackbar so the user immediately sees
+                        // feedback — the call now refreshes the session + hits
+                        // the edge function which can take 1-3s.
+                        snackbarHostState.showSnackbar(S.current.accountDeleting)
                         val result = AccountManager.deleteAccount()
                         if (result.isSuccess) {
                             snackbarHostState.showSnackbar(S.current.accountDeleted)
+                            // Local session is already wiped inside
+                            // deleteAccount(); navigate the user to Home so
+                            // they're not stuck on the now-empty Settings page.
+                            nav.resetTo(Screen.HOME)
+                        } else {
+                            // Apple guideline 5.1.1(v) — failure path must be
+                            // visible to the user. Previously this was silent.
+                            val reason = result.exceptionOrNull()?.message?.take(120).orEmpty()
+                            snackbarHostState.showSnackbar(
+                                if (reason.isNotBlank()) "${S.current.accountDeleteFailed}: $reason"
+                                else S.current.accountDeleteFailed
+                            )
                         }
                     }
                 }) {
