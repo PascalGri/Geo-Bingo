@@ -430,6 +430,19 @@ object AccountManager {
 
     suspend fun deleteAccount(): Result<Unit> {
         return try {
+            // Force-refresh the session FIRST. The cached access token expires
+            // after ~1h; the Edge Function gateway then returns 401 and the
+            // delete silently fails. Production logs showed exactly this 401
+            // pattern, which is why Apple-Review-style account deletion was
+            // not actually completing on the server.
+            try {
+                supabase.auth.refreshCurrentSession()
+            } catch (e: Exception) {
+                // If refresh fails (network down, refresh token revoked, etc.)
+                // we still try with whatever session we have — the post-call
+                // status check will surface a real failure to the UI.
+                AppLogger.w(TAG, "refreshCurrentSession failed before deleteAccount", e)
+            }
             val session = supabase.auth.currentSessionOrNull()
                 ?: return Result.failure(Exception("Not logged in"))
             // Call Edge Function to delete auth user, profile, and avatar server-side.
