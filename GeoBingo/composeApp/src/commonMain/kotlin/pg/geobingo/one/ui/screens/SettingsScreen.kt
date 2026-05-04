@@ -645,20 +645,22 @@ private fun AccountSection(
                 TextButton(onClick = {
                     showDeleteDialog = false
                     scope.launch {
-                        // Show progress snackbar so the user immediately sees
-                        // feedback — the call now refreshes the session + hits
-                        // the edge function which can take 1-3s.
-                        snackbarHostState.showSnackbar(S.current.accountDeleting)
+                        // Indefinite-duration progress snackbar so the bar
+                        // stays visible the entire ~2s the delete takes.
+                        // Without Indefinite the bar disappears after ~4s
+                        // default, leaving the user staring at a blank screen.
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = S.current.accountDeleting,
+                                duration = SnackbarDuration.Indefinite,
+                            )
+                        }
                         val result = AccountManager.deleteAccount()
+                        snackbarHostState.currentSnackbarData?.dismiss()
                         if (result.isSuccess) {
                             snackbarHostState.showSnackbar(S.current.accountDeleted)
-                            // Local session is already wiped inside
-                            // deleteAccount(); navigate the user to Home so
-                            // they're not stuck on the now-empty Settings page.
                             nav.resetTo(Screen.HOME)
                         } else {
-                            // Apple guideline 5.1.1(v) — failure path must be
-                            // visible to the user. Previously this was silent.
                             val reason = result.exceptionOrNull()?.message?.take(120).orEmpty()
                             snackbarHostState.showSnackbar(
                                 if (reason.isNotBlank()) "${S.current.accountDeleteFailed}: $reason"

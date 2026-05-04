@@ -160,21 +160,24 @@ fun AccountScreen(gameState: GameState) {
                 TextButton(onClick = {
                     showDeleteDialog = false
                     scope.launch {
-                        // Show progress snackbar so the user immediately sees
-                        // something happening — the call now refreshes the
-                        // session + hits the edge function which can take 1-3s.
-                        snackbarHostState.showSnackbar(S.current.accountDeleting)
+                        // Show an INDEFINITE-duration progress snackbar so the
+                        // bar stays visible the entire ~2s the delete takes.
+                        // Dismissing it before showing the result snackbar makes
+                        // the transition snappy. Without this the "deleting"
+                        // bar disappears after ~4s default, leaving the user
+                        // staring at a blank screen wondering what happened.
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = S.current.accountDeleting,
+                                duration = SnackbarDuration.Indefinite,
+                            )
+                        }
                         val result = AccountManager.deleteAccount()
+                        snackbarHostState.currentSnackbarData?.dismiss()
                         if (result.isSuccess) {
                             snackbarHostState.showSnackbar(S.current.accountDeleted)
-                            // Boot the user out — local session was already
-                            // wiped inside deleteAccount(); make sure they land
-                            // on Home (away from any account-required screen).
                             nav.resetTo(Screen.HOME)
                         } else {
-                            // Surface the actual reason so failures aren't
-                            // silent. Apple's reviewer must see a clear error
-                            // path under guideline 5.1.1(v).
                             val reason = result.exceptionOrNull()?.message?.take(120).orEmpty()
                             snackbarHostState.showSnackbar(
                                 if (reason.isNotBlank()) "${S.current.accountDeleteFailed}: $reason"
