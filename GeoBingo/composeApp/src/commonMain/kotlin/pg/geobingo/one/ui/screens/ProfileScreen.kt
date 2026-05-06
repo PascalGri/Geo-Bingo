@@ -257,8 +257,12 @@ private fun EditProfileDialog(
     onDismiss: () -> Unit,
     onSaved: (String) -> Unit,
 ) {
+    val nav = remember { ServiceLocator.navigation }
     var nameInput by remember { mutableStateOf(currentName) }
     var previewAvatar by remember { mutableStateOf(currentAvatar) }
+    var aiConsentDialogReason by remember {
+        mutableStateOf<pg.geobingo.one.ui.components.AiConsentReason?>(null)
+    }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
@@ -269,6 +273,21 @@ private fun EditProfileDialog(
             } catch (_: Exception) { /* ignore save errors */ }
         }
     }
+
+    pg.geobingo.one.ui.components.AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            aiConsentDialogReason = null
+            onDismiss()
+            nav.navigateTo(
+                Screen.SETTINGS,
+                pg.geobingo.one.navigation.NavArgs.Settings(
+                    pg.geobingo.one.navigation.NavArgs.SettingsAnchor.AI_PRIVACY,
+                ),
+            )
+        },
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -288,7 +307,14 @@ private fun EditProfileDialog(
                         .clip(CircleShape)
                         .background(ColorSurfaceVariant)
                         .border(2.dp, ProfileGradient.first(), CircleShape)
-                        .clickable { photoCapturer.launch() },
+                        .clickable {
+                            if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                                photoCapturer.launch()
+                            } else {
+                                aiConsentDialogReason =
+                                    pg.geobingo.one.ui.components.AiConsentReason.MODERATION
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     if (previewAvatar != null) {

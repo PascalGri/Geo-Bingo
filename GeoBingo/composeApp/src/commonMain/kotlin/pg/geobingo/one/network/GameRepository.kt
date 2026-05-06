@@ -312,6 +312,15 @@ object GameRepository {
     }
 
     suspend fun uploadAvatarPhoto(playerId: String, bytes: ByteArray) {
+        // Apple 5.1.1(i)/5.1.2(i) defense in depth — every caller MUST also
+        // gate at the UI level (so we can show the AiConsentRequiredDialog),
+        // but this final check ensures no future call site can sneak the
+        // upload past the moderation pipeline. Avatar uploads carry an
+        // implicit Cloudflare-Workers-AI moderation step (per guideline
+        // 1.2); without explicit user consent we refuse the upload.
+        if (!pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+            throw IllegalStateException("ai_consent_required")
+        }
         val path = "avatars/$playerId.jpg"
         supabase.storage.from("photos").upload(path, bytes) { upsert = true }
     }

@@ -64,6 +64,9 @@ fun JoinGameScreen(gameState: GameState) {
     // a profile name. Pre-fills from cache if present.
     var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
     var selectedAvatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
+    var aiConsentDialogReason by remember {
+        mutableStateOf<pg.geobingo.one.ui.components.AiConsentReason?>(null)
+    }
     val photoCapturer = pg.geobingo.one.platform.rememberPhotoCapturer { bytes ->
         if (bytes != null) {
             selectedAvatarBytes = bytes
@@ -219,7 +222,14 @@ fun JoinGameScreen(gameState: GameState) {
                         .size(52.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
                         .background(ColorSurface)
-                        .clickable { photoCapturer.launch() },
+                        .clickable {
+                            if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                                photoCapturer.launch()
+                            } else {
+                                aiConsentDialogReason =
+                                    pg.geobingo.one.ui.components.AiConsentReason.MODERATION
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     if (selectedAvatarBytes != null) {
@@ -293,7 +303,8 @@ fun JoinGameScreen(gameState: GameState) {
                                 AppSettings.setString("last_player_name", nameInput.trim())
                                 val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color, AccountManager.currentUserId)
                                 val avatarBytes = selectedAvatarBytes
-                                if (avatarBytes != null) {
+                                if (avatarBytes != null &&
+                                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                                     try {
                                         GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
                                         GameRepository.setPlayerAvatar(playerDto.id, "selfie")
@@ -348,4 +359,16 @@ fun JoinGameScreen(gameState: GameState) {
             Spacer(Modifier.height(40.dp))
         }
     }
+
+    pg.geobingo.one.ui.components.AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            aiConsentDialogReason = null
+            nav.navigateTo(
+                Screen.SETTINGS,
+                NavArgs.Settings(NavArgs.SettingsAnchor.AI_PRIVACY),
+            )
+        },
+    )
 }
