@@ -30,6 +30,9 @@ import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.platform.rememberPhotoCapturer
 import pg.geobingo.one.platform.rememberShareManager
+import pg.geobingo.one.navigation.NavArgs
+import pg.geobingo.one.ui.components.AiConsentReason
+import pg.geobingo.one.ui.components.AiConsentRequiredDialog
 import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.ui.theme.*
 
@@ -51,6 +54,7 @@ fun AccountScreen(gameState: GameState) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showChangeEmailDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var aiConsentDialogReason by remember { mutableStateOf<AiConsentReason?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -83,7 +87,13 @@ fun AccountScreen(gameState: GameState) {
         ) {
             if (isLoggedIn && currentUser != null) {
                 // Profile section
-                AccountProfileSection(snackbarHostState, scope)
+                AccountProfileSection(
+                    snackbarHostState = snackbarHostState,
+                    scope = scope,
+                    onMissingModerationConsent = {
+                        aiConsentDialogReason = AiConsentReason.MODERATION
+                    },
+                )
 
                 // Account info
                 AccountInfoSection(AccountManager.displayEmail)
@@ -208,6 +218,18 @@ fun AccountScreen(gameState: GameState) {
             onResult = { msg -> showChangePasswordDialog = false; scope.launch { snackbarHostState.showSnackbar(msg) } },
         )
     }
+
+    AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            aiConsentDialogReason = null
+            nav.navigateTo(
+                Screen.SETTINGS,
+                NavArgs.Settings(NavArgs.SettingsAnchor.AI_PRIVACY),
+            )
+        },
+    )
 }
 
 // ── Profile Section ─────────────────────────────────────────────────────────
@@ -216,6 +238,7 @@ fun AccountScreen(gameState: GameState) {
 private fun AccountProfileSection(
     snackbarHostState: SnackbarHostState,
     scope: kotlinx.coroutines.CoroutineScope,
+    onMissingModerationConsent: () -> Unit,
 ) {
     val profileVersion = AccountManager.profileVersion
     var isEditing by remember { mutableStateOf(false) }
@@ -267,13 +290,7 @@ private fun AccountProfileSection(
                         if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                             photoCapturer.launch()
                         } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = S.current.aiGateModerationDisabledHint,
-                                    actionLabel = S.current.aiGateRevokeAndManage,
-                                    withDismissAction = true,
-                                )
-                            }
+                            onMissingModerationConsent()
                         }
                     },
                     onClear = {

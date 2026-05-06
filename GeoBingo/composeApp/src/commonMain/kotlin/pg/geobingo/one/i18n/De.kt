@@ -675,6 +675,14 @@ object De : StringRes {
     override val aiGateRevokeAndManage = "KI-Einwilligungen verwalten"
     override val aiGateSettingsHeader = "Datenschutz & KI"
 
+    override val aiRequiredTitleModeration = "Foto-Sicherheitsprüfung erforderlich"
+    override val aiRequiredBodyModeration = "Damit du ein Profilbild oder Spielfoto hochladen kannst, muss die KI-Sicherheitsprüfung aktiv sein. Apple verlangt für Multiplayer-Inhalte eine automatische Prüfung auf unangemessenes Material — ohne deine Einwilligung können wir die Prüfung nicht durchführen, deshalb ist der Upload deaktiviert."
+    override val aiRequiredTitleRating = "KI-Foto-Bewertung erforderlich"
+    override val aiRequiredBodyRating = "Solo- und AI-Judge-Modus benötigen die KI-Bewertung deiner Fotos durch Google Gemini. Aktiviere die Einwilligung in den Einstellungen, um diese Modi zu nutzen."
+    override val aiRequiredOpenSettings = "Einstellungen öffnen"
+    override val aiRequiredEnable = "Jetzt aktivieren"
+    override val aiRequiredCancel = "Schließen"
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "App-Store-Dialog konnte nicht geöffnet werden. Bitte hole KatchIt in den Vordergrund und versuche es erneut."
 }

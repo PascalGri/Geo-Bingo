@@ -33,6 +33,9 @@ import org.jetbrains.compose.resources.painterResource
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.navigation.NavArgs
+import pg.geobingo.one.ui.components.AiConsentReason
+import pg.geobingo.one.ui.components.AiConsentRequiredDialog
 import pg.geobingo.one.ui.components.StarsChip
 import pg.geobingo.one.ui.components.SelfiePicker
 import pg.geobingo.one.platform.AdManager
@@ -50,6 +53,8 @@ import pg.geobingo.one.platform.rememberShareManager
 import pg.geobingo.one.ui.components.CollectScrollToTop
 import pg.geobingo.one.ui.components.ScrollToTopTags
 import pg.geobingo.one.ui.theme.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +64,7 @@ fun SettingsScreen(gameState: GameState) {
     SystemBackHandler { nav.goBack() }
     val uriHandler = LocalUriHandler.current
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
     CollectScrollToTop(ScrollToTopTags.SETTINGS, scrollState)
 
     // Auth dialog state — opening sign-in directly from Settings (instead of
@@ -66,6 +72,20 @@ fun SettingsScreen(gameState: GameState) {
     // App Review expects: tapping "Anmelden" should immediately show the
     // login UI, not another screen with another "Anmelden" button.
     var showAuthDialog by remember { mutableStateOf(false) }
+
+    // AI-consent gate dialog — shown when the avatar picker is tapped
+    // without moderation consent. Replaces the old snackbar.
+    var aiConsentDialogReason by remember { mutableStateOf<AiConsentReason?>(null) }
+
+    // Auto-scroll to AI/Privacy section when arrived via NavArgs anchor
+    // (typically from the AiConsentRequiredDialog "Open Settings" action).
+    var aiSectionY by remember { mutableStateOf(0) }
+    val anchor = nav.getArgs<NavArgs.Settings>()?.anchor
+    LaunchedEffect(anchor, aiSectionY) {
+        if (anchor == NavArgs.SettingsAnchor.AI_PRIVACY && aiSectionY > 0) {
+            scrollState.animateScrollTo(aiSectionY)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -109,7 +129,13 @@ fun SettingsScreen(gameState: GameState) {
                 onHapticEnabledChange = { gameState.ui.updateHapticEnabled(it) },
             )
 
-            AiPrivacySection()
+            Box(
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    aiSectionY = coords.positionInParent().y.toInt()
+                },
+            ) {
+                AiPrivacySection()
+            }
 
             AdvertisingSection(gameState = gameState)
 
@@ -134,6 +160,18 @@ fun SettingsScreen(gameState: GameState) {
         onDismiss = { showAuthDialog = false },
         gameState = gameState,
         snackbarHostState = snackbarHostState,
+    )
+
+    AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            // Already on the Settings screen — just dismiss and let the
+            // user scroll to the AI section themselves (the dialog body
+            // names the toggle they need).
+            aiConsentDialogReason = null
+            coroutineScope.launch { scrollState.animateScrollTo(aiSectionY) }
+        },
     )
 }
 
@@ -204,22 +242,19 @@ private fun SoundAndHapticSection(
 
 @Composable
 private fun AiPrivacySection() {
-    var moderationOn by remember {
-        mutableStateOf(pg.geobingo.one.platform.AiConsent.moderationAccepted)
-    }
-    var ratingOn by remember {
-        mutableStateOf(pg.geobingo.one.platform.AiConsent.ratingAccepted)
-    }
+    // Read AiConsent directly — its backing fields are mutableStateOf, so
+    // any change (from this section, or from the hard-gate, or from
+    // sign-out reset) recomposes us automatically. No local mirror state
+    // needed; that pattern was prone to drifting from the global truth.
+    val moderationOn = pg.geobingo.one.platform.AiConsent.moderationAccepted
+    val ratingOn = pg.geobingo.one.platform.AiConsent.ratingAccepted
     SettingsSection(title = S.current.aiGateSettingsHeader) {
         SettingsToggleRow(
             icon = Icons.Default.Shield,
             title = S.current.aiGateModerationLabel,
             subtitle = S.current.aiGateModerationDesc,
             checked = moderationOn,
-            onCheckedChange = {
-                moderationOn = it
-                pg.geobingo.one.platform.AiConsent.setModeration(it)
-            },
+            onCheckedChange = { pg.geobingo.one.platform.AiConsent.setModeration(it) },
         )
         HorizontalDivider(color = ColorOutlineVariant)
         SettingsToggleRow(
@@ -227,10 +262,7 @@ private fun AiPrivacySection() {
             title = S.current.aiGateRatingLabel,
             subtitle = S.current.aiGateRatingDesc,
             checked = ratingOn,
-            onCheckedChange = {
-                ratingOn = it
-                pg.geobingo.one.platform.AiConsent.setRating(it)
-            },
+            onCheckedChange = { pg.geobingo.one.platform.AiConsent.setRating(it) },
         )
     }
 }
@@ -417,158 +449,6 @@ private fun VersionFooter(modifier: Modifier = Modifier) {
     )
 }
 
-// ── Profile Section (editable name + avatar) ─────────────────────────────────
-
-@Composable
-private fun ProfileSection(
-    snackbarHostState: SnackbarHostState,
-    scope: kotlinx.coroutines.CoroutineScope,
-) {
-    val profileVersion = AccountManager.profileVersion
-    var isEditing by remember { mutableStateOf(false) }
-    var nameInput by remember(profileVersion) { mutableStateOf(AppSettings.getString("last_player_name", "")) }
-    var avatarBytes by remember(profileVersion) { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
-    var isSaving by remember { mutableStateOf(false) }
-
-    // Download avatar from cloud if local cache is empty
-    LaunchedEffect(Unit) {
-        if (avatarBytes == null || avatarBytes?.isEmpty() == true) {
-            val downloaded = AccountManager.downloadProfileAvatar()
-            if (downloaded != null && downloaded.isNotEmpty()) {
-                avatarBytes = downloaded
-            }
-        }
-    }
-
-    val photoCapturer = rememberPhotoCapturer { bytes ->
-        if (bytes != null) {
-            avatarBytes = bytes
-            try { LocalPhotoStore.saveAvatar("profile", bytes) } catch (e: Exception) {
-                pg.geobingo.one.util.AppLogger.w("Settings", "Avatar save failed", e)
-            }
-        }
-    }
-
-    SettingsSection(title = S.current.editProfile) {
-        if (isEditing) {
-            // Edit mode
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = nameInput,
-                    onValueChange = { if (it.length <= 20) nameInput = it },
-                    label = { Text(S.current.displayName, color = ColorOnSurfaceVariant) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorPrimary,
-                        unfocusedBorderColor = ColorOutline,
-                        focusedTextColor = ColorOnSurface,
-                        unfocusedTextColor = ColorOnSurface,
-                        focusedLabelColor = ColorPrimary,
-                        cursorColor = ColorPrimary,
-                    ),
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = ColorPrimary) },
-                )
-
-                SelfiePicker(
-                    avatarBytes = avatarBytes,
-                    onTakePhoto = {
-                        if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
-                            photoCapturer.launch()
-                        } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = S.current.aiGateModerationDisabledHint,
-                                    actionLabel = S.current.aiGateRevokeAndManage,
-                                    withDismissAction = true,
-                                )
-                            }
-                        }
-                    },
-                    onClear = {
-                        avatarBytes = null
-                        scope.launch {
-                            AccountManager.removeProfileAvatar()
-                        }
-                    },
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = { isEditing = false }) {
-                        Text(S.current.cancel, color = ColorOnSurfaceVariant)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(
-                        onClick = {
-                            val name = nameInput.trim()
-                            if (name.isEmpty()) return@TextButton
-                            if (!pg.geobingo.one.util.NameValidator.isValid(name)) {
-                                scope.launch { snackbarHostState.showSnackbar(S.current.nameContainsProfanity) }
-                                return@TextButton
-                            }
-                            isSaving = true
-                            scope.launch {
-                                AppSettings.setString("last_player_name", name)
-                                AccountManager.updateDisplayName(name)
-                                val bytes = avatarBytes
-                                if (bytes != null && bytes.isNotEmpty() &&
-                                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
-                                    AccountManager.uploadProfileAvatar(bytes)
-                                }
-                                isSaving = false
-                                isEditing = false
-                                snackbarHostState.showSnackbar(S.current.profileUpdated)
-                            }
-                        },
-                        enabled = nameInput.trim().isNotEmpty() && !isSaving,
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = ColorPrimary)
-                        } else {
-                            Text(S.current.save, color = ColorPrimary, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-        } else {
-            // Display mode
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isEditing = true }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                PlayerAvatarViewRaw(
-                    name = nameInput.ifBlank { "?" },
-                    color = ColorPrimary,
-                    size = 48.dp,
-                    photoBytes = avatarBytes,
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        nameInput.ifBlank { "?" },
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ColorOnSurface,
-                    )
-                    Text(
-                        AccountManager.displayEmail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ColorOnSurfaceVariant,
-                    )
-                }
-                Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp), tint = ColorPrimary)
-            }
-        }
-    }
-}
 
 // ── Account Section (auth + providers + password reset + delete) ──────────────
 

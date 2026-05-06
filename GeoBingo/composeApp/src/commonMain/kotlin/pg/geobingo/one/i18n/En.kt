@@ -675,6 +675,14 @@ object En : StringRes {
     override val aiGateRevokeAndManage = "Manage AI consents"
     override val aiGateSettingsHeader = "Privacy & AI"
 
+    override val aiRequiredTitleModeration = "Photo safety check required"
+    override val aiRequiredBodyModeration = "To upload a profile picture or game photo, the AI safety check must be enabled. Apple requires automatic screening of multiplayer content for unsafe material — without your consent we can't run the check, so uploads are disabled."
+    override val aiRequiredTitleRating = "AI photo rating required"
+    override val aiRequiredBodyRating = "Solo and AI Judge modes need Google Gemini to rate your photos. Enable the consent in Settings to use these modes."
+    override val aiRequiredOpenSettings = "Open Settings"
+    override val aiRequiredEnable = "Enable now"
+    override val aiRequiredCancel = "Close"
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "Couldn't open the App Store dialog. Please bring KatchIt to the foreground and try again."
 }

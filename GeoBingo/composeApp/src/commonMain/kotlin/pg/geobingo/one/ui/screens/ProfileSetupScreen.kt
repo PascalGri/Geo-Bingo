@@ -38,6 +38,9 @@ fun ProfileSetupScreen(gameState: GameState) {
     var nameInput by remember { mutableStateOf(AppSettings.getString("last_player_name", "")) }
     var avatarBytes by remember { mutableStateOf<ByteArray?>(LocalPhotoStore.loadAvatar("profile")) }
     var isLoading by remember { mutableStateOf(false) }
+    var aiConsentDialogReason by remember {
+        mutableStateOf<pg.geobingo.one.ui.components.AiConsentReason?>(null)
+    }
 
     val photoCapturer = rememberPhotoCapturer { bytes ->
         if (bytes != null) {
@@ -98,21 +101,15 @@ fun ProfileSetupScreen(gameState: GameState) {
             // Avatar picker. Disabled when the user hasn't granted moderation
             // consent — the avatar must pass a Cloudflare-AI safety check
             // (Apple guideline 1.2 + 5.1.1(i)), and we can't run that check
-            // without explicit consent.
-            val moderationOk = pg.geobingo.one.platform.AiConsent.moderationAccepted
+            // without explicit consent. Reads AiConsent directly so the
+            // toggle in Settings flips this guard immediately.
             SelfiePicker(
                 avatarBytes = avatarBytes,
                 onTakePhoto = {
-                    if (moderationOk) {
+                    if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                         photoCapturer.launch()
                     } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = S.current.aiGateModerationDisabledHint,
-                                actionLabel = S.current.aiGateRevokeAndManage,
-                                withDismissAction = true,
-                            )
-                        }
+                        aiConsentDialogReason = pg.geobingo.one.ui.components.AiConsentReason.MODERATION
                     }
                 },
                 onClear = {
@@ -218,4 +215,18 @@ fun ProfileSetupScreen(gameState: GameState) {
             Spacer(Modifier.height(40.dp))
         }
     }
+
+    pg.geobingo.one.ui.components.AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            aiConsentDialogReason = null
+            nav.navigateTo(
+                Screen.SETTINGS,
+                pg.geobingo.one.navigation.NavArgs.Settings(
+                    pg.geobingo.one.navigation.NavArgs.SettingsAnchor.AI_PRIVACY,
+                ),
+            )
+        },
+    )
 }

@@ -710,6 +710,15 @@ interface StringRes {
     val aiGateRevokeAndManage: String
     val aiGateSettingsHeader: String
 
+    // ── AI Consent Required Dialog (when feature gated by missing consent) ──
+    val aiRequiredTitleModeration: String
+    val aiRequiredBodyModeration: String
+    val aiRequiredTitleRating: String
+    val aiRequiredBodyRating: String
+    val aiRequiredOpenSettings: String
+    val aiRequiredEnable: String
+    val aiRequiredCancel: String
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     val purchaseFailedNoForegroundScene: String
 }

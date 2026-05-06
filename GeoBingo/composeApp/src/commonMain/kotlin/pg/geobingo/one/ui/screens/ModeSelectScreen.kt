@@ -57,31 +57,27 @@ fun ModeSelectScreen(gameState: GameState) {
     var soloExpanded by remember { mutableStateOf(false) }
     var soloOutdoor by remember { mutableStateOf(true) }
     var soloCategoryCount by remember { mutableStateOf(5) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    var aiConsentDialogReason by remember {
+        mutableStateOf<pg.geobingo.one.ui.components.AiConsentReason?>(null)
+    }
 
     // Build-17 model: AI consent is now resolved at app launch via the
     // hard-gate screen (Apple 5.1.1(i)/5.1.2(i) Nov-2025). No per-round
     // dialog here — we just check `AiConsent.ratingAccepted` and gate
-    // entry into the AI modes.
+    // entry into the AI modes. If the user declined the rating consent
+    // earlier, we surface a proper modal explaining why and offering a
+    // direct route to Settings (replacing the previous flat snackbar).
     fun gateRating(action: () -> Unit) {
         if (pg.geobingo.one.platform.AiConsent.ratingAccepted) {
             action()
         } else {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = S.current.aiGateRatingDisabledHint,
-                    actionLabel = S.current.aiGateRevokeAndManage,
-                    withDismissAction = true,
-                )
-            }
+            aiConsentDialogReason = pg.geobingo.one.ui.components.AiConsentReason.RATING
         }
     }
 
     SystemBackHandler { nav.goBack() }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             ModeSelectTopBar(
                 gameState = gameState,
@@ -159,6 +155,19 @@ fun ModeSelectScreen(gameState: GameState) {
         )
     }
 
+    pg.geobingo.one.ui.components.AiConsentRequiredDialog(
+        reason = aiConsentDialogReason,
+        onDismiss = { aiConsentDialogReason = null },
+        onOpenSettings = {
+            aiConsentDialogReason = null
+            nav.navigateTo(
+                Screen.SETTINGS,
+                pg.geobingo.one.navigation.NavArgs.Settings(
+                    pg.geobingo.one.navigation.NavArgs.SettingsAnchor.AI_PRIVACY,
+                ),
+            )
+        },
+    )
 }
 
 // ── Top Bar ─────────────────────────────────────────────────────────────

@@ -15,4 +15,13 @@ sealed interface NavArgs {
 
     /** Arguments for MatchDetailScreen. */
     data class MatchDetail(val gameId: String, val entry: GameHistoryEntry) : NavArgs
+
+    /**
+     * Arguments for SettingsScreen — when navigated from an AI-consent
+     * gate dialog, the screen scrolls to the AI/Privacy section so the
+     * user immediately sees the toggles they need to flip.
+     */
+    data class Settings(val anchor: SettingsAnchor = SettingsAnchor.NONE) : NavArgs
+
+    enum class SettingsAnchor { NONE, AI_PRIVACY }
 }
