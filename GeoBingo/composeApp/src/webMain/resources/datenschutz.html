@@ -44,7 +44,7 @@
     <div class="container">
         <a href="/" class="back">&larr; Zurück zu KatchIt!</a>
         <h1>Datenschutzerklärung</h1>
-        <p style="font-size: 13px; color: #5A3D8A;">Stand: 29. März 2026</p>
+        <p style="font-size: 13px; color: #5A3D8A;">Stand: 6. Mai 2026</p>
 
         <h2>1. Datenschutz auf einen Blick</h2>
         <h3>Allgemeine Hinweise</h3>
@@ -98,9 +98,22 @@
         </ul>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
 
-        <h3>d) KI-Fotobewertung (Solo-Modus und Multiplayer mit KI-Bewerter)</h3>
+        <h3>d) KI-Einwilligung beim ersten Start („Hard Gate")</h3>
         <p>
-            Die App bietet zwei optionale Modi mit automatischer KI-Fotobewertung: Solo-Modus und Multiplayer-Modus „KI-Bewerter". In beiden Modi werden Fotos zur Bewertung an einen KI-Auftragsverarbeiter übermittelt — mit folgendem Routing:
+            Bei jedem Cold-Start zeigt KatchIt! einen nicht-überspringbaren KI-Einwilligungs-Screen mit zwei separaten Schaltern. Bevor der Nutzer auf „Bestätigen" tippt, wird kein KI-Dienst kontaktiert.
+        </p>
+        <ul>
+            <li><strong>Schalter 1 — Foto-Sicherheitsprüfung:</strong> Einwilligung in die Inhaltsprüfung von Profilbildern und Multiplayer-Fotos durch Cloudflare Workers AI (siehe Abschnitt 5d, Verwendung 2). Erforderlich für Avatar-Upload und Multiplayer-Foto-Funktionen.</li>
+            <li><strong>Schalter 2 — KI-Foto-Bewertung:</strong> Einwilligung in die Foto-Bewertung durch Google Gemini (primär) und Cloudflare Workers AI (Fallback) im Solo- und im AI-Judge-Modus (siehe Abschnitte 5c und 5d, Verwendung 1).</li>
+        </ul>
+        <p>
+            Beide Schalter können einzeln deaktiviert bleiben — die App bleibt nutzbar, die zugehörigen Funktionen sind dann hinter einem klaren In-App-Dialog gesperrt, der direkt in die Einstellungen verlinkt. Beide Einwilligungen können jederzeit unter Einstellungen → Datenschutz &amp; KI widerrufen werden; der Widerruf wirkt sofort und sperrt die zugehörige Funktion ohne Abmeldung. Bei Abmeldung werden beide Einwilligungen zurückgesetzt, sodass der nächste Nutzer auf demselben Gerät seine eigene Einwilligung erteilen muss.
+        </p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (ausdrückliche Einwilligung) — erforderlich, bevor ein Foto an einen Drittanbieter-KI-Dienst gesendet wird.</p>
+
+        <h3>e) KI-Fotobewertung (Solo-Modus und Multiplayer mit KI-Bewerter)</h3>
+        <p>
+            Die App bietet zwei optionale Modi mit automatischer KI-Fotobewertung: Solo-Modus und Multiplayer-Modus „KI-Bewerter". Beide Modi werden nur freigeschaltet, wenn der Nutzer „KI-Foto-Bewertung" am Hard-Gate-Screen aktiviert hat (siehe d). In beiden Modi werden Fotos zur Bewertung an einen KI-Auftragsverarbeiter übermittelt — mit folgendem Routing:
         </p>
         <ul>
             <li><strong>Primär (beide Modi):</strong> Google Gemini API (Google LLC, USA). Wird standardmäßig genutzt, sofern der Gemini-API-Key serverseitig konfiguriert ist.</li>
@@ -112,36 +125,35 @@
             <li>Die Fotos werden ausschließlich zur Echtzeit-Bewertung übertragen und von keinem der beiden Anbieter dauerhaft gespeichert</li>
             <li>Die Daten werden nach der Verarbeitung sofort verworfen</li>
             <li><strong>Beide Anbieter handeln ausschließlich als Auftragsverarbeiter auf Basis ihrer Enterprise-Verträge und verwenden übermittelte Fotos nicht zum Training ihrer KI-Modelle.</strong></li>
-            <li>Vor jeder KI-Runde wird der Nutzer explizit um Einwilligung gebeten („Mit KI fortfahren" / „Ablehnen"). Bei Ablehnung startet die Runde nicht.</li>
         </ul>
-        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) — explizite In-App-Einwilligung wird vor jedem Foto in einem KI-Modus eingeholt.</p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (ausdrückliche Einwilligung am Hard-Gate beim ersten App-Start, in den Einstellungen widerrufbar).</p>
 
-        <h3>d2) Bild-Sicherheits-Moderation (alle Multiplayer-Aufnahmen und Avatare)</h3>
+        <h3>f) Bild-Sicherheits-Moderation (alle Multiplayer-Aufnahmen und Avatare)</h3>
         <p>
-            Unabhängig von der optionalen KI-Bewertung in (d) durchläuft jedes Foto, das für ein Multiplayer-Spiel aufgenommen wird, sowie jedes hochgeladene Profil-Avatar eine automatische Inhaltsprüfung über Cloudflare Workers AI BEVOR es gespeichert wird. Dies ist erforderlich, um zu verhindern, dass unangemessene Inhalte (sexuelle Inhalte, grafische Gewalt, Hasssymbole etc.) mit anderen Spielern geteilt oder auf unseren Servern gespeichert werden, gemäß App-Store-Richtlinie 1.2.
+            Wenn — und nur wenn — der Nutzer „Foto-Sicherheitsprüfung" am Hard-Gate-Screen aktiviert hat (siehe d), durchläuft jedes Foto, das für ein Multiplayer-Spiel aufgenommen wird, sowie jedes hochgeladene Profil-Avatar eine automatische Inhaltsprüfung über Cloudflare Workers AI BEVOR es gespeichert wird. Dies verhindert, dass unangemessene Inhalte (sexuelle Inhalte, grafische Gewalt, Hasssymbole etc.) mit anderen Spielern geteilt oder auf unseren Servern gespeichert werden, gemäß App-Store-Richtlinie 1.2. Wird diese Einwilligung nicht erteilt, sind Avatar-Upload und Multiplayer-Fotoaufnahme gesperrt.
         </p>
         <table>
             <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
             <tr><th>Modell</th><td><code>@cf/meta/llama-4-scout-17b-16e-instruct</code></td></tr>
-            <tr><th>Wann aufgerufen</th><td>Einmal vor jedem Multiplayer-Spielfoto-Upload und jedem Avatar-Upload (NICHT für Solo-Modus-Fotos, NICHT für die Multiplayer-„KI-Bewerter"-Bewertung — letztere ist durch (d) abgedeckt)</td></tr>
+            <tr><th>Wann aufgerufen</th><td>Einmal vor jedem Multiplayer-Spielfoto-Upload und jedem Avatar-Upload (NICHT für Solo-Modus-Fotos, NICHT für die Multiplayer-„KI-Bewerter"-Bewertung — letztere ist durch (e) abgedeckt)</td></tr>
             <tr><th>Übertragene Daten</th><td>Nur Bild-Bytes. Kein Name, keine E-Mail, keine Nutzer-ID, kein Standort.</td></tr>
             <tr><th>Speicherdauer</th><td>Keine — Bild wird in-memory zur Sicherheits-Beurteilung verarbeitet und sofort verworfen</td></tr>
-            <tr><th>Rechtsgrundlage</th><td>Art. 6 Abs. 1 lit. f DSGVO — berechtigtes Interesse am Schutz der Nutzer vor unangemessenen Inhalten und an der Einhaltung von App-Store-Richtlinie 1.2. Diese Sicherheitsprüfung ist eine technische Schutzmaßnahme, kein optionales KI-Feature, daher wird keine individuelle Einwilligung eingeholt; sie ist hier zur Transparenz dokumentiert.</td></tr>
+            <tr><th>Rechtsgrundlage</th><td>Art. 6 Abs. 1 lit. a DSGVO (ausdrückliche Einwilligung am Hard-Gate beim ersten App-Start, in den Einstellungen widerrufbar). Cloudflare handelt ausschließlich als Auftragsverarbeiter auf Basis seiner Workers-AI-Enterprise-Bedingungen und verwendet übermittelte Bilder nicht zum Training seiner KI-Modelle.</td></tr>
         </table>
 
-        <h3>e) Solo-Bestenliste</h3>
+        <h3>g) Solo-Bestenliste</h3>
         <p>
             Im Solo-Modus wird Ihr Spielergebnis (Spielername, Punktzahl, Kategorienanzahl, Zeitbonus) an unseren Server übermittelt und in einer öffentlichen Bestenliste angezeigt. Der Spielername ist für alle Nutzer sichtbar.
         </p>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
 
-        <h3>f) Spieldaten</h3>
+        <h3>h) Spieldaten</h3>
         <p>
             Spielbezogene Daten wie gewählte Kategorien, Bewertungen (Sternvergabe) und Spielstände werden für die Dauer des Spiels gespeichert und nach Spielende gelöscht.
         </p>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</p>
 
-        <h3>g) Standortdaten (GPS)</h3>
+        <h3>i) Standortdaten (GPS)</h3>
         <p>
             Bei der Aufnahme eines Spielfotos wird — sofern Sie die Standortberechtigung erteilt haben — Ihr aktueller GPS-Standort (Breitengrad und Längengrad) erfasst und zusammen mit dem Foto auf unseren Servern gespeichert. Diese Daten dienen dazu, den Aufnahmeort in der Fotogalerie und im Spielverlauf anzuzeigen.
         </p>
@@ -153,12 +165,12 @@
         </ul>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch Erteilung der Standortberechtigung).</p>
 
-        <h3>h) Kamerazugriff</h3>
+        <h3>j) Kamerazugriff</h3>
         <p>
             Die App benötigt Zugriff auf die Kamera Ihres Geräts, um Spielfotos aufzunehmen. Dieser Zugriff wird über die Berechtigungsdialoge Ihres Betriebssystems angefragt und kann jederzeit in den Geräteeinstellungen widerrufen werden. Ohne Kamerazugriff ist die Kernfunktion der App nicht nutzbar.
         </p>
 
-        <h3>i) Lokale Speicherung</h3>
+        <h3>k) Lokale Speicherung</h3>
         <p>
             Die App nutzt den lokalen Speicher Ihres Geräts (Local Storage bzw. App-interner Speicher) zur temporären Zwischenspeicherung von Spielfotos, Avataren und Spielstatistiken. Diese Daten verbleiben auf Ihrem Gerät und werden nicht an Dritte übermittelt.
         </p>
@@ -207,27 +219,27 @@
             <tr><th>Verarbeitete Daten</th><td>Spielfotos (als Bilddaten), Kategoriename (als Text). Keine personenbezogenen Daten (kein Name, keine E-Mail, keine Nutzer-ID).</td></tr>
             <tr><th>Serverstandort</th><td>USA und weltweit (Google Cloud-Rechenzentren)</td></tr>
             <tr><th>Speicherdauer</th><td>Keine Speicherung — Fotos werden nur zur Echtzeit-Verarbeitung übertragen und sofort verworfen</td></tr>
-            <tr><th>Einwilligung</th><td>Explizite In-App-Einwilligung vor JEDER KI-Runde (per-Runde, nicht nur beim ersten Mal). Bei Ablehnung startet die Runde nicht.</td></tr>
+            <tr><th>Einwilligung</th><td>Explizite In-App-Einwilligung am Hard-Gate-Bildschirm beim ersten App-Start (Schalter 2 — „KI-Foto-Bewertung"). Bis zur Erteilung sind Solo- und KI-Bewerter-Modus gesperrt. Jederzeit unter Einstellungen → Datenschutz &amp; KI widerrufbar; ein Widerruf sperrt die Modi sofort.</td></tr>
             <tr><th>Verarbeiter-Status</th><td><strong>Google LLC handelt ausschließlich als Auftragsverarbeiter unter Googles kommerziellen Gemini-API-Bedingungen und verwendet übermittelte Fotos nicht zum Training von Googles KI-Modellen.</strong></td></tr>
             <tr><th>Datenschutz</th><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td></tr>
         </table>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).</p>
-        <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) gemäß Art. 45 DSGVO. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt. Diese Übermittlung findet nur statt, sofern der Spielgastgeber im App-Dialog eingewilligt hat.</p>
+        <p><strong>Drittlandübermittlung:</strong> Google LLC hat seinen Sitz in den USA. Die Datenübermittlung in die USA erfolgt auf Grundlage des EU-U.S. Data Privacy Framework (DPF) gemäß Art. 45 DSGVO. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt. Diese Übermittlung findet nur statt, wenn der Nutzer am Hard-Gate „KI-Foto-Bewertung" aktiviert hat.</p>
 
         <h3>d) Cloudflare Workers AI — zwei verschiedene Verwendungen</h3>
         <p>
-            Wir nutzen Cloudflare Workers AI für zwei separate Zwecke. Beide Verwendungen übertragen ausschließlich Bild-Bytes (und für die KI-Bewertung einen Kategoriename) — keine personenbezogenen Daten.
+            Wir nutzen Cloudflare Workers AI für zwei separate Zwecke. Beide Verwendungen übertragen ausschließlich Bild-Bytes (und für die KI-Bewertung einen Kategoriename) — keine personenbezogenen Daten. <strong>Beide Verwendungen erfordern eine ausdrückliche Einwilligung am Hard-Gate-Bildschirm beim ersten App-Start</strong> und sind an zwei separate Schalter gebunden, sodass jede Verwendung einzeln abgelehnt werden kann.
         </p>
         <table>
             <tr><th>Anbieter</th><td>Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA</td></tr>
-            <tr><th>Verwendung 1 — KI-Bewertung-Fallback</th><td>Falls der primäre Gemini-Aufruf (Abschnitt 5c) fehlschlägt (z.B. temporäre Ausfälle, Rate-Limits), wird dasselbe Bild + Kategoriename stattdessen an Cloudflare Workers AI gesendet (Modell <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>). Abgedeckt durch dieselbe Per-Runden-In-App-KI-Einwilligung, die auch Gemini abdeckt.</td></tr>
-            <tr><th>Verwendung 2 — Bild-Sicherheits-Moderation</th><td>Jedes Multiplayer-Spielfoto und jedes Profil-Avatar wird durch Cloudflare Workers AI (gleiches Modell) auf inhaltliche Sicherheit geprüft, BEVOR es auf unseren Servern gespeichert wird. Erkennt unangemessene Inhalte (sexuelle Inhalte, Gewalt, Hasssymbole etc.) gemäß App-Store-Richtlinie 1.2. Unabhängig von der KI-Bewertungs-Einwilligung — dies ist eine technische Schutzmaßnahme nach Art. 6 Abs. 1 lit. f DSGVO.</td></tr>
+            <tr><th>Verwendung 1 — KI-Bewertung-Fallback</th><td>Falls der primäre Gemini-Aufruf (Abschnitt 5c) fehlschlägt (z.B. temporäre Ausfälle, Rate-Limits), wird dasselbe Bild + Kategoriename stattdessen an Cloudflare Workers AI gesendet (Modell <code>@cf/meta/llama-4-scout-17b-16e-instruct</code>). Abgedeckt durch denselben Hard-Gate-Schalter wie Gemini („KI-Foto-Bewertung").</td></tr>
+            <tr><th>Verwendung 2 — Bild-Sicherheits-Moderation</th><td>Jedes Multiplayer-Spielfoto und jedes Profil-Avatar wird durch Cloudflare Workers AI (gleiches Modell) auf inhaltliche Sicherheit geprüft, BEVOR es auf unseren Servern gespeichert wird. Erkennt unangemessene Inhalte (sexuelle Inhalte, Gewalt, Hasssymbole etc.) gemäß App-Store-Richtlinie 1.2. An einen separaten Hard-Gate-Schalter gebunden („Foto-Sicherheitsprüfung"). Bei Ablehnung sind Avatar-Upload und Multiplayer-Fotoaufnahme gesperrt. Solo-Modus-Fotos werden NICHT separat moderiert, da sie direkt an den KI-Bewerter gehen, der eine eigene Sicherheitsprüfung durchführt.</td></tr>
             <tr><th>Serverstandort</th><td>Weltweit (Cloudflare Edge Network), Verarbeitung auf dem nächstgelegenen Rechenzentrum</td></tr>
             <tr><th>Speicherdauer</th><td>Keine — Bilder werden in-memory zur Beurteilung verarbeitet und sofort verworfen</td></tr>
             <tr><th>Verarbeiter-Status</th><td><strong>Cloudflare Inc. handelt ausschließlich als Auftragsverarbeiter unter Cloudflares Workers-AI-Geschäftsbedingungen und verwendet übermittelte Bilder nicht zum Training seiner KI-Modelle.</strong></td></tr>
             <tr><th>Datenschutz</th><td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a></td></tr>
         </table>
-        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) für Verwendung 1 — abgedeckt durch dieselbe Per-Runden-KI-Einwilligung wie Gemini. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Nutzersicherheit + Compliance mit App-Store-Richtlinie 1.2) für Verwendung 2.</p>
+        <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (ausdrückliche Einwilligung am Hard-Gate beim ersten App-Start) für beide Verwendungen. Beide Schalter sind jederzeit unter Einstellungen → Datenschutz &amp; KI widerrufbar; der Widerruf wirkt sofort und sperrt die jeweilige Funktion.</p>
         <p><strong>Drittlandübermittlung:</strong> Cloudflare hat seinen Sitz in den USA und ist unter dem EU-U.S. Data Privacy Framework (DPF) zertifiziert. Ergänzend werden Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) eingesetzt.</p>
 
         <h3>e) Firebase Crashlytics (Absturzberichte — nur iOS und Android)</h3>
