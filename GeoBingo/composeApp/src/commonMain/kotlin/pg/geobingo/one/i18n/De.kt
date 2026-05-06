@@ -658,6 +658,23 @@ object De : StringRes {
     override val aiConsentPrivacyPolicy = "Datenschutzerklärung öffnen"
     override val aiConsentPrivacyUrl = "https://katchit.app/datenschutz.html"
 
+    // ── AI Consent Hard Gate (Build 17) ─────────────────────────────────
+    override val aiGateTitle = "Datenschutz: KI-Funktionen"
+    override val aiGateIntro = "KatchIt nutzt zwei externe KI-Dienste für unterschiedliche Zwecke. Bevor du die App nutzt, möchten wir dir genau erklären, welche Daten wir wohin senden — und dich entscheiden lassen, was du erlaubst.\n\nÜbertragen werden ausschließlich das Bild bzw. der Text und ggf. der Kategoriename. Keine personenbezogenen Daten wie Name, E-Mail-Adresse oder Nutzer-ID werden an die KI-Anbieter übermittelt. Die Anbieter handeln ausschließlich als Auftragsverarbeiter auf Basis ihrer Enterprise-Verträge und nutzen deine Daten nicht für KI-Training.\n\nDu kannst beide Optionen einzeln zustimmen oder ablehnen. Die App funktioniert auch ohne Zustimmung, einige Funktionen sind dann aber nicht verfügbar."
+    override val aiGateModerationLabel = "Foto-Sicherheitsprüfung erlauben"
+    override val aiGateModerationDesc = "Cloudflare Workers AI (Cloudflare Inc., USA) prüft jedes Foto vor dem Upload auf unangemessene Inhalte (z.B. Nacktheit, Gewalt). Apple-Richtlinie 1.2 verlangt diese Prüfung. Erforderlich für Avatar-Upload und Multiplayer-Foto-Funktionen."
+    override val aiGateRatingLabel = "KI-Foto-Bewertung erlauben"
+    override val aiGateRatingDesc = "Google Gemini API (Google LLC, USA) bewertet im Solo- und im AI-Judge-Modus deine Fotos automatisch mit 1–5 Sternen. Falls Gemini kurzfristig nicht verfügbar ist, dient Cloudflare Workers AI als Fallback. Erforderlich für Solo-Modus und AI-Judge-Multiplayer-Modus."
+    override val aiGateAcknowledgeTransfer = "Mir ist bewusst, dass meine Fotos in die USA übertragen werden (auf Basis EU-U.S. Data Privacy Framework + Standardvertragsklauseln, DSGVO Art. 44 ff)."
+    override val aiGateAcknowledgeProcessor = "Mir ist bewusst, dass die Anbieter als reine Auftragsverarbeiter handeln, meine Fotos sofort nach der Verarbeitung verworfen werden und nicht zum KI-Training verwendet werden."
+    override val aiGateAcknowledgeRevoke = "Mir ist bewusst, dass ich meine Einwilligung jederzeit in den Einstellungen widerrufen kann."
+    override val aiGateConfirm = "Bestätigen"
+    override val aiGateOpenPrivacyPolicy = "Vollständige Datenschutzerklärung öffnen"
+    override val aiGateModerationDisabledHint = "Aktiviere die Foto-Sicherheitsprüfung in den Einstellungen, um Avatare hochzuladen oder an Multiplayer-Spielen mit Fotos teilzunehmen."
+    override val aiGateRatingDisabledHint = "Aktiviere die KI-Foto-Bewertung in den Einstellungen, um Solo- und AI-Judge-Modus zu nutzen."
+    override val aiGateRevokeAndManage = "KI-Einwilligungen verwalten"
+    override val aiGateSettingsHeader = "Datenschutz & KI"
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "App-Store-Dialog konnte nicht geöffnet werden. Bitte hole KatchIt in den Vordergrund und versuche es erneut."
 }

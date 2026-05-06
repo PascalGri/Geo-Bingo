@@ -100,6 +100,17 @@ class GameViewModel(
 
         if (gameId != null) {
             viewModelScope.launch {
+                // Apple 5.1.1(i)/5.1.2(i) hard-gate: moderation is a
+                // third-party-AI request and requires explicit user consent.
+                // No consent → refuse upload (the user is not allowed to
+                // post photos that bypass the safety check anyway).
+                if (!pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                    AppLogger.w("GameVM", "Capture blocked: moderation consent missing")
+                    gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.aiGateModerationDisabledHint
+                    if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Error)
+                    gameState.photo.finishUpload(categoryId)
+                    return@launch
+                }
                 // Pre-upload moderation — prevents NSFW / violent content
                 // from reaching storage where other players would see it
                 // during voting. App-Store Guideline 1.2 ("filter

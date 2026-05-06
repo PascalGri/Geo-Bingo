@@ -125,6 +125,7 @@ fun App() {
 private fun ScreenRouter(screen: Screen, gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     when (screen) {
+        Screen.AI_CONSENT_GATE -> AiConsentGateScreen(gameState)
         Screen.ONBOARDING -> OnboardingScreen(gameState)
         Screen.HOME -> HomeScreen(gameState)
         Screen.HOW_TO_PLAY -> HowToPlayScreen(gameState)

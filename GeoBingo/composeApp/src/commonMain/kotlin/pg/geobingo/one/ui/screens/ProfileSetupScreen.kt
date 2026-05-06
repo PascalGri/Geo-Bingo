@@ -95,10 +95,26 @@ fun ProfileSetupScreen(gameState: GameState) {
 
             Spacer(Modifier.height(40.dp))
 
-            // Avatar picker
+            // Avatar picker. Disabled when the user hasn't granted moderation
+            // consent — the avatar must pass a Cloudflare-AI safety check
+            // (Apple guideline 1.2 + 5.1.1(i)), and we can't run that check
+            // without explicit consent.
+            val moderationOk = pg.geobingo.one.platform.AiConsent.moderationAccepted
             SelfiePicker(
                 avatarBytes = avatarBytes,
-                onTakePhoto = { photoCapturer.launch() },
+                onTakePhoto = {
+                    if (moderationOk) {
+                        photoCapturer.launch()
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = S.current.aiGateModerationDisabledHint,
+                                actionLabel = S.current.aiGateRevokeAndManage,
+                                withDismissAction = true,
+                            )
+                        }
+                    }
+                },
                 onClear = {
                     avatarBytes = null
                     try { LocalPhotoStore.deleteAvatar("profile") } catch (e: Exception) {
@@ -160,15 +176,29 @@ fun ProfileSetupScreen(gameState: GameState) {
                             snackbarHostState.showSnackbar(msg)
                             return@launch
                         }
-                        // Upload avatar if present — gated on server-side moderation.
+                        // Upload avatar if present — gated on server-side moderation
+                        // AND on the Build-17 hard-gate moderation consent (Apple
+                        // 5.1.1(i)). If consent is missing the avatar bytes stay
+                        // local-only; the cloud profile remains avatar-less.
                         val bytes = avatarBytes
-                        if (bytes != null && bytes.isNotEmpty()) {
+                        if (bytes != null && bytes.isNotEmpty() &&
+                            pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                             val avatarResult = AccountManager.uploadProfileAvatar(bytes)
-                            if (avatarResult.isFailure &&
-                                avatarResult.exceptionOrNull()?.message?.contains("image_rejected") == true) {
-                                isLoading = false
-                                snackbarHostState.showSnackbar(S.current.imageRejectedByModeration)
-                                return@launch
+                            if (avatarResult.isFailure) {
+                                val msg = avatarResult.exceptionOrNull()?.message.orEmpty()
+                                if (msg.contains("image_rejected")) {
+                                    isLoading = false
+                                    snackbarHostState.showSnackbar(S.current.imageRejectedByModeration)
+                                    return@launch
+                                }
+                                // Other failures (network, ai_consent_required edge
+                                // case if user revoked between picker and upload):
+                                // log and continue — name was saved, avatar simply
+                                // won't sync this round.
+                                pg.geobingo.one.util.AppLogger.w(
+                                    "ProfileSetup",
+                                    "Avatar upload skipped: $msg",
+                                )
                             }
                         }
                         isLoading = false

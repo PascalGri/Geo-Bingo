@@ -109,6 +109,8 @@ fun SettingsScreen(gameState: GameState) {
                 onHapticEnabledChange = { gameState.ui.updateHapticEnabled(it) },
             )
 
+            AiPrivacySection()
+
             AdvertisingSection(gameState = gameState)
 
             LanguageSection()
@@ -189,6 +191,46 @@ private fun SoundAndHapticSection(
             subtitle = S.current.hapticFeedbackDesc,
             checked = hapticEnabled,
             onCheckedChange = onHapticEnabledChange,
+        )
+    }
+}
+
+// ── AI / Privacy Section ────────────────────────────────────────────────────
+//
+// Build-17 revoke surface for the two granular AI consents (Apple
+// 5.1.1(i)/5.1.2(i) Nov-2025). The hard-gate at app launch initially
+// captured the user's choice; this section lets the user change it at
+// any time without re-running the full hard-gate flow.
+
+@Composable
+private fun AiPrivacySection() {
+    var moderationOn by remember {
+        mutableStateOf(pg.geobingo.one.platform.AiConsent.moderationAccepted)
+    }
+    var ratingOn by remember {
+        mutableStateOf(pg.geobingo.one.platform.AiConsent.ratingAccepted)
+    }
+    SettingsSection(title = S.current.aiGateSettingsHeader) {
+        SettingsToggleRow(
+            icon = Icons.Default.Shield,
+            title = S.current.aiGateModerationLabel,
+            subtitle = S.current.aiGateModerationDesc,
+            checked = moderationOn,
+            onCheckedChange = {
+                moderationOn = it
+                pg.geobingo.one.platform.AiConsent.setModeration(it)
+            },
+        )
+        HorizontalDivider(color = ColorOutlineVariant)
+        SettingsToggleRow(
+            icon = Icons.Default.AutoAwesome,
+            title = S.current.aiGateRatingLabel,
+            subtitle = S.current.aiGateRatingDesc,
+            checked = ratingOn,
+            onCheckedChange = {
+                ratingOn = it
+                pg.geobingo.one.platform.AiConsent.setRating(it)
+            },
         )
     }
 }
@@ -431,7 +473,19 @@ private fun ProfileSection(
 
                 SelfiePicker(
                     avatarBytes = avatarBytes,
-                    onTakePhoto = { photoCapturer.launch() },
+                    onTakePhoto = {
+                        if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                            photoCapturer.launch()
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = S.current.aiGateModerationDisabledHint,
+                                    actionLabel = S.current.aiGateRevokeAndManage,
+                                    withDismissAction = true,
+                                )
+                            }
+                        }
+                    },
                     onClear = {
                         avatarBytes = null
                         scope.launch {
@@ -462,7 +516,8 @@ private fun ProfileSection(
                                 AppSettings.setString("last_player_name", name)
                                 AccountManager.updateDisplayName(name)
                                 val bytes = avatarBytes
-                                if (bytes != null && bytes.isNotEmpty()) {
+                                if (bytes != null && bytes.isNotEmpty() &&
+                                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                                     AccountManager.uploadProfileAvatar(bytes)
                                 }
                                 isSaving = false

@@ -31,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import pg.geobingo.one.di.ServiceLocator
+import pg.geobingo.one.platform.AiConsent
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SettingsKeys
@@ -537,6 +538,15 @@ object AccountManager {
     suspend fun uploadProfileAvatar(bytes: ByteArray): Result<Unit> {
         return try {
             val userId = currentUserId ?: return Result.failure(Exception("Not logged in"))
+            // Apple 5.1.1(i)/5.1.2(i) hard-gate: avatar moderation is a
+            // third-party-AI request (Cloudflare Workers AI). Without
+            // explicit user consent we MUST NOT send the image — and
+            // because the moderation is required by Apple guideline 1.2,
+            // we also can't upload an unmoderated avatar. Hence: refuse
+            // upload entirely until the user grants consent.
+            if (!AiConsent.moderationAccepted) {
+                return Result.failure(IllegalStateException("ai_consent_required"))
+            }
             // Proactive safety check BEFORE anything hits Storage — we never
             // want an NSFW avatar to live in the cloud even briefly. If the
             // moderator flags it, bail out with a recognisable error so the
@@ -720,7 +730,10 @@ object AccountManager {
         AppSettings.setString(SettingsKeys.LAST_WEEKLY_WEEK, "")
         // AI/data-sharing consent must be re-obtained per user (Apple guideline
         // 5.1.1(i)) — it's a privacy decision tied to the user, not the device.
+        // Resets all three Build-17 flags + the legacy single-flag so the
+        // hard-gate re-appears on the next cold launch.
         AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)
+        AiConsent.resetForSignOut()
         // Cosmetics: owned + equipped + migration flag. Without this, user A's
         // unlocks register as owned for user B until cloud sync overrides them
         // (and cloud sync is additive, so equipped-state never gets pushed back

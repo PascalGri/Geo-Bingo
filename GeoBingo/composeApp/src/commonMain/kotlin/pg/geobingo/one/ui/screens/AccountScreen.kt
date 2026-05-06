@@ -263,7 +263,19 @@ private fun AccountProfileSection(
                 )
                 SelfiePicker(
                     avatarBytes = avatarBytes,
-                    onTakePhoto = { photoCapturer.launch() },
+                    onTakePhoto = {
+                        if (pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                            photoCapturer.launch()
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = S.current.aiGateModerationDisabledHint,
+                                    actionLabel = S.current.aiGateRevokeAndManage,
+                                    withDismissAction = true,
+                                )
+                            }
+                        }
+                    },
                     onClear = {
                         avatarBytes = null
                         scope.launch { AccountManager.removeProfileAvatar() }
@@ -292,7 +304,8 @@ private fun AccountProfileSection(
                                     return@launch
                                 }
                                 val bytes = avatarBytes
-                                if (bytes != null && bytes.isNotEmpty()) {
+                                if (bytes != null && bytes.isNotEmpty() &&
+                                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
                                     val avatarResult = AccountManager.uploadProfileAvatar(bytes)
                                     if (avatarResult.isFailure &&
                                         avatarResult.exceptionOrNull()?.message?.contains("image_rejected") == true) {

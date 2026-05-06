@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.navigation.NavigationManager
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.platform.AiConsent
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.viewmodel.GameViewModel
@@ -29,8 +30,17 @@ object ServiceLocator {
         get() = _navigation ?: createDefaultNavigation().also { _navigation = it }
 
     private fun createDefaultNavigation(): NavigationManager {
-        val initial = if (AppSettings.getBoolean(SettingsKeys.ONBOARDING_COMPLETED))
-            Screen.HOME else Screen.ONBOARDING
+        // Hard-gate AI consent (Apple 5.1.1(i)/5.1.2(i), Nov-2025): until the
+        // user taps Confirm on AiConsentGateScreen, the gate is the only
+        // screen they can reach — every launch shows it, regardless of the
+        // current toggle values, so a reviewer's fresh install can never
+        // skip past it. Only AFTER Confirm do we resume the normal
+        // onboarding/home selection.
+        val initial = when {
+            !AiConsent.gateResolved -> Screen.AI_CONSENT_GATE
+            AppSettings.getBoolean(SettingsKeys.ONBOARDING_COMPLETED) -> Screen.HOME
+            else -> Screen.ONBOARDING
+        }
         return NavigationManager(initial)
     }
 

@@ -57,31 +57,31 @@ fun ModeSelectScreen(gameState: GameState) {
     var soloExpanded by remember { mutableStateOf(false) }
     var soloOutdoor by remember { mutableStateOf(true) }
     var soloCategoryCount by remember { mutableStateOf(5) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // Up-front consent for the AI-powered modes (Solo + Multiplayer AI Judge).
-    // Both modes send photos to a third-party AI service (Cloudflare or
-    // Google Gemini), so per Apple guideline 5.1.1(i) we must obtain
-    // permission BEFORE any data leaves the device.
-    //
-    // Behavior change after Apple rejection #6: the dialog now appears
-    // **before every AI round**, not just on first use. Even if the user has
-    // accepted before, they get the disclosure again with the option to
-    // decline this round. Stricter than Apple requires (once-per-install is
-    // usually sufficient), but a reviewer will never reject for asking too
-    // often. The persisted AI_CONSENT_ACCEPTED flag stays as defense-in-depth
-    // for the SoloGameScreen / VoteTransitionScreen secondary gates (those
-    // still skip the dialog if the primary mode-select gate already accepted
-    // in the same round).
-    var showAiConsentDialog by remember { mutableStateOf(false) }
-    var pendingAiAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val gateAi: (() -> Unit) -> Unit = { action ->
-        pendingAiAction = action
-        showAiConsentDialog = true
+    // Build-17 model: AI consent is now resolved at app launch via the
+    // hard-gate screen (Apple 5.1.1(i)/5.1.2(i) Nov-2025). No per-round
+    // dialog here — we just check `AiConsent.ratingAccepted` and gate
+    // entry into the AI modes.
+    fun gateRating(action: () -> Unit) {
+        if (pg.geobingo.one.platform.AiConsent.ratingAccepted) {
+            action()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = S.current.aiGateRatingDisabledHint,
+                    actionLabel = S.current.aiGateRevokeAndManage,
+                    withDismissAction = true,
+                )
+            }
+        }
     }
 
     SystemBackHandler { nav.goBack() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             ModeSelectTopBar(
                 gameState = gameState,
@@ -101,7 +101,7 @@ fun ModeSelectScreen(gameState: GameState) {
             onSelectSoloOutdoor = { soloOutdoor = it },
             onSelectSoloCategoryCount = { soloCategoryCount = it },
             onConfirmSolo = {
-                gateAi {
+                gateRating {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO", "categories" to soloCategoryCount.toString()))
                     val duration = if (soloCategoryCount == 10) 600 else 300
                     // Clear any leftover state from a previous round (captures, ratings,
@@ -122,7 +122,7 @@ fun ModeSelectScreen(gameState: GameState) {
             onToggleAiJudgeExpand = { aiJudgeExpanded = !aiJudgeExpanded },
             onSelectAiJudgeOutdoor = { aiJudgeOutdoor = it },
             onConfirmAiJudge = {
-                gateAi {
+                gateRating {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
                     gameState.session.gameMode = GameMode.AI_JUDGE
                     gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
@@ -159,50 +159,6 @@ fun ModeSelectScreen(gameState: GameState) {
         )
     }
 
-    if (showAiConsentDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                // Tap-outside / back: treat as decline. Don't run the pending
-                // action; user stays on the mode-select screen and can pick a
-                // non-AI mode (Classic / Blind Bingo / Weird Core / Quick).
-                showAiConsentDialog = false
-                pendingAiAction = null
-            },
-            icon = {
-                Icon(
-                    Icons.Default.PhotoCamera,
-                    contentDescription = null,
-                    tint = Color(0xFF8B5CF6),
-                    modifier = Modifier.size(28.dp),
-                )
-            },
-            title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
-            confirmButton = {
-                TextButton(onClick = {
-                    // Persist for the secondary defense-in-depth gates in
-                    // SoloGameScreen / VoteTransitionScreen so they don't
-                    // re-prompt within the same round. ModeSelect itself
-                    // ignores this flag and always re-asks (Apple #6 fix).
-                    AppSettings.setBoolean(pg.geobingo.one.platform.SettingsKeys.AI_CONSENT_ACCEPTED, true)
-                    showAiConsentDialog = false
-                    val action = pendingAiAction
-                    pendingAiAction = null
-                    action?.invoke()
-                }) {
-                    Text(S.current.aiConsentAccept)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAiConsentDialog = false
-                    pendingAiAction = null
-                }) {
-                    Text(S.current.aiConsentDecline)
-                }
-            },
-        )
-    }
 }
 
 // ── Top Bar ─────────────────────────────────────────────────────────────

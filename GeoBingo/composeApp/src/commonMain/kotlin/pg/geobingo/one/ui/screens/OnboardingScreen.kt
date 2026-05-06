@@ -67,16 +67,11 @@ private val slides = listOf(
         titleKey = { S.current.onboardingTitle4 },
         bodyKey = { S.current.onboardingBody4 },
     ),
-    // Apple guideline 5.1.1(i) — pre-disclose third-party AI processors at
-    // first-launch onboarding, in addition to the per-round consent dialog at
-    // mode-select. Reviewers in the past have flagged consent-only flows as
-    // insufficient because the user didn't see a high-level disclosure before
-    // they ever encountered the mode picker.
-    OnboardingSlide(
-        icon = Icons.Default.AutoAwesome,
-        titleKey = { S.current.onboardingTitle5 },
-        bodyKey = { S.current.onboardingBody5 },
-    ),
+    // Build-16 had a passive AI-disclosure slide here. Build 17 replaces it
+    // with the dedicated `AiConsentGateScreen` shown BEFORE onboarding
+    // (Apple 5.1.1(i)/5.1.2(i) hard-gate), so a passive onboarding slide is
+    // redundant — the user has already explicitly Confirmed before ever
+    // seeing onboarding.
 )
 
 @Composable

@@ -658,6 +658,23 @@ object En : StringRes {
     override val aiConsentPrivacyPolicy = "View Privacy Policy"
     override val aiConsentPrivacyUrl = "https://katchit.app/privacy.html"
 
+    // ── AI Consent Hard Gate (Build 17) ─────────────────────────────────
+    override val aiGateTitle = "Privacy: AI Features"
+    override val aiGateIntro = "KatchIt uses two external AI services for distinct purposes. Before you use the app, we want to clearly explain which data we send where — and let you decide what you allow.\n\nWe transmit only the image or text and, where relevant, the category name. No personal data such as your name, email address, or user ID is sent to the AI providers. The providers act solely as data processors under their enterprise agreements and do not use your data for AI training.\n\nYou can accept or decline each option separately. The app works without your consent — some features will simply be unavailable."
+    override val aiGateModerationLabel = "Allow photo safety check"
+    override val aiGateModerationDesc = "Cloudflare Workers AI (Cloudflare Inc., USA) screens every photo for unsafe content (nudity, violence, etc.) before upload. Apple guideline 1.2 requires this check. Needed for avatar upload and multiplayer photo features."
+    override val aiGateRatingLabel = "Allow AI photo rating"
+    override val aiGateRatingDesc = "Google Gemini API (Google LLC, USA) automatically rates your photos with 1–5 stars in Solo and AI Judge modes. If Gemini is temporarily unavailable, Cloudflare Workers AI is used as a fallback. Needed for Solo and AI Judge multiplayer modes."
+    override val aiGateAcknowledgeTransfer = "I understand that my photos will be transferred to the USA (under the EU-U.S. Data Privacy Framework + Standard Contractual Clauses, GDPR Art. 44 ff)."
+    override val aiGateAcknowledgeProcessor = "I understand that the providers act solely as data processors, my photos are discarded immediately after processing, and are not used for AI training."
+    override val aiGateAcknowledgeRevoke = "I understand that I can revoke my consent at any time in Settings."
+    override val aiGateConfirm = "Confirm"
+    override val aiGateOpenPrivacyPolicy = "Open full privacy policy"
+    override val aiGateModerationDisabledHint = "Enable photo safety check in Settings to upload avatars or join multiplayer games with photos."
+    override val aiGateRatingDisabledHint = "Enable AI photo rating in Settings to use Solo and AI Judge modes."
+    override val aiGateRevokeAndManage = "Manage AI consents"
+    override val aiGateSettingsHeader = "Privacy & AI"
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "Couldn't open the App Store dialog. Please bring KatchIt to the foreground and try again."
 }

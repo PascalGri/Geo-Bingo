@@ -42,8 +42,6 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.GameRepository
-import pg.geobingo.one.platform.AppSettings
-import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.platform.SoundEffect
 import pg.geobingo.one.platform.SoundPlayer
 import pg.geobingo.one.platform.play
@@ -76,10 +74,11 @@ fun SoloGameScreen(gameState: GameState) {
     // Swap category dialog
     var showSwapDialog by remember { mutableStateOf<String?>(null) }
 
-    // AI consent state
-    var aiConsentAccepted by remember { mutableStateOf(AppSettings.getBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)) }
-    var showAiConsentDialog by remember { mutableStateOf(false) }
-    // Buffer photo bytes + catId while waiting for consent
+    // Build-17: AI consent is resolved at the app-level hard-gate
+    // (AiConsentGateScreen). If the user reaches Solo without granting
+    // rating consent — possible only via Settings revoke or stale state
+    // — we treat every photo as decline (default rating, no AI call).
+    val aiConsentAccepted = pg.geobingo.one.platform.AiConsent.ratingAccepted
 
     fun trySpend(cost: Int, onSuccess: () -> Unit) {
         if (gameState.stars.spend(cost)) {
@@ -161,16 +160,6 @@ fun SoloGameScreen(gameState: GameState) {
                 solo.categoryRatings = solo.categoryRatings + (catId to 3)
                 solo.categoryReasons = solo.categoryReasons + (catId to "")
             }
-        }
-    }
-
-    // Ask for AI consent on screen entry, before any photo is taken. This
-    // both matches the DSGVO expectation (consent before processing) and
-    // avoids the Compose iOS crash where a Dialog mount raced the
-    // UIImagePickerController dismiss animation.
-    LaunchedEffect(Unit) {
-        if (!aiConsentAccepted) {
-            showAiConsentDialog = true
         }
     }
 
@@ -271,34 +260,6 @@ fun SoloGameScreen(gameState: GameState) {
             neededStars = miniShopNeeded,
             onDismiss = { showMiniShop = false },
             onPurchased = { showMiniShop = false },
-        )
-    }
-
-    // AI consent dialog
-    if (showAiConsentDialog) {
-        AlertDialog(
-            onDismissRequest = { /* Block outside-tap dismiss — force explicit choice */ },
-            icon = { Icon(Icons.Default.PhotoCamera, null, tint = AIGradient.first(), modifier = Modifier.size(28.dp)) },
-            title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
-            confirmButton = {
-                TextButton(onClick = {
-                    AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)
-                    aiConsentAccepted = true
-                    showAiConsentDialog = false
-                }) {
-                    Text(S.current.aiConsentAccept)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    // Decline: keep aiConsentAccepted=false; photos get default rating.
-                    // Not persisted so we can ask again next session.
-                    showAiConsentDialog = false
-                }) {
-                    Text(S.current.aiConsentDecline)
-                }
-            },
         )
     }
 

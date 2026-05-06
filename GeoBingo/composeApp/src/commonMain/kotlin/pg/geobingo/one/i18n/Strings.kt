@@ -693,6 +693,23 @@ interface StringRes {
     val aiConsentPrivacyPolicy: String
     val aiConsentPrivacyUrl: String
 
+    // ── AI Consent Hard Gate (Build 17, Apple 5.1.1(i)/5.1.2(i)) ─────────
+    val aiGateTitle: String
+    val aiGateIntro: String
+    val aiGateModerationLabel: String
+    val aiGateModerationDesc: String
+    val aiGateRatingLabel: String
+    val aiGateRatingDesc: String
+    val aiGateAcknowledgeTransfer: String
+    val aiGateAcknowledgeProcessor: String
+    val aiGateAcknowledgeRevoke: String
+    val aiGateConfirm: String
+    val aiGateOpenPrivacyPolicy: String
+    val aiGateModerationDisabledHint: String
+    val aiGateRatingDisabledHint: String
+    val aiGateRevokeAndManage: String
+    val aiGateSettingsHeader: String
+
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     val purchaseFailedNoForegroundScene: String
 }

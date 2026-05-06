@@ -35,8 +35,6 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.GameRepository
-import pg.geobingo.one.platform.AppSettings
-import pg.geobingo.one.platform.SettingsKeys
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.ui.theme.rememberFeedback
 import pg.geobingo.one.util.AppLogger
@@ -141,51 +139,13 @@ private fun AiJudgeTransition(
     var progressTotal by remember { mutableStateOf(0) }
     var isDone by remember { mutableStateOf(false) }
 
-    // AI consent for multiplayer — host needs consent before sending photos to AI
-    var aiConsentAccepted by remember { mutableStateOf(AppSettings.getBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, false)) }
-    var showAiConsentDialog by remember { mutableStateOf(false) }
-    // true once consent flow is resolved (accepted or declined)
-    var consentResolved by remember { mutableStateOf(aiConsentAccepted) }
-    var consentDeclined by remember { mutableStateOf(false) }
-
-    // Show consent dialog on first launch if not already accepted
-    LaunchedEffect(Unit) {
-        if (!aiConsentAccepted && gameState.session.isHost) {
-            showAiConsentDialog = true
-        }
-    }
-
-    if (showAiConsentDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showAiConsentDialog = false
-                consentDeclined = true
-                consentResolved = true
-            },
-            icon = { Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(28.dp)) },
-            title = { Text(S.current.aiConsentTitle, fontWeight = FontWeight.Bold) },
-            text = { pg.geobingo.one.ui.components.AiConsentDialogText() },
-            confirmButton = {
-                TextButton(onClick = {
-                    AppSettings.setBoolean(SettingsKeys.AI_CONSENT_ACCEPTED, true)
-                    aiConsentAccepted = true
-                    showAiConsentDialog = false
-                    consentResolved = true
-                }) {
-                    Text(S.current.aiConsentAccept)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAiConsentDialog = false
-                    consentDeclined = true
-                    consentResolved = true
-                }) {
-                    Text(S.current.aiConsentDecline)
-                }
-            },
-        )
-    }
+    // Build-17: AI consent is resolved at the app-level hard-gate
+    // (AiConsentGateScreen). Host entry into the AI Judge mode is gated
+    // upstream in ModeSelectScreen / Daily-Challenge by `ratingAccepted`,
+    // so by the time we reach this transition the host has already
+    // granted consent. Non-hosts simply poll for the host to flip the
+    // game status — they never trigger an AI request from this screen.
+    val ratingConsent = pg.geobingo.one.platform.AiConsent.ratingAccepted
 
     val transition = rememberInfiniteTransition(label = "aiJudge")
     val sparkleRotation by transition.animateFloat(
@@ -207,15 +167,15 @@ private fun AiJudgeTransition(
         label = "sparkleScale",
     )
 
-    LaunchedEffect(consentResolved) {
-        if (!consentResolved) return@LaunchedEffect
+    LaunchedEffect(Unit) {
         feedback.gameEnd()
         val gameId = gameState.session.gameId ?: return@LaunchedEffect
         val isHost = gameState.session.isHost
 
         if (isHost) {
-            // Host runs AI validation for all captures (only if consent was given)
-            if (!consentDeclined) {
+            // Host runs AI validation for all captures — consent already
+            // granted upstream (or this mode wouldn't have been startable).
+            if (ratingConsent) {
                 try {
                     GameRepository.validateMultiplayerCaptures(
                         gameId = gameId,

@@ -53,7 +53,18 @@ object SettingsKeys {
     const val DAILY_CHALLENGE_COMPLETED = "daily_challenge_completed"
     const val DAILY_CHALLENGE_TYPE = "daily_challenge_type"
     const val EXTREME_MODE_UNLOCKED = "extreme_mode_unlocked"
+    // Legacy single-flag consent (Build ≤16). Replaced by the two granular
+    // flags below in Build 17. Read at migration only — never written.
     const val AI_CONSENT_ACCEPTED = "ai_consent_accepted"
+    // Build-17 hard-gate consent (Apple 5.1.1(i)/5.1.2(i), Nov-2025 update):
+    // Cloudflare Workers AI moderation runs on every avatar + multiplayer
+    // photo upload. Required for Apple guideline 1.2 (UGC moderation).
+    // Without this flag set, those upload paths must be disabled.
+    const val AI_CONSENT_MODERATION = "ai_consent_moderation_v2"
+    // Google Gemini (primary) + Cloudflare Workers AI (fallback) photo
+    // rating in Solo and Multiplayer "AI Judge" modes. Without this flag
+    // set, those mode entry points must be disabled.
+    const val AI_CONSENT_RATING = "ai_consent_rating_v2"
     const val GAME_HISTORY_JSON = "game_history_json"
 
     // ── Weekly Challenges ─────────────────────────────────────────────

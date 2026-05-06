@@ -630,6 +630,15 @@ private fun DailyChallengeCardCompact(
                 when (dailyChallenge.type) {
                     ChallengeType.PLAY_MODE -> {
                         val mode = dailyChallenge.targetMode
+                        // AI Judge requires user to have granted rating consent at
+                        // the hard-gate (Apple 5.1.1(i)) — without it we'd skip
+                        // the per-mode consent on Mode-Select. Force the user
+                        // through Mode-Select so the consent / settings prompt
+                        // can fire. (Same for any other future AI mode.)
+                        if (mode == "AI_JUDGE" && !pg.geobingo.one.platform.AiConsent.ratingAccepted) {
+                            onNavigate(Screen.SELECT_MODE)
+                            return@clickable
+                        }
                         if (mode == "QUICK_START") {
                             gameState.session.gameMode = pg.geobingo.one.game.GameMode.QUICK_START
                             gameState.session.quickStartOutdoor = true
@@ -816,6 +825,10 @@ private fun DailyChallengeCard(
                 when (dailyChallenge.type) {
                     ChallengeType.PLAY_MODE -> {
                         val mode = dailyChallenge.targetMode
+                        if (mode == "AI_JUDGE" && !pg.geobingo.one.platform.AiConsent.ratingAccepted) {
+                            onNavigate(Screen.SELECT_MODE)
+                            return@clickable
+                        }
                         if (mode == "QUICK_START") {
                             gameState.session.gameMode = pg.geobingo.one.game.GameMode.QUICK_START
                             gameState.session.quickStartOutdoor = true
