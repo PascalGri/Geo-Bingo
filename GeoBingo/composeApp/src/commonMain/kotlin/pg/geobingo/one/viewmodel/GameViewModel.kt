@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import pg.geobingo.one.data.Category
+import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameConstants
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
@@ -99,30 +100,28 @@ class GameViewModel(
         gameState.photo.startUpload(categoryId)
 
         if (gameId != null) {
-            viewModelScope.launch {
-                // Apple 5.1.1(i)/5.1.2(i) hard-gate: moderation is a
-                // third-party-AI request and requires explicit user consent.
-                // No consent → refuse upload (the user is not allowed to
-                // post photos that bypass the safety check anyway).
-                if (!pg.geobingo.one.platform.AiConsent.moderationAccepted) {
-                    AppLogger.w("GameVM", "Capture blocked: moderation consent missing")
-                    gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.aiGateModerationDisabledHint
-                    if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Error)
-                    gameState.photo.finishUpload(categoryId)
-                    return@launch
-                }
-                // Pre-upload moderation — prevents NSFW / violent content
-                // from reaching storage where other players would see it
-                // during voting. App-Store Guideline 1.2 ("filter
-                // objectionable material").
-                val rejection = pg.geobingo.one.network.ModerationManager.moderateImage(bytes)
-                if (rejection != null) {
-                    AppLogger.w("GameVM", "Capture rejected by moderation: $rejection")
-                    gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.imageRejectedByModeration
-                    if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
-                    gameState.photo.finishUpload(categoryId)
-                    return@launch
-                }
+            // Apple 5.1.1(i)/5.1.2(i) hard-gate: moderation requires consent.
+            // Checked synchronously here so we don't even kick off the upload
+            // when the user has revoked consent.
+            if (!pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                AppLogger.w("GameVM", "Capture blocked: moderation consent missing")
+                gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.aiGateModerationDisabledHint
+                if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.Error)
+                gameState.photo.finishUpload(categoryId)
+                return
+            }
+            // Upload runs in ServiceLocator.appScope — NOT viewModelScope —
+            // because the round-end timer navigates away from GameScreen and
+            // tears down this ViewModel, which would cancel an in-flight
+            // upload. Photos taken in the last seconds of a round used to
+            // never reach Supabase for that reason.
+            //
+            // Moderation runs AFTER the upload (was: before). With pre-upload
+            // moderation, the Cloudflare AI roundtrip blocked the actual
+            // upload, easily exceeding the remaining round time. Now the
+            // bytes hit storage immediately and we tear the capture down via
+            // deleteCapture() if moderation flags it.
+            ServiceLocator.appScope.launch {
                 gameState.addPhoto(playerId, categoryId, bytes)
                 val location = try { getCurrentLocation() } catch (e: Exception) {
                     AppLogger.d("GameVM", "Location unavailable", e); null
@@ -147,13 +146,32 @@ class GameViewModel(
                 if (captureSuccess) {
                     onFeedbackCapture()
                     uploadSuccessCategory = categoryId
+                    // Post-upload moderation. If rejected, remove from
+                    // storage + DB so no other player sees the photo during
+                    // voting (App-Store 1.2 backstop). Result is best-effort:
+                    // the report-button is the reactive fallback.
+                    try {
+                        val rejection = pg.geobingo.one.network.ModerationManager.moderateImage(bytes)
+                        if (rejection != null) {
+                            AppLogger.w("GameVM", "Capture rejected by moderation: $rejection")
+                            try {
+                                GameRepository.deleteCapture(gameId, playerId, categoryId)
+                            } catch (e: Exception) {
+                                AppLogger.w("GameVM", "deleteCapture after rejection failed", e)
+                            }
+                            gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.imageRejectedByModeration
+                            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.w("GameVM", "moderateImage call failed", e)
+                    }
                     delay(GameConstants.UPLOAD_SUCCESS_TOAST_MS)
                     uploadSuccessCategory = null
                 }
                 gameState.photo.finishUpload(categoryId)
             }
         } else {
-            viewModelScope.launch {
+            ServiceLocator.appScope.launch {
                 gameState.addPhoto(playerId, categoryId, bytes)
                 gameState.photo.finishUpload(categoryId)
             }

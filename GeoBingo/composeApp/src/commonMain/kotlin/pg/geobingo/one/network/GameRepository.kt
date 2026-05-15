@@ -396,6 +396,31 @@ object GameRepository {
         supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url, latitude = latitude, longitude = longitude))
     }
 
+    /**
+     * Removes a capture row and its storage object — used by post-upload
+     * moderation: we upload first so the round-timer can't kill the upload,
+     * then moderate, and if rejected we tear it down here.
+     */
+    suspend fun deleteCapture(gameId: String, playerId: String, categoryId: String) {
+        val path = "$gameId/$playerId/$categoryId.jpg"
+        try {
+            supabase.from("captures").delete {
+                filter {
+                    eq("game_id", gameId)
+                    eq("player_id", playerId)
+                    eq("category_id", categoryId)
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "deleteCapture: row delete failed for $path", e)
+        }
+        try {
+            supabase.storage.from("photos").delete(listOf(path))
+        } catch (e: Exception) {
+            AppLogger.w("Repo", "deleteCapture: storage delete failed for $path", e)
+        }
+    }
+
     suspend fun downloadPhoto(gameId: String, playerId: String, categoryId: String): ByteArray? {
         // 1. Check local cache first
         try {

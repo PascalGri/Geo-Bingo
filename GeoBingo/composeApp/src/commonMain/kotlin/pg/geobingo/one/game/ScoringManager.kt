@@ -85,11 +85,35 @@ class ScoringManager(
         return v.count { it } > v.size / 2
     }
 
+    /**
+     * Server-canonical capture set for [playerId]. Falls back to the local
+     * `gameplay.captures` map (eventually-consistent via realtime) only when
+     * the server-fetched `review.allCaptures` is empty — i.e. before the
+     * Vote/Results transition has loaded the authoritative list.
+     *
+     * This is what makes scoring identical across all clients on the Results
+     * screen. The previous implementation read `gameplay.captures` directly,
+     * which meant each device computed its ranking from whatever realtime
+     * inserts it happened to have received — and if any were missing, that
+     * device produced a different #1 player than the others. Net effect:
+     * multiple players seeing themselves as the winner.
+     */
+    private fun serverCaptures(playerId: String): Set<String> {
+        if (review.allCaptures.isNotEmpty()) {
+            return review.allCaptures
+                .asSequence()
+                .filter { it.player_id == playerId }
+                .map { it.category_id }
+                .toSet()
+        }
+        return gameplay.captures[playerId] ?: emptySet()
+    }
+
     fun getPlayerScore(playerId: String, votes: Map<String, List<Boolean>>): Int {
         val starScore: Int
         if (review.allVotes.isNotEmpty()) {
             var sum = 0.0
-            val capturedCategories = gameplay.captures[playerId] ?: emptySet()
+            val capturedCategories = serverCaptures(playerId)
             for (category in gameplay.selectedCategories) {
                 if (category.id !in capturedCategories) continue
                 val avg = getCategoryAverageRating(playerId, category.id) ?: continue
@@ -106,7 +130,7 @@ class ScoringManager(
     }
 
     fun getPlayerCaptures(playerId: String): List<Category> {
-        val capturedIds = gameplay.captures[playerId] ?: emptySet()
+        val capturedIds = serverCaptures(playerId)
         return gameplay.selectedCategories.filter { it.id in capturedIds }
     }
 

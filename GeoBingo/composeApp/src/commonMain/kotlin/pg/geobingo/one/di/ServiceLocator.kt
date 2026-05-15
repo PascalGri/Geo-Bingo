@@ -1,6 +1,9 @@
 package pg.geobingo.one.di
 
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.navigation.NavigationManager
 import pg.geobingo.one.game.Screen
@@ -50,6 +53,16 @@ object ServiceLocator {
 
     val gameState: GameState
         get() = _gameState ?: GameState().also { _gameState = it }
+
+    // ── App-scoped CoroutineScope ────────────────────────────────────────
+    // Outlives any single screen/ViewModel. Used for fire-and-forget work
+    // that MUST complete even when the user navigates away — e.g. the
+    // multiplayer photo upload, which previously ran in GameViewModel's
+    // viewModelScope and got cancelled the instant the round-end timer
+    // navigated to VOTE_TRANSITION. Net effect: photos taken in the last
+    // ~2 s of a round never reached Supabase.
+    val appScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // ── ViewModel factories ──────────────────────────────────────────────
 
