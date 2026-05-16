@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KatchIt! - Das Multiplayer-Fotospiel</title>
+    <meta name="description" content="KatchIt! ist ein kostenloses Multiplayer-Fotospiel für Gruppen. Erstellt eine Runde, erhaltet Fotoaufgaben und bewertet gemeinsam die besten Bilder. Jetzt im Browser spielen.">
+    <link rel="canonical" href="https://katchit.app/play.html">
+    <meta name="theme-color" content="#050508">
+    <link rel="icon" href="favicon.ico" sizes="32x32">
+    <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://katchit.app/play.html">
+    <meta property="og:title" content="KatchIt! - Das Multiplayer-Fotospiel">
+    <meta property="og:description" content="Kostenloses Multiplayer-Fotospiel für Gruppen. Fotoaufgaben, Abstimmung, Spiel - direkt im Browser. Kein Account nötig.">
+    <meta property="og:locale" content="de_DE">
+    <meta property="og:site_name" content="KatchIt!">
+
+    <link type="text/css" rel="stylesheet" href="styles.css">
+    <link rel="modulepreload" href="composeApp.js">
+</head>
+<body>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="loading-logo">KatchIt!</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-hint">Wird geladen…</div>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <div id="app"></div>
+
+    <!-- SEO Fallback für Suchmaschinen (nur sichtbar ohne JavaScript) -->
+    <noscript>
+        <div style="font-family:sans-serif;background:#050508;color:#EDE9F7;padding:40px 20px;max-width:640px;margin:0 auto;">
+            <h1 style="font-size:32px;margin-bottom:16px;">KatchIt! - Das Multiplayer-Fotospiel</h1>
+            <p style="font-size:16px;color:#9D7FD4;margin-bottom:24px;">
+                KatchIt! ist ein kostenloses Multiplayer-Fotospiel für Gruppen. Erstellt eine Runde, erhaltet Fotoaufgaben und bewertet gemeinsam die besten Bilder - direkt im Browser, kein Account nötig.
+            </p>
+            <p style="font-size:15px;color:#9D7FD4;">
+                Für iOS und Android auch als App verfügbar.<br>
+                Kontakt: <a href="mailto:support@katchit.app" style="color:#D946EF;">support@katchit.app</a>
+            </p>
+        </div>
+    </noscript>
+
+    <!-- Footer Links -->
+    <div id="legal-footer">
+        <a href="/impressum.html">Impressum</a>
+        <a href="/datenschutz.html">Datenschutz</a>
+    </div>
+
+    <!-- Compose App -->
+    <script type="module" src="composeApp.js"></script>
+
+    <!-- Loading screen: hide once app canvas has rendered content -->
+    <script>
+        (function() {
+            var loading = document.getElementById('loading-screen');
+            var app = document.getElementById('app');
+            var hidden = false;
+            var hideLoading = function() {
+                if (hidden) return;
+                hidden = true;
+                loading.classList.add('hidden');
+                setTimeout(function() { loading.style.display = 'none'; }, 550);
+            };
+            var observer = new MutationObserver(function() {
+                if (app.childElementCount > 0) {
+                    observer.disconnect();
+                    hideLoading();
+                }
+            });
+            observer.observe(app, { childList: true, subtree: false });
+            setTimeout(hideLoading, 5000);
+        })();
+    </script>
+</body>
+</html>
