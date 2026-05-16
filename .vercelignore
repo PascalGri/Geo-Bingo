@@ -1,0 +1,35 @@
+# Vercel must only serve the wasmJs static build. Everything else here is
+# repo sources, Gradle/Xcode build caches, or local tooling — uploading
+# them blew past the free-tier api-upload-free quota once and aborted
+# the deploy.
+
+# Source trees (we only ship build output)
+GeoBingo/composeApp/src/
+GeoBingo/composeApp/build/processedResources/
+GeoBingo/composeApp/build/kotlin/
+GeoBingo/composeApp/build/kotlin-webpack/
+GeoBingo/composeApp/build/classes/
+GeoBingo/composeApp/build/intermediates/
+GeoBingo/composeApp/build/tmp/
+GeoBingo/composeApp/build/test-results/
+GeoBingo/composeApp/build/reports/
+GeoBingo/composeApp/build/generated/
+GeoBingo/composeApp/build/libs/
+GeoBingo/composeApp/build/outputs/
+GeoBingo/iosApp/
+GeoBingo/.gradle/
+GeoBingo/build/
+GeoBingo/gradle/
+
+# Don't upload Kotlin/JS toolchain caches
+build/
+.gradle/
+
+# Mac/IDE
+.DS_Store
+.idea/
+*.iml
+
+# Editor / VCS
+.git/
+.github/
