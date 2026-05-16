@@ -197,11 +197,20 @@ private fun AiJudgeTransition(
                 AppLogger.e("VoteTransition", "Failed to set results status", e)
             }
 
-            // Load votes and navigate
+            // Load votes + canonical captures and navigate. The AI judge
+            // mode skips the ReviewScreen entirely, so unlike the classic
+            // path nothing else fetches review.allCaptures here — without
+            // this call ScoringManager falls back to the per-device
+            // realtime map and each client computes a different ranking.
             try {
                 gameState.review.allVotes = GameRepository.getVotes(gameId)
             } catch (e: Exception) {
                 AppLogger.w("VoteTransition", "Votes fetch failed", e)
+            }
+            try {
+                gameState.review.allCaptures = GameRepository.getCaptures(gameId)
+            } catch (e: Exception) {
+                AppLogger.w("VoteTransition", "Captures fetch failed", e)
             }
             isDone = true
             nav.replaceCurrent(Screen.RESULTS_TRANSITION)
@@ -216,6 +225,11 @@ private fun AiJudgeTransition(
                             gameState.review.allVotes = GameRepository.getVotes(gameId)
                         } catch (e: Exception) {
                             AppLogger.w("VoteTransition", "Votes fetch failed", e)
+                        }
+                        try {
+                            gameState.review.allCaptures = GameRepository.getCaptures(gameId)
+                        } catch (e: Exception) {
+                            AppLogger.w("VoteTransition", "Captures fetch failed", e)
                         }
                         isDone = true
                         nav.replaceCurrent(Screen.RESULTS_TRANSITION)

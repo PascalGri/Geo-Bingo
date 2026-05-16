@@ -89,6 +89,78 @@ fun JoinGameScreen(gameState: GameState) {
 
     val canJoin = codeInput.trim().length == 6 && nameInput.trim().isNotEmpty()
 
+    // Auto-join path for friend-invite push taps. When the user landed here
+    // via a push notification (joinArgs.inviteCode is set) AND they already
+    // have a profile (logged in + cached display name), we run the same
+    // join logic the button triggers without making them tap "Beitreten"
+    // again. Falls back to the normal form if anything is missing.
+    var autoJoinAttempted by remember { mutableStateOf(false) }
+    val isAutoJoinCandidate =
+        joinArgs?.inviteCode != null &&
+        AccountManager.isLoggedIn &&
+        nameInput.trim().isNotEmpty() &&
+        codeInput.trim().length == 6
+
+    suspend fun performJoin() {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+        isLoading = true
+        errorMessage = null
+        if (!NameValidator.isValid(nameInput.trim())) {
+            errorMessage = S.current.nameContainsProfanity
+            isLoading = false
+            return
+        }
+        try {
+            val game = GameRepository.getGameByCode(codeInput.trim())
+            if (game == null) {
+                errorMessage = "${S.current.error}: Code"
+            } else if (game.status != "lobby") {
+                errorMessage = "${S.current.error}: Game started"
+            } else {
+                val colorIndex = (0..7).random()
+                val color = PLAYER_COLORS[colorIndex].toHex()
+                AppSettings.setString("last_player_name", nameInput.trim())
+                val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color, AccountManager.currentUserId)
+                val avatarBytes = selectedAvatarBytes
+                if (avatarBytes != null &&
+                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
+                    try {
+                        GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
+                        GameRepository.setPlayerAvatar(playerDto.id, "selfie")
+                    } catch (e: Exception) { AppLogger.w("Join", "Avatar upload failed", e) }
+                    try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (e: Exception) { AppLogger.d("Join", "Avatar local save failed", e) }
+                }
+                if (avatarBytes != null) {
+                    gameState.photo.setAvatar(playerDto.id, avatarBytes)
+                }
+                val players = GameRepository.getPlayers(game.id)
+                val categories = GameRepository.getCategories(game.id)
+                gameState.session.gameId = game.id
+                gameState.session.gameCode = game.code
+                gameState.session.isHost = false
+                gameState.session.myPlayerId = playerDto.id
+                gameState.gameplay.gameDurationMinutes = game.duration_s / 60
+                gameState.joker.jokerMode = game.joker_mode
+                gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (e: Exception) { AppLogger.d("Join", "Unknown game mode: ${game.game_mode}", e); GameMode.CLASSIC }
+                gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
+                gameState.gameplay.lobbyPlayers = players
+                nav.navigateTo(Screen.LOBBY)
+            }
+        } catch (e: Exception) {
+            errorMessage = "Fehler: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(isAutoJoinCandidate) {
+        if (isAutoJoinCandidate && !autoJoinAttempted) {
+            autoJoinAttempted = true
+            performJoin()
+        }
+    }
+
     val anim = rememberStaggeredAnimation(count = 6)
     val btnOffset = remember { Animatable(80f) }
     val btnAlpha = remember { Animatable(0f) }
@@ -103,6 +175,28 @@ fun JoinGameScreen(gameState: GameState) {
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
     SystemBackHandler { nav.goBack() }
+
+    // While the auto-join is running we cover the whole screen with a
+    // simple loader instead of flashing the (now-irrelevant) join form.
+    // If the auto-join fails (game closed, name profane, etc.) the
+    // error snackbar fires and we drop back into the normal form.
+    if (isAutoJoinCandidate && isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(ColorBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = GradientHot.first())
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    S.current.joinRound,
+                    color = ColorOnBackground,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -280,60 +374,7 @@ fun JoinGameScreen(gameState: GameState) {
                     translationY = btnOffset.value
                     alpha = btnAlpha.value
                 },
-                onClick = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                    scope.launch {
-                        isLoading = true
-                        errorMessage = null
-                        if (!NameValidator.isValid(nameInput.trim())) {
-                            errorMessage = S.current.nameContainsProfanity
-                            isLoading = false
-                            return@launch
-                        }
-                        try {
-                            val game = GameRepository.getGameByCode(codeInput.trim())
-                            if (game == null) {
-                                errorMessage = "${S.current.error}: Code"
-                            } else if (game.status != "lobby") {
-                                errorMessage = "${S.current.error}: Game started"
-                            } else {
-                                val colorIndex = (0..7).random()
-                                val color = PLAYER_COLORS[colorIndex].toHex()
-                                AppSettings.setString("last_player_name", nameInput.trim())
-                                val playerDto = GameRepository.addPlayer(game.id, nameInput.trim(), color, AccountManager.currentUserId)
-                                val avatarBytes = selectedAvatarBytes
-                                if (avatarBytes != null &&
-                                    pg.geobingo.one.platform.AiConsent.moderationAccepted) {
-                                    try {
-                                        GameRepository.uploadAvatarPhoto(playerDto.id, avatarBytes)
-                                        GameRepository.setPlayerAvatar(playerDto.id, "selfie")
-                                    } catch (e: Exception) { AppLogger.w("Join", "Avatar upload failed", e) }
-                                    try { LocalPhotoStore.saveAvatar(playerDto.id, avatarBytes) } catch (e: Exception) { AppLogger.d("Join", "Avatar local save failed", e) }
-                                }
-                                if (avatarBytes != null) {
-                                    gameState.photo.setAvatar(playerDto.id, avatarBytes)
-                                }
-                                val players = GameRepository.getPlayers(game.id)
-                                val categories = GameRepository.getCategories(game.id)
-                                gameState.session.gameId = game.id
-                                gameState.session.gameCode = game.code
-                                gameState.session.isHost = false
-                                gameState.session.myPlayerId = playerDto.id
-                                gameState.gameplay.gameDurationMinutes = game.duration_s / 60
-                                gameState.joker.jokerMode = game.joker_mode
-                                gameState.session.gameMode = try { GameMode.valueOf(game.game_mode) } catch (e: Exception) { AppLogger.d("Join", "Unknown game mode: ${game.game_mode}", e); GameMode.CLASSIC }
-                                gameState.gameplay.selectedCategories = categories.map { it.toCategory() }
-                                gameState.gameplay.lobbyPlayers = players
-                                nav.navigateTo(Screen.LOBBY)
-                            }
-                        } catch (e: Exception) {
-                            errorMessage = "Fehler: ${e.message}"
-                        } finally {
-                            isLoading = false
-                        }
-                    }
-                },
+                onClick = { scope.launch { performJoin() } },
                 enabled = canJoin && !isLoading,
                 gradientColors = GradientHot,
                 leadingIcon = {

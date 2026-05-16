@@ -103,6 +103,10 @@ object En : StringRes {
     override val aiJudgeActive = "AI Judge active"
     override val aiJudgeActiveDesc = "An AI rates every photo 1-5 stars. No voting phase -- results appear immediately after the game."
     override val weirdCoreCategoryHint = "Select the categories you want to play with."
+    override val aiJudgeRandomToggle = "Random categories"
+    override val aiJudgeRandomToggleDesc = "The AI picks a random set for you. Skip the manual list."
+    override val aiJudgeRandomCount = "Category count"
+    override fun aiJudgeRandomCountValue(n: Int) = "$n categories"
 
     // ── Duration ────────────────────────────────────────────────────────
     override val gameDuration = "Game duration"

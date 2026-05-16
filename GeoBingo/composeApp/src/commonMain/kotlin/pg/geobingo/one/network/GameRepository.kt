@@ -391,9 +391,25 @@ object GameRepository {
 
     suspend fun recordCapture(gameId: String, playerId: String, categoryId: String, photoBytes: ByteArray, latitude: Double? = null, longitude: Double? = null) {
         val path = "$gameId/$playerId/$categoryId.jpg"
+        // Two sequential round-trips (storage upload → DB insert) instead of
+        // three. The previous version also called createSignedUrl between
+        // them to persist a signed-URL string into captures.photo_url, but
+        // nothing reads that column — downloadPhoto re-signs from
+        // gameId/playerId/categoryId every time. Cutting the signing RT
+        // shaves ~150–400 ms off every capture, which matters because the
+        // round-end timer can still kill the *visible* capture flow
+        // (toast/feedback) even though appScope keeps the upload alive.
         supabase.storage.from("photos").upload(path, photoBytes) { upsert = true }
-        val url = supabase.storage.from("photos").createSignedUrl(path, GameConstants.CAPTURE_URL_EXPIRY)
-        supabase.from("captures").insert(CaptureInsertDto(game_id = gameId, player_id = playerId, category_id = categoryId, photo_url = url, latitude = latitude, longitude = longitude))
+        supabase.from("captures").insert(
+            CaptureInsertDto(
+                game_id = gameId,
+                player_id = playerId,
+                category_id = categoryId,
+                photo_url = path,
+                latitude = latitude,
+                longitude = longitude,
+            )
+        )
     }
 
     /**
@@ -602,9 +618,20 @@ object GameRepository {
     // ── AI Judge (Multiplayer) ──────────────────────────────────────────
 
     /**
+     * Sentinel "voter" used for AI judge votes. `votes.voter_id` is a uuid
+     * column in Postgres, so the previous "ai_judge" string was rejected
+     * server-side and every insert silently failed — which is why AI ratings
+     * never showed up in MP. Using a fixed, deliberately-recognisable UUID
+     * (`…0a1` for "AI") instead lets the inserts succeed while still being
+     * distinguishable from any real player row (no player row will ever
+     * have this id).
+     */
+    private const val AI_JUDGE_VOTER_UUID = "00000000-0000-0000-0000-000000000a1d"
+
+    /**
      * Validates all captures in a multiplayer game via AI.
      * Downloads each photo, calls the validate-photo Edge Function,
-     * and inserts VoteDto records with voter_id = "ai_judge".
+     * and inserts VoteDto records with voter_id = AI_JUDGE_VOTER_UUID.
      * Returns the total number of captures processed.
      */
     suspend fun validateMultiplayerCaptures(
@@ -637,7 +664,7 @@ object GameRepository {
                         }
                         try {
                             supabase.from("votes").insert(
-                                VoteInsertDto(game_id = gameId, voter_id = "ai_judge", target_player_id = capture.player_id, category_id = capture.category_id, rating = rating)
+                                VoteInsertDto(game_id = gameId, voter_id = AI_JUDGE_VOTER_UUID, target_player_id = capture.player_id, category_id = capture.category_id, rating = rating)
                             )
                         } catch (e: Exception) {
                             if (!isDuplicateError(e)) AppLogger.w("Repo", "AI vote insert failed", e)

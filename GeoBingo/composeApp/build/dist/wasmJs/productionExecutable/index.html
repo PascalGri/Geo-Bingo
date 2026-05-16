@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KatchIt! - Das Foto-Spiel mit Freunden</title>
-    <meta name="description" content="KatchIt! ist ein kostenloses Multiplayer-Fotospiel für Gruppen. Fotografiert kreative Kategorien, bewertet gemeinsam und gewinnt. Jetzt für Android, iOS und im Browser.">
+    <meta name="description" content="KatchIt! ist das KI-gestützte Multiplayer-Fotospiel für Gruppen. Jetzt im App Store: Fotografiert kreative Kategorien, lasst eine KI oder euch gegenseitig bewerten und gewinnt. Auch im Browser & auf Android spielbar.">
     <link rel="canonical" href="https://katchit.app/">
     <meta name="google-site-verification" content="Ta1kJNiDImZZiotQJNw0-EJXi-WqIvOfHXKutoa8oZ8">
     <meta name="theme-color" content="#050508">
@@ -16,14 +16,14 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://katchit.app/">
     <meta property="og:title" content="KatchIt! - Das Foto-Spiel mit Freunden">
-    <meta property="og:description" content="Kostenloses Multiplayer-Fotospiel für Gruppen. Fotografiert kreative Kategorien, bewertet gemeinsam — direkt im Browser oder als App.">
+    <meta property="og:description" content="Das KI-gestützte Foto-Spiel für Gruppen. Jetzt im App Store — kreative Foto-Aufgaben, KI-Bewertung oder gegenseitiges Voting, in Sekunden gestartet.">
     <meta property="og:locale" content="de_DE">
     <meta property="og:site_name" content="KatchIt!">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="KatchIt! - Das Foto-Spiel mit Freunden">
-    <meta name="twitter:description" content="Kostenloses Multiplayer-Fotospiel für Gruppen. Jetzt für Android, iOS und im Browser.">
+    <meta name="twitter:description" content="Das KI-Foto-Spiel für Gruppen. Jetzt im App Store, auf Android und im Browser.">
 
     <!-- Strukturierte Daten -->
     <script type="application/ld+json">
@@ -371,6 +371,72 @@
         .btn-store:hover {
             border-color: var(--purple);
             background: var(--surface-hover);
+        }
+
+        /* App Store CTA — primary install path now that iOS is live. */
+        .btn-appstore {
+            background: linear-gradient(135deg, #1d1d1f 0%, #000 100%);
+            color: white;
+            font-size: 18px;
+            padding: 20px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+        }
+
+        .btn-appstore::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        .btn-appstore:hover {
+            box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+        }
+
+        .btn-appstore:hover::before {
+            transform: translateX(100%);
+        }
+
+        .btn-appstore .btn-store-eyebrow {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .btn-appstore .btn-store-name {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.2px;
+        }
+
+        .btn-appstore .btn-icon {
+            width: 28px;
+            height: 28px;
+        }
+
+        /* Secondary button — Browser play. Subtle gradient outline so it
+           still feels clickable but doesn't fight the App Store CTA. */
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--purple);
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(168, 85, 247, 0.08);
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.2);
         }
 
         .btn-icon {
@@ -1122,26 +1188,28 @@
 
         <img src="icon-512.png" alt="KatchIt! App Icon" class="hero-icon">
         <h1 class="hero-title">KatchIt!</h1>
-        <p class="hero-tagline">Das Multiplayer-Fotospiel für<br>Gruppen, Partys und Abenteuer.</p>
-        <p class="hero-sub">Erhalte kreative Foto-Aufgaben, renne los, fotografiere und bewerte gemeinsam die besten Bilder. Direkt im Browser oder als App.</p>
+        <p class="hero-tagline">Das KI-Foto-Spiel für<br>Gruppen, Partys und Abenteuer.</p>
+        <p class="hero-sub">Bekomme kreative Foto-Aufgaben, schnapp dir deine Freunde, knipst los — und lasst die KI oder einander bewerten, wer den besten Schuss landet. Jetzt im App Store, auf Android und im Browser.</p>
 
         <div class="buttons">
-            <a href="/play.html" class="btn btn-primary">
+            <a href="https://apps.apple.com/app/id6762052713" class="btn btn-appstore" id="btn-apple">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                <div>
+                    <span class="btn-store-eyebrow">Lade jetzt im</span>
+                    <span class="btn-store-name">App Store</span>
+                </div>
+            </a>
+
+            <p class="divider-text">oder direkt loslegen</p>
+
+            <a href="/play.html" class="btn btn-secondary">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Im Browser spielen
             </a>
 
-            <p class="divider-text">oder als App holen</p>
-
             <a href="#" class="btn btn-store" id="btn-google">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.4l2.585 1.493a1 1 0 0 1 0 1.4l-2.585 1.493-2.756-2.693 2.756-2.694zM5.864 2.658L16.8 9.291l-2.302 2.302-8.635-8.935z"/></svg>
                 Google Play
-                <span class="btn-badge">Bald verfügbar</span>
-            </a>
-
-            <a href="#" class="btn btn-store" id="btn-apple">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                App Store
                 <span class="btn-badge">Bald verfügbar</span>
             </a>
         </div>
@@ -1201,7 +1269,7 @@
                     <p>Alle bekommen die gleichen Foto-Kategorien auf ihr Bingo-Board. Jetzt heisst es: Rausgehen, Motive finden und knipsen!</p>
                     <div class="step-detail">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                        Zeitdruck macht's spannend — 10 bis 60 Minuten
+                        Zeitdruck macht's spannend — 5 bis 60 Minuten
                     </div>
                 </div>
             </div>
@@ -1349,15 +1417,23 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                 </div>
                 <h3>Flexible Spielzeit</h3>
-                <p>Wähle zwischen 10 und 60 Minuten. Quick-Runden in der Pause oder ein langes Abenteuer in der Stadt.</p>
+                <p>Wähle zwischen 5 und 60 Minuten. Schnelle Pausenrunde oder ein langes Abenteuer in der Stadt.</p>
             </div>
 
             <div class="feature reveal reveal-delay-2">
                 <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <h3>KI-Bewertung</h3>
+                <p>Im AI-Judge-Modus bewertet eine KI jedes Foto mit 1–5 Sternen — keine Voting-Phase, Ergebnisse direkt nach der Runde.</p>
+            </div>
+
+            <div class="feature reveal reveal-delay-3">
+                <div class="feature-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
                 <h3>Kein Account nötig</h3>
-                <p>Sofort losspielen, ganz ohne Registrierung. Optional Account erstellen für Statistiken.</p>
+                <p>Sofort losspielen, ganz ohne Registrierung. Optional Account erstellen für Statistiken und Streaks.</p>
             </div>
 
             <div class="feature reveal reveal-delay-1">
@@ -1370,10 +1446,10 @@
 
             <div class="feature reveal reveal-delay-2">
                 <div class="feature-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><circle cx="12" cy="12" r="3"/></svg>
                 </div>
-                <h3>Joker-Karte</h3>
-                <p>Erfinde deine eigene Kategorie und überrasche die anderen Spieler.</p>
+                <h3>5 Spielmodi</h3>
+                <p>Classic, Blind Bingo, Weird Core, Quick Start und AI Judge. Für jede Stimmung der passende Modus.</p>
             </div>
 
             <div class="feature reveal reveal-delay-3">
@@ -1488,7 +1564,7 @@
                     <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="faq-answer">
-                    <div class="faq-answer-inner">KatchIt! läuft direkt im Browser auf jedem Smartphone, Tablet oder Computer. Zusätzlich gibt es bald native Apps für Android (Google Play) und iOS (App Store) — alle Plattformen spielen nahtlos zusammen.</div>
+                    <div class="faq-answer-inner">KatchIt! gibt es als native iOS-App im App Store. Auf Android und im Browser auf jedem Smartphone, Tablet oder Computer kannst du ebenfalls direkt mitspielen — alle Plattformen spielen nahtlos zusammen. Eine native Android-App ist in Arbeit.</div>
                 </div>
             </div>
 
@@ -1510,10 +1586,17 @@
     <section class="cta">
         <div class="cta-glow"></div>
         <h2 class="cta-title reveal">Bereit für das Abenteuer?</h2>
-        <p class="cta-sub reveal">Erstelle in Sekunden eine Runde und lade deine Freunde ein. Kein Download, kein Account — einfach losspielen.</p>
-        <a href="/play.html" class="btn btn-primary reveal reveal-delay-1">
+        <p class="cta-sub reveal">Hol dir die App für das beste Erlebnis — oder spiele sofort im Browser mit.</p>
+        <a href="https://apps.apple.com/app/id6762052713" class="btn btn-appstore reveal reveal-delay-1">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            <div>
+                <span class="btn-store-eyebrow">Lade jetzt im</span>
+                <span class="btn-store-name">App Store</span>
+            </div>
+        </a>
+        <a href="/play.html" class="btn btn-secondary reveal reveal-delay-2" style="margin-top:12px;max-width:380px;">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Jetzt im Browser spielen
+            Erst im Browser ausprobieren
         </a>
         <p class="cta-note reveal reveal-delay-2">Kostenlos. Kein Account nötig. Direkt starten.</p>
     </section>

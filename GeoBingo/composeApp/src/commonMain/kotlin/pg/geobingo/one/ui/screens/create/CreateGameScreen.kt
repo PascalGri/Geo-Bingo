@@ -90,7 +90,15 @@ fun CreateGameScreen(gameState: GameState) {
     var favoriteNameInput by remember { mutableStateOf("") }
 
     val totalCategories = customCategories.size + selectedPresetIds.size
-    val canStart = hostNameInput.trim().isNotEmpty() && (gameMode == GameMode.QUICK_START || totalCategories >= 2)
+    // AI Judge random mode: no manual list is required because we draw
+    // from the preset pool at start time, so the start button stays
+    // enabled even with zero hand-picked categories.
+    val aiJudgeRandomActive = gameMode == GameMode.AI_JUDGE && gameState.session.aiJudgeRandomEnabled
+    val canStart = hostNameInput.trim().isNotEmpty() && (
+        gameMode == GameMode.QUICK_START ||
+        aiJudgeRandomActive ||
+        totalCategories >= 2
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(errorMessage) {
         val msg = errorMessage ?: return@LaunchedEffect
@@ -176,6 +184,13 @@ fun CreateGameScreen(gameState: GameState) {
                                 try {
                                     val allCategories = if (gameMode == GameMode.QUICK_START) {
                                         quickStartCategories(gameState.session.quickStartOutdoor)
+                                    } else if (aiJudgeRandomActive) {
+                                        // AI Judge random pool: pull N from the
+                                        // selected indoor/outdoor preset list.
+                                        // Pool size always exceeds count cap (10),
+                                        // so .take after .shuffled is safe.
+                                        presetPool.shuffled()
+                                            .take(gameState.session.aiJudgeRandomCount)
                                     } else {
                                         val presets = presetPool.filter { it.id in selectedPresetIds }
                                         customCategories + presets
@@ -537,8 +552,159 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
+            // ── AI Judge Random Pool toggle ───────────────────────────────
+            // Lets the host skip the manual category list: pick how many
+            // categories should be drawn at random from the appropriate
+            // indoor/outdoor preset pool. Vote-style indoor vs outdoor
+            // reuses the existing aiJudgeOutdoor flag so the SoloScreen
+            // pool selection stays consistent with multiplayer.
+            if (gameMode == GameMode.AI_JUDGE) {
+                DarkSectionCard(
+                    title = S.current.aiJudgeRandomToggle,
+                    modifier = Modifier.staggered(2),
+                    gradientColors = GradientAiJudge,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                S.current.aiJudgeRandomToggle,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = ColorOnSurface,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                S.current.aiJudgeRandomToggleDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorOnSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = gameState.session.aiJudgeRandomEnabled,
+                            onCheckedChange = { gameState.session.aiJudgeRandomEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = GradientAiJudge.first(),
+                                uncheckedThumbColor = ColorOnSurfaceVariant,
+                                uncheckedTrackColor = ColorSurfaceVariant,
+                            ),
+                        )
+                    }
+
+                    if (gameState.session.aiJudgeRandomEnabled) {
+                        Spacer(Modifier.height(16.dp))
+                        // Indoor / Outdoor selector — reuses the
+                        // session.aiJudgeOutdoor flag so the pool we draw
+                        // from below matches what the user picked.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            val outdoorSelected = gameState.session.aiJudgeOutdoor
+                            val btnMod = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                            Box(
+                                modifier = btnMod
+                                    .background(
+                                        if (outdoorSelected) Brush.linearGradient(GradientAiJudge)
+                                        else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                    )
+                                    .clickable { gameState.session.aiJudgeOutdoor = true }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Default.WbSunny, null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (outdoorSelected) Color.White else ColorOnSurfaceVariant,
+                                    )
+                                    Text(
+                                        S.current.outdoor,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (outdoorSelected) Color.White else ColorOnSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = btnMod
+                                    .background(
+                                        if (!outdoorSelected) Brush.linearGradient(GradientAiJudge)
+                                        else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                                    )
+                                    .clickable { gameState.session.aiJudgeOutdoor = false }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Default.House, null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (!outdoorSelected) Color.White else ColorOnSurfaceVariant,
+                                    )
+                                    Text(
+                                        S.current.indoor,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (!outdoorSelected) Color.White else ColorOnSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+                        // Count stepper (clamped to [2, 10]).
+                        val maxCount = 10
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                S.current.aiJudgeRandomCount,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = ColorOnSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = {
+                                    val cur = gameState.session.aiJudgeRandomCount
+                                    if (cur > 2) gameState.session.aiJudgeRandomCount = cur - 1
+                                },
+                                enabled = gameState.session.aiJudgeRandomCount > 2,
+                            ) {
+                                Icon(Icons.Default.Remove, null, tint = ColorOnSurface)
+                            }
+                            Text(
+                                S.current.aiJudgeRandomCountValue(gameState.session.aiJudgeRandomCount),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = GradientAiJudge.first(),
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                            IconButton(
+                                onClick = {
+                                    val cur = gameState.session.aiJudgeRandomCount
+                                    if (cur < maxCount) gameState.session.aiJudgeRandomCount = cur + 1
+                                },
+                                enabled = gameState.session.aiJudgeRandomCount < maxCount,
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = ColorOnSurface)
+                            }
+                        }
+                    }
+                }
+            }
+
             // ── 2. Kategorien ─────────────────────────────────────────────
-            if (gameMode != GameMode.QUICK_START) {
+            if (gameMode != GameMode.QUICK_START && !aiJudgeRandomActive) {
             val catSectionIndex = if (gameMode == GameMode.CLASSIC) 1 else 2
             DarkSectionCard(
                 title = "${S.current.categoriesSelected}  \u00B7  $totalCategories",

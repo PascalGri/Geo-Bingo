@@ -103,6 +103,10 @@ object De : StringRes {
     override val aiJudgeActive = "KI-Bewertung aktiv"
     override val aiJudgeActiveDesc = "Eine KI bewertet jedes Foto mit 1-5 Sternen. Keine Abstimmung -- Ergebnisse erscheinen direkt nach dem Spiel."
     override val weirdCoreCategoryHint = "Wähle die Kategorien aus, mit denen ihr spielen wollt."
+    override val aiJudgeRandomToggle = "Zufällige Kategorien"
+    override val aiJudgeRandomToggleDesc = "Die KI wählt automatisch eine zufällige Auswahl. Keine manuelle Liste nötig."
+    override val aiJudgeRandomCount = "Anzahl Kategorien"
+    override fun aiJudgeRandomCountValue(n: Int) = "$n Kategorien"
 
     // ── Duration ────────────────────────────────────────────────────────
     override val gameDuration = "Spielzeit"

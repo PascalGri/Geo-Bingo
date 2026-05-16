@@ -229,6 +229,16 @@ class ReviewViewModel(
         try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) {
             AppLogger.w("ReviewVM", "Votes fetch failed", e)
         }
+        // Re-fetch captures so the Results screen sees the same canonical
+        // list as every other client. ReviewVM loaded captures on entry,
+        // but late uploads (the appScope fix means uploads can land
+        // *after* the timer flips to voting) would otherwise stay invisible
+        // to the local Scoring path and reintroduce the multi-winner bug.
+        try {
+            gameState.review.allCaptures = GameRepository.getCaptures(gameId)
+        } catch (e: Exception) {
+            AppLogger.w("ReviewVM", "Captures fetch failed", e)
+        }
         nav.replaceCurrent(Screen.RESULTS_TRANSITION)
     }
 
@@ -273,6 +283,9 @@ class ReviewViewModel(
                     try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) {
                         AppLogger.w("ReviewVM", "Votes fetch failed", e)
                     }
+                    try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) {
+                        AppLogger.w("ReviewVM", "Captures fetch failed", e)
+                    }
                     nav.replaceCurrent(Screen.RESULTS_TRANSITION)
                 }
             }
@@ -306,6 +319,9 @@ class ReviewViewModel(
                     }
                     if (game?.status == "results" && nav.currentScreen == Screen.REVIEW) {
                         gameState.review.allVotes = GameRepository.getVotes(gameId)
+                        try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) {
+                            AppLogger.w("ReviewVM", "Captures fetch failed", e)
+                        }
                         nav.replaceCurrent(Screen.RESULTS_TRANSITION)
                     }
                     interval = GameConstants.POLLING_INITIAL_INTERVAL_MS

@@ -14,4 +14,10 @@ class SessionState {
     var quickStartOutdoor by mutableStateOf(true)
     var quickStartDurationMinutes by mutableStateOf(15)
     var aiJudgeOutdoor by mutableStateOf(true)
+    // AI Judge random-pool mode: when enabled, the host skips the manual
+    // preset/custom picker on CreateGameScreen and the round runs against
+    // [aiJudgeRandomCount] categories drawn from the indoor or outdoor
+    // preset pool at start time.
+    var aiJudgeRandomEnabled by mutableStateOf(false)
+    var aiJudgeRandomCount by mutableStateOf(5)
 }

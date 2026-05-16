@@ -127,6 +127,10 @@ interface StringRes {
     val aiJudgeActive: String
     val aiJudgeActiveDesc: String
     val weirdCoreCategoryHint: String
+    val aiJudgeRandomToggle: String
+    val aiJudgeRandomToggleDesc: String
+    val aiJudgeRandomCount: String
+    fun aiJudgeRandomCountValue(n: Int): String
 
     // ── Duration ────────────────────────────────────────────────────────
     val gameDuration: String
