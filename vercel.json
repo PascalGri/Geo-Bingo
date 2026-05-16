@@ -1,6 +1,7 @@
 {
   "buildCommand": null,
   "framework": null,
+  "outputDirectory": "GeoBingo/composeApp/build/dist/wasmJs/productionExecutable",
   "rewrites": [
     { "source": "/join/:code*", "destination": "/play.html" }
   ],
