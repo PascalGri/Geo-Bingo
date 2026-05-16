@@ -21,9 +21,27 @@ class TeamManager(
     fun getTeamPlayers(teamNumber: Int): List<Player> =
         gameplay.players.filter { gameplay.teamAssignments[it.id] == teamNumber }
 
-    /** All captures from any member of a team, merged. */
+    /**
+     * All categories captured by any member of a team, merged.
+     *
+     * Prefers `review.allCaptures` (server-canonical, fetched at the
+     * vote→results handoff) when populated so every device computes the
+     * same set; falls back to the per-device `gameplay.captures` map for
+     * the live in-game view (before the canonical list is loaded).
+     * Mirrors the fix in ScoringManager.serverCaptures — without this,
+     * team scores and "captured" markers diverged between clients in
+     * exactly the same way player scores used to.
+     */
     fun getTeamCaptures(teamNumber: Int): Set<String> {
-        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }
+        val teamPlayerIds = getTeamPlayers(teamNumber).map { it.id }.toSet()
+        if (teamPlayerIds.isEmpty()) return emptySet()
+        if (review.allCaptures.isNotEmpty()) {
+            return review.allCaptures
+                .asSequence()
+                .filter { it.player_id in teamPlayerIds }
+                .map { it.category_id }
+                .toSet()
+        }
         return teamPlayerIds.flatMap { gameplay.captures[it] ?: emptySet() }.toSet()
     }
 

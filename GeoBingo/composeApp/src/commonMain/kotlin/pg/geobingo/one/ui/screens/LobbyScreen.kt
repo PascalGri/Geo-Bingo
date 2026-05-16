@@ -131,6 +131,33 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
+    // Guest team-data sync. The host can flip the lobby into team mode
+    // and name teams BEFORE a given guest joins; without polling those
+    // separate tables, the guest stays on "Team 1" until game start.
+    // Cheap: two small reads every 4 s, only while in the lobby and only
+    // for non-hosts.
+    if (!gameState.session.isHost) {
+        LaunchedEffect(gameId) {
+            while (true) {
+                try {
+                    val assignments = GameRepository.getTeamAssignments(gameId)
+                    if (assignments.isNotEmpty()) {
+                        gameState.gameplay.teamModeEnabled = true
+                        gameState.gameplay.teamAssignments = assignments
+                        val names = GameRepository.getTeamNames(gameId)
+                        if (names.isNotEmpty()) gameState.gameplay.teamNames = names
+                    } else if (gameState.gameplay.teamModeEnabled) {
+                        // Host turned team mode off
+                        gameState.gameplay.teamModeEnabled = false
+                        gameState.gameplay.teamAssignments = emptyMap()
+                        gameState.gameplay.teamNames = emptyMap()
+                    }
+                } catch (e: Exception) { AppLogger.d("Lobby", "Team data poll failed", e) }
+                kotlinx.coroutines.delay(4_000L)
+            }
+        }
+    }
+
     // Team mode state
     var showCreateTeamDialog by remember { mutableStateOf(false) }
     var newTeamNameInput by remember { mutableStateOf("") }
@@ -173,12 +200,17 @@ fun LobbyScreen(gameState: GameState) {
                             gameState.gameplay.isGameRunning = true
                             gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                 .takeIf { it >= 0 } ?: 0
-                            // Load team assignments from server (guest)
+                            // Load team assignments + names from server (guest).
+                            // Without the team_names fetch here, a guest who
+                            // joined right before start would see "Team 1"
+                            // instead of the host's named team in the game.
                             try {
                                 val teams = GameRepository.getTeamAssignments(gameId)
                                 if (teams.isNotEmpty()) {
                                     gameState.gameplay.teamModeEnabled = true
                                     gameState.gameplay.teamAssignments = teams
+                                    val names = GameRepository.getTeamNames(gameId)
+                                    if (names.isNotEmpty()) gameState.gameplay.teamNames = names
                                 }
                             } catch (e: Exception) { AppLogger.w("Lobby", "Team load failed", e) }
                             feedback.gameStart()
