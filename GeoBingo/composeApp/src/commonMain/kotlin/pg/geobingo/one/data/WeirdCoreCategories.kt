@@ -3,9 +3,11 @@ package pg.geobingo.one.data
 // ─────────────────────────────────────────────────────────────────────────────
 //  Weird Core – absurde, ultra-nische Kategorien für den Weird-Core-Modus.
 //  Kein "Schönstes Foto" – nur Kreativität und Treffsicherheit zählen.
+//  Zwei Pools (outdoor / indoor) damit der Modus auch funktioniert wenn man
+//  drinnen festsitzt oder draußen unterwegs ist.
 // ─────────────────────────────────────────────────────────────────────────────
 
-val WEIRD_CORE_CATEGORIES: List<Category> = listOf(
+val WEIRD_CORE_OUTDOOR_CATEGORIES: List<Category> = listOf(
     Category("wc_phone", "Handy-Zombie", "wc_phone",
         "Fotografiere jemanden, der auf sein Handy starrt – von vorne oder seitlich."),
     Category("wc_sign", "Unlesbares Schild", "wc_sign",
@@ -54,15 +56,13 @@ val WEIRD_CORE_CATEGORIES: List<Category> = listOf(
         "Mehrere Personen, die in einer Schlange stehen – je seltsamer der Grund, desto besser."),
     Category("wc_cable", "Kabel-Wirrwarr", "wc_cable",
         "Ein möglichst chaotisches Durcheinander von Kabeln, Leitungen oder Drähten."),
-
-    // ── Runde 2 ───────────────────────────────────────────────────────────────
     Category("wc_broken_umbrella", "Kaputtes Schirm-Skelett", "wc_umbrella",
         "Ein Regenschirm, der nach innen gestülpt ist oder dessen Streben rausstehen."),
     Category("wc_matching_twins", "Unabsichtliche Twins", "wc_twins",
         "Zwei fremde Personen, die zufällig fast gleich angezogen sind."),
     Category("wc_cat_window", "Katze im Fenster", "wc_cat",
         "Eine Katze, die aus einem Fenster schaut – je gelangweilter der Blick, desto besser."),
-    Category("wc_post_it", "Post-it an Stelle wo man es nicht erwartet", "wc_postit",
+    Category("wc_post_it", "Post-it an seltsamem Ort", "wc_postit",
         "Ein Zettel oder Post-it an einem Ort, der eigentlich keinen Sinn ergibt."),
     Category("wc_cloud_shape", "Wolke die nach etwas aussieht", "wc_cloud",
         "Eine Wolke, die eindeutig die Form von etwas Konkretem hat – und fotografierbar ist."),
@@ -96,4 +96,77 @@ val WEIRD_CORE_CATEGORIES: List<Category> = listOf(
         "Ein Hund und sein Besitzer, die sich optisch so ähnlich sind, dass es schon komisch ist."),
     Category("wc_no_entry_entered", "Verboten aber trotzdem drin", "wc_no_entry",
         "Ein 'Zutritt verboten'-Schild, hinter dem offensichtlich jemand war oder ist."),
+
+    // ── Runde 3 (expansion 2026-05-16) ─────────────────────────────────────
+    Category("wc_one_chair_pile", "Stuhl auf Stuhl", "wc_chair_stack",
+        "Mindestens drei Stühle, die aufeinander gestapelt im Freien stehen."),
+    Category("wc_unfinished", "Halbfertige Baustelle ohne Bauarbeiter", "wc_construction",
+        "Eine Baustelle, die offensichtlich pausiert ist – Werkzeuge da, niemand arbeitet."),
+    Category("wc_pet_costume", "Tier mit Kleidungsstück", "wc_pet_clothes",
+        "Ein Hund, eine Katze, ein Tier mit Pulli, Mantel, Schuhen oder anderem an."),
+    Category("wc_perfect_parallel", "Perfekt parallel geparkt", "wc_parallel",
+        "Mindestens drei Fahrzeuge in absurd perfekter paralleler Anordnung."),
+    Category("wc_sad_balloon", "Trauriger Luftballon", "wc_balloon",
+        "Ein halb-entleerter oder verlorener Luftballon, der irgendwo traurig rumhängt."),
+    Category("wc_door_to_nowhere", "Tür ins Nichts", "wc_nothing_door",
+        "Eine Tür, die offensichtlich nirgendwo hinführt – an einer Wand, im Wald, an einem leeren Gerüst."),
+    Category("wc_lonely_table", "Verlassener Tisch", "wc_lonely_table",
+        "Ein Tisch (Café, Park, Straße) komplett alleine ohne Stuhl, ohne Gäste, ohne Sinn."),
+    Category("wc_too_many_locks", "Schloss am Schloss", "wc_lock_lock",
+        "Ein Objekt mit mehreren Schlössern dran – Geländer, Türen, Schränke draußen, Liebesschlösser-Brücke."),
 )
+
+val WEIRD_CORE_INDOOR_CATEGORIES: List<Category> = listOf(
+    Category("wci_socks", "Verlassene Socke", "wci_socks",
+        "Eine einzelne Socke, die alleine irgendwo rumliegt – nicht im Wäschekorb."),
+    Category("wci_remote", "Fernbedienung an seltsamer Stelle", "wci_remote",
+        "Eine Fernbedienung an einem Ort, wo sie definitiv nicht hingehört."),
+    Category("wci_unread_books", "Bücher die nie gelesen wurden", "wci_books",
+        "Bücher, die offensichtlich nur Deko sind – staubig, makellos, oder verkehrt herum."),
+    Category("wci_charger_chaos", "Ladekabel-Schlange", "wci_cables",
+        "Mindestens 3 verschiedene Ladekabel, die sich gegenseitig verheddert haben."),
+    Category("wci_fridge_photo", "Foto am Kühlschrank", "wci_fridge",
+        "Ein Foto oder Magnetbild an einem Kühlschrank – je peinlicher, desto besser."),
+    Category("wci_plant_dying", "Pflanze die langsam stirbt", "wci_dying_plant",
+        "Eine Zimmerpflanze, die deutlich Hilfe brauchen würde – braune Blätter, kein Wasser, traurig."),
+    Category("wci_appliance_old", "Gerät aus dem letzten Jahrtausend", "wci_old_device",
+        "Ein elektronisches Gerät zuhause, das offensichtlich älter als die Person ist, die es benutzt."),
+    Category("wci_wrong_room", "Gegenstand im falschen Raum", "wci_wrong_room",
+        "Etwas Küchen-Mässiges im Bad, Bad-Sachen im Schlafzimmer, etc. – komplett fehl am Platz."),
+    Category("wci_dust_bunny", "Staubmonster", "wci_dust",
+        "Eine sichtbare Ansammlung von Staub, die schon fast eigene Form angenommen hat."),
+    Category("wci_overstuffed_drawer", "Schublade voll Chaos", "wci_drawer",
+        "Eine Schublade, die du öffnest – innen herrscht Anarchie."),
+    Category("wci_mug_collection", "Tassen-Sammlung", "wci_mugs",
+        "Mindestens 4 sehr unterschiedliche Tassen, die zusammen stehen oder hängen."),
+    Category("wci_mirror_dust", "Spiegel der Lügen erzählt", "wci_smudged_mirror",
+        "Ein Spiegel mit Fingerabdrücken, Schlieren oder Staub – kein klares Spiegelbild."),
+    Category("wci_three_remotes", "Drei Fernbedienungen", "wci_three_remotes",
+        "Drei oder mehr Fernbedienungen, die nebeneinander oder durcheinander liegen."),
+    Category("wci_unused_kitchen", "Küchengerät das niemand benutzt", "wci_kitchen_gadget",
+        "Eine Küchenmaschine, ein Gadget, ein Aufsatz – der offensichtlich nur staubt."),
+    Category("wci_decorative_cushion", "Sinnloses Deko-Kissen", "wci_cushion",
+        "Ein Kissen, das nur Deko ist – nicht zum Sitzen, nicht zum Schlafen."),
+    Category("wci_burnt_pan", "Verbrannte Pfanne", "wci_burnt",
+        "Eine Pfanne oder ein Topf mit Brandspuren – Story dahinter optional."),
+    Category("wci_random_box", "Karton der irgendwo steht", "wci_box",
+        "Ein Karton, der seit gefühlt Wochen einfach im Raum steht – Inhalt unklar."),
+    Category("wci_calendar_old", "Alter Kalender", "wci_old_calendar",
+        "Ein Wandkalender, der offensichtlich nicht mehr aktuell ist."),
+    Category("wci_no_handle", "Tür ohne Klinke", "wci_no_handle",
+        "Eine Tür drinnen ohne Klinke – Schrank, Geheimtür, oder einfach kaputt."),
+    Category("wci_lost_pen", "Stift den niemand vermisst", "wci_pen",
+        "Ein einzelner Stift, der irgendwo rumliegt und gefühlt seit Jahren ungenutzt ist."),
+    Category("wci_phone_face_down", "Handy mit Display nach unten", "wci_phone_down",
+        "Ein Handy auf irgendeiner Oberfläche, Display nach unten – Vertrauen oder Misstrauen?"),
+    Category("wci_three_chargers", "Drei Ladegeräte im selben Raum", "wci_three_chargers",
+        "Mindestens drei Ladegeräte im selben Zimmer – stecken oder liegen."),
+)
+
+// Backwards-compatible alias for any caller that hasn't been ported to
+// the outdoor/indoor split yet. New code should use the two pools above.
+@Deprecated(
+    "Use WEIRD_CORE_OUTDOOR_CATEGORIES (or WEIRD_CORE_INDOOR_CATEGORIES) explicitly.",
+    ReplaceWith("WEIRD_CORE_OUTDOOR_CATEGORIES"),
+)
+val WEIRD_CORE_CATEGORIES: List<Category> = WEIRD_CORE_OUTDOOR_CATEGORIES

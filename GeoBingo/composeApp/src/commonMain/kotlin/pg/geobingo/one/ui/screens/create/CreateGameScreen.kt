@@ -62,15 +62,27 @@ fun CreateGameScreen(gameState: GameState) {
     var customCategoryCounter by remember { mutableStateOf(0) }
     var selectedPresetIds by remember { mutableStateOf(setOf<String>()) }
 
-    // Different category pools per mode
-    val presetPool = remember(gameMode) {
+    // Category pool per mode + indoor/outdoor. As of 2026-05-16 the
+    // indoor/outdoor toggle is universal: every mode (except QUICK_START
+    // which has its own setting) lets the host pick which pool to draw
+    // from. WEIRD_CORE now has a dedicated indoor variant alongside the
+    // expanded outdoor list.
+    val presetPool = remember(gameMode, gameState.session.playOutdoor) {
         when (gameMode) {
-            GameMode.WEIRD_CORE -> WEIRD_CORE_CATEGORIES
-            GameMode.AI_JUDGE -> if (gameState.session.aiJudgeOutdoor) PRESET_CATEGORIES else INDOOR_PRESET_CATEGORIES
-            else -> PRESET_CATEGORIES
+            GameMode.WEIRD_CORE -> if (gameState.session.playOutdoor) {
+                WEIRD_CORE_OUTDOOR_CATEGORIES
+            } else {
+                WEIRD_CORE_INDOOR_CATEGORIES
+            }
+            GameMode.QUICK_START -> PRESET_CATEGORIES // quickStart has its own flow
+            else -> if (gameState.session.playOutdoor) {
+                PRESET_CATEGORIES
+            } else {
+                INDOOR_PRESET_CATEGORIES
+            }
         }
     }
-    var visiblePresets by remember(gameMode) {
+    var visiblePresets by remember(gameMode, gameState.session.playOutdoor) {
         mutableStateOf(presetPool.take(VISIBLE_PRESET_COUNT))
     }
 
@@ -90,13 +102,13 @@ fun CreateGameScreen(gameState: GameState) {
     var favoriteNameInput by remember { mutableStateOf("") }
 
     val totalCategories = customCategories.size + selectedPresetIds.size
-    // AI Judge random mode: no manual list is required because we draw
-    // from the preset pool at start time, so the start button stays
-    // enabled even with zero hand-picked categories.
-    val aiJudgeRandomActive = gameMode == GameMode.AI_JUDGE && gameState.session.aiJudgeRandomEnabled
+    // Random-pool mode (any non-QUICK_START mode): no manual list is
+    // required because we draw from the preset pool at start time, so the
+    // start button stays enabled even with zero hand-picked categories.
+    val randomActive = gameMode != GameMode.QUICK_START && gameState.session.randomCategoriesEnabled
     val canStart = hostNameInput.trim().isNotEmpty() && (
         gameMode == GameMode.QUICK_START ||
-        aiJudgeRandomActive ||
+        randomActive ||
         totalCategories >= 2
     )
     val snackbarHostState = remember { SnackbarHostState() }
@@ -184,13 +196,13 @@ fun CreateGameScreen(gameState: GameState) {
                                 try {
                                     val allCategories = if (gameMode == GameMode.QUICK_START) {
                                         quickStartCategories(gameState.session.quickStartOutdoor)
-                                    } else if (aiJudgeRandomActive) {
-                                        // AI Judge random pool: pull N from the
-                                        // selected indoor/outdoor preset list.
-                                        // Pool size always exceeds count cap (10),
-                                        // so .take after .shuffled is safe.
+                                    } else if (randomActive) {
+                                        // Random pool: pull N from the selected
+                                        // indoor/outdoor preset list. Pool size
+                                        // always exceeds count cap (10), so
+                                        // .take after .shuffled is safe.
                                         presetPool.shuffled()
-                                            .take(gameState.session.aiJudgeRandomCount)
+                                            .take(gameState.session.randomCategoriesCount)
                                     } else {
                                         val presets = presetPool.filter { it.id in selectedPresetIds }
                                         customCategories + presets
@@ -552,17 +564,24 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── AI Judge Random Pool toggle ───────────────────────────────
-            // Lets the host skip the manual category list: pick how many
-            // categories should be drawn at random from the appropriate
-            // indoor/outdoor preset pool. Vote-style indoor vs outdoor
-            // reuses the existing aiJudgeOutdoor flag so the SoloScreen
-            // pool selection stays consistent with multiplayer.
-            if (gameMode == GameMode.AI_JUDGE) {
+            // ── Indoor / Outdoor + Random Pool toggle ─────────────────────
+            // Universal for every mode except QUICK_START (which has its
+            // own indoor/outdoor + random behaviour). Lets the host pick
+            // which preset pool the categories come from, and optionally
+            // skip the manual list entirely by enabling the random pool
+            // (count selector below).
+            if (gameMode != GameMode.QUICK_START) {
+                val randomSectionGradient = when (gameMode) {
+                    GameMode.CLASSIC -> GradientPrimary
+                    GameMode.BLIND_BINGO -> GradientCool
+                    GameMode.WEIRD_CORE -> GradientWeird
+                    GameMode.QUICK_START -> GradientQuickStart
+                    GameMode.AI_JUDGE -> GradientAiJudge
+                }
                 DarkSectionCard(
-                    title = S.current.aiJudgeRandomToggle,
+                    title = S.current.indoorOutdoorAndRandom,
                     modifier = Modifier.staggered(2),
-                    gradientColors = GradientAiJudge,
+                    gradientColors = randomSectionGradient,
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -582,18 +601,18 @@ fun CreateGameScreen(gameState: GameState) {
                             )
                         }
                         Switch(
-                            checked = gameState.session.aiJudgeRandomEnabled,
-                            onCheckedChange = { gameState.session.aiJudgeRandomEnabled = it },
+                            checked = gameState.session.randomCategoriesEnabled,
+                            onCheckedChange = { gameState.session.randomCategoriesEnabled = it },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = GradientAiJudge.first(),
+                                checkedTrackColor = randomSectionGradient.first(),
                                 uncheckedThumbColor = ColorOnSurfaceVariant,
                                 uncheckedTrackColor = ColorSurfaceVariant,
                             ),
                         )
                     }
 
-                    if (gameState.session.aiJudgeRandomEnabled) {
+                    if (gameState.session.randomCategoriesEnabled) {
                         Spacer(Modifier.height(16.dp))
                         // Indoor / Outdoor selector — reuses the
                         // session.aiJudgeOutdoor flag so the pool we draw
@@ -602,15 +621,15 @@ fun CreateGameScreen(gameState: GameState) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            val outdoorSelected = gameState.session.aiJudgeOutdoor
+                            val outdoorSelected = gameState.session.playOutdoor
                             val btnMod = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
                             Box(
                                 modifier = btnMod
                                     .background(
-                                        if (outdoorSelected) Brush.linearGradient(GradientAiJudge)
+                                        if (outdoorSelected) Brush.linearGradient(randomSectionGradient)
                                         else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
                                     )
-                                    .clickable { gameState.session.aiJudgeOutdoor = true }
+                                    .clickable { gameState.session.playOutdoor = true }
                                     .padding(vertical = 12.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -634,10 +653,10 @@ fun CreateGameScreen(gameState: GameState) {
                             Box(
                                 modifier = btnMod
                                     .background(
-                                        if (!outdoorSelected) Brush.linearGradient(GradientAiJudge)
+                                        if (!outdoorSelected) Brush.linearGradient(randomSectionGradient)
                                         else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
                                     )
-                                    .clickable { gameState.session.aiJudgeOutdoor = false }
+                                    .clickable { gameState.session.playOutdoor = false }
                                     .padding(vertical = 12.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -675,26 +694,26 @@ fun CreateGameScreen(gameState: GameState) {
                             )
                             IconButton(
                                 onClick = {
-                                    val cur = gameState.session.aiJudgeRandomCount
-                                    if (cur > 2) gameState.session.aiJudgeRandomCount = cur - 1
+                                    val cur = gameState.session.randomCategoriesCount
+                                    if (cur > 2) gameState.session.randomCategoriesCount = cur - 1
                                 },
-                                enabled = gameState.session.aiJudgeRandomCount > 2,
+                                enabled = gameState.session.randomCategoriesCount > 2,
                             ) {
                                 Icon(Icons.Default.Remove, null, tint = ColorOnSurface)
                             }
                             Text(
-                                S.current.aiJudgeRandomCountValue(gameState.session.aiJudgeRandomCount),
+                                S.current.aiJudgeRandomCountValue(gameState.session.randomCategoriesCount),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = GradientAiJudge.first(),
+                                color = randomSectionGradient.first(),
                                 modifier = Modifier.padding(horizontal = 8.dp),
                             )
                             IconButton(
                                 onClick = {
-                                    val cur = gameState.session.aiJudgeRandomCount
-                                    if (cur < maxCount) gameState.session.aiJudgeRandomCount = cur + 1
+                                    val cur = gameState.session.randomCategoriesCount
+                                    if (cur < maxCount) gameState.session.randomCategoriesCount = cur + 1
                                 },
-                                enabled = gameState.session.aiJudgeRandomCount < maxCount,
+                                enabled = gameState.session.randomCategoriesCount < maxCount,
                             ) {
                                 Icon(Icons.Default.Add, null, tint = ColorOnSurface)
                             }
@@ -704,7 +723,7 @@ fun CreateGameScreen(gameState: GameState) {
             }
 
             // ── 2. Kategorien ─────────────────────────────────────────────
-            if (gameMode != GameMode.QUICK_START && !aiJudgeRandomActive) {
+            if (gameMode != GameMode.QUICK_START && !randomActive) {
             val catSectionIndex = if (gameMode == GameMode.CLASSIC) 1 else 2
             DarkSectionCard(
                 title = "${S.current.categoriesSelected}  \u00B7  $totalCategories",

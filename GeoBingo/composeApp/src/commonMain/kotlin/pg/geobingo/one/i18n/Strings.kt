@@ -131,6 +131,7 @@ interface StringRes {
     val aiJudgeRandomToggleDesc: String
     val aiJudgeRandomCount: String
     fun aiJudgeRandomCountValue(n: Int): String
+    val indoorOutdoorAndRandom: String
 
     // ── Duration ────────────────────────────────────────────────────────
     val gameDuration: String

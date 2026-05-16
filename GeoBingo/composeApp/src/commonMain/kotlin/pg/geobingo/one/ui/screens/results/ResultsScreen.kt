@@ -373,7 +373,11 @@ fun ResultsScreen(gameState: GameState) {
                                         quickStartCategories(outdoor)
                                     }
                                     GameMode.WEIRD_CORE -> {
-                                        val pool = WEIRD_CORE_CATEGORIES.shuffled()
+                                        val pool = if (gameState.session.playOutdoor) {
+                                            WEIRD_CORE_OUTDOOR_CATEGORIES
+                                        } else {
+                                            WEIRD_CORE_INDOOR_CATEGORIES
+                                        }.shuffled()
                                         val fresh = pool.filter { it.id !in currentIds }
                                         if (fresh.size >= count) fresh.take(count)
                                         else (fresh + pool.filter { it.id in currentIds }.shuffled()).take(count)

@@ -121,7 +121,7 @@ fun ModeSelectScreen(gameState: GameState) {
                 gateRating {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "AI_JUDGE"))
                     gameState.session.gameMode = GameMode.AI_JUDGE
-                    gameState.session.aiJudgeOutdoor = aiJudgeOutdoor
+                    gameState.session.playOutdoor = aiJudgeOutdoor
                     nav.navigateTo(Screen.CREATE_GAME)
                 }
             },
