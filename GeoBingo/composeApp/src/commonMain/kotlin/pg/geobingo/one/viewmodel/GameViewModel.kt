@@ -123,8 +123,13 @@ class GameViewModel(
             // deleteCapture() if moderation flags it.
             ServiceLocator.appScope.launch {
                 gameState.addPhoto(playerId, categoryId, bytes)
-                val location = try { getCurrentLocation() } catch (e: Exception) {
-                    AppLogger.d("GameVM", "Location unavailable", e); null
+                // Cap the GPS wait: a slow or absent fix must never delay the
+                // upload, since being counted in the round depends on the photo
+                // reaching storage — not on the cosmetic results-map geotag.
+                val location = withTimeoutOrNull(GameConstants.LOCATION_TIMEOUT_MS) {
+                    try { getCurrentLocation() } catch (e: Exception) {
+                        AppLogger.d("GameVM", "Location unavailable", e); null
+                    }
                 }
 
                 val captureSuccess = try {

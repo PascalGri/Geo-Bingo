@@ -1,9 +1,11 @@
 package pg.geobingo.one.ui.screens.results
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Download
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -56,6 +59,7 @@ internal fun GalleryPhotoItem(
     capture: CaptureDto,
     players: List<Player>,
     categories: List<Category>,
+    aspectRatio: Float = 1f,
 ) {
     var photo by remember(capture.id) { mutableStateOf<ImageBitmap?>(null) }
     var photoBytes by remember(capture.id) { mutableStateOf<ByteArray?>(null) }
@@ -140,9 +144,10 @@ internal fun GalleryPhotoItem(
 
     Box(
         modifier = modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(10.dp))
+            .aspectRatio(aspectRatio)
+            .clip(RoundedCornerShape(12.dp))
             .background(ColorSurface)
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
             .clickable { if (photo != null) showFullscreen = true },
     ) {
         when {
@@ -234,6 +239,16 @@ internal fun StaticMapPreview(
     var pinOffset by remember(latitude, longitude) { mutableStateOf(Pair(0f, 0f)) }
     var loading by remember(latitude, longitude) { mutableStateOf(true) }
 
+    // Pin drops in with a soft bounce once the tiles have rendered.
+    val pinDrop = remember(latitude, longitude) { Animatable(-60f) }
+    val pinAlpha = remember(latitude, longitude) { Animatable(0f) }
+    LaunchedEffect(tileImages) {
+        if (!tileImages.isNullOrEmpty()) {
+            launch { pinAlpha.animateTo(1f, tween(220)) }
+            pinDrop.animateTo(0f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+        }
+    }
+
     LaunchedEffect(latitude, longitude) {
         loading = true
         tileImages = try {
@@ -283,14 +298,15 @@ internal fun StaticMapPreview(
                         )
                     }
                 }
-                // Pin icon centered
+                // Pin icon centered, animated drop-in (tip points at location)
                 Icon(
                     Icons.Default.LocationOn,
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(y = (-10).dp) // Shift up so pin tip points at location
-                        .size(28.dp),
+                        .offset(y = (-10).dp)
+                        .size(28.dp)
+                        .graphicsLayer { translationY = pinDrop.value; alpha = pinAlpha.value },
                     tint = Color(0xFFE53935),
                 )
             }
@@ -298,6 +314,61 @@ internal fun StaticMapPreview(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Karte nicht verfügbar", color = ColorOnSurfaceVariant, fontSize = 11.sp)
                 }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+//  Masonry photo grid (shared by results + history)
+// ─────────────────────────────────────────────
+
+private val MASONRY_RATIOS = listOf(1f, 0.85f, 0.92f, 0.8f, 1f, 0.88f)
+
+/**
+ * Deterministic, tasteful tile aspect-ratio (width/height) for masonry
+ * position [index]. Kept in a tight 0.8–1.0 band so the staggered look reads
+ * as intentional rhythm and crops never look extreme on any single photo.
+ */
+internal fun masonryAspectRatio(index: Int): Float = MASONRY_RATIOS[index % MASONRY_RATIOS.size]
+
+/**
+ * Lightweight masonry that lives inside a vertical scroll container. Items are
+ * greedily placed into the currently-shortest column (by accumulated
+ * [heightWeight]) so varying-height tiles pack tightly. Column assignment is
+ * memoised on [itemCount], so layout is fully deterministic — tiles never
+ * reflow as async images decode — and it does no per-frame work, keeping it
+ * cheap on wasmJs / older devices.
+ */
+@Composable
+internal fun MasonryGrid(
+    itemCount: Int,
+    modifier: Modifier = Modifier,
+    columns: Int = 2,
+    spacing: Dp = 8.dp,
+    heightWeight: (index: Int) -> Float,
+    item: @Composable (index: Int) -> Unit,
+) {
+    val buckets = remember(itemCount, columns) {
+        val cols = List(columns) { mutableListOf<Int>() }
+        val heights = FloatArray(columns)
+        for (i in 0 until itemCount) {
+            val target = heights.indices.minByOrNull { heights[it] } ?: 0
+            cols[target].add(i)
+            heights[target] += heightWeight(i)
+        }
+        cols
+    }
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+    ) {
+        buckets.forEach { indices ->
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+            ) {
+                indices.forEach { idx -> item(idx) }
             }
         }
     }

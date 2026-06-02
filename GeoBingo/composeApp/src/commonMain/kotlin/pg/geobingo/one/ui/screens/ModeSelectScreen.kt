@@ -37,6 +37,7 @@ import pg.geobingo.one.data.CATEGORY_TEMPLATES_SHUFFLED
 import pg.geobingo.one.game.GameMode
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.game.state.SoloMode
 import pg.geobingo.one.platform.AppSettings
 import pg.geobingo.one.platform.SystemBackHandler
 import pg.geobingo.one.di.ServiceLocator
@@ -48,7 +49,7 @@ import pg.geobingo.one.ui.theme.*
 @Composable
 fun ModeSelectScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
-    val anim = rememberStaggeredAnimation(count = 6)
+    val anim = rememberStaggeredAnimation(count = 12)
     fun Modifier.staggered(i: Int) = this.then(anim.modifier(i))
     var quickStartExpanded by remember { mutableStateOf(false) }
     var aiJudgeExpanded by remember { mutableStateOf(false) }
@@ -104,6 +105,7 @@ fun ModeSelectScreen(gameState: GameState) {
                     // and especially startTimeMillis — a stale value made the timer
                     // expire instantly and skip straight to the results screen).
                     gameState.solo.reset()
+                    gameState.solo.mode = SoloMode.STANDARD
                     gameState.solo.isOutdoor = soloOutdoor
                     gameState.solo.categoryCount = soloCategoryCount
                     gameState.solo.categories = pg.geobingo.one.data.soloCategories(soloOutdoor, soloCategoryCount)
@@ -111,6 +113,48 @@ fun ModeSelectScreen(gameState: GameState) {
                     gameState.solo.timeRemainingSeconds = duration
                     gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
                     nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                }
+            },
+            onEndlessClick = {
+                gateRating {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO_ENDLESS"))
+                    // Endless is fully self-contained (own screen, local best streak).
+                    nav.navigateTo(Screen.SOLO_ENDLESS)
+                }
+            },
+            onDailyRunClick = {
+                gateRating {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO_DAILY_RUN"))
+                    gameState.solo.reset()
+                    gameState.solo.mode = SoloMode.DAILY_RUN
+                    gameState.solo.isOutdoor = true
+                    gameState.solo.categoryCount = 5
+                    gameState.solo.categories = pg.geobingo.one.data.dailyRunCategories(5)
+                    gameState.solo.totalDurationSeconds = 300
+                    gameState.solo.timeRemainingSeconds = 300
+                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                }
+            },
+            onWeirdCoreSoloClick = {
+                gateRating {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO_WEIRD_CORE"))
+                    gameState.solo.reset()
+                    gameState.solo.mode = SoloMode.WEIRD_CORE
+                    gameState.solo.isOutdoor = true
+                    gameState.solo.categoryCount = 5
+                    gameState.solo.categories = pg.geobingo.one.data.weirdCoreCategories(true, 5)
+                    gameState.solo.totalDurationSeconds = 300
+                    gameState.solo.timeRemainingSeconds = 300
+                    gameState.solo.playerName = pg.geobingo.one.platform.AppSettings.getString("last_player_name", "Player")
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
+                }
+            },
+            onRouletteClick = {
+                gateRating {
+                    Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO_ROULETTE"))
+                    // Roulette sets up the round itself after the reel lands.
+                    nav.navigateTo(Screen.SOLO_ROULETTE)
                 }
             },
             aiJudgeExpanded = aiJudgeExpanded,
@@ -210,6 +254,10 @@ private fun ModeSelectContent(
     onSelectSoloOutdoor: (Boolean) -> Unit,
     onSelectSoloCategoryCount: (Int) -> Unit,
     onConfirmSolo: () -> Unit,
+    onEndlessClick: () -> Unit,
+    onDailyRunClick: () -> Unit,
+    onWeirdCoreSoloClick: () -> Unit,
+    onRouletteClick: () -> Unit,
     aiJudgeExpanded: Boolean,
     aiJudgeOutdoor: Boolean,
     onToggleAiJudgeExpand: () -> Unit,
@@ -244,7 +292,9 @@ private fun ModeSelectContent(
 
         Spacer(Modifier.height(4.dp))
 
-        // ── Solo Challenge (top) ─────────────────────────────────────
+        // ── Solo (all AI-rated; only the standard mode is ranked) ─────
+        SoloSectionHeader()
+
         SoloChallengeCard(
             expanded = soloExpanded,
             outdoor = soloOutdoor,
@@ -256,6 +306,50 @@ private fun ModeSelectContent(
             modifier = staggered(1),
         )
 
+        ModeCard(
+            title = S.current.modeEndless,
+            subtitle = S.current.modeEndlessSubtitle,
+            description = S.current.modeEndlessDesc,
+            icon = Icons.Default.LocalFireDepartment,
+            gradientColors = listOf(Color(0xFFF97316), Color(0xFFEF4444)),
+            modifier = staggered(2),
+            titleBadge = { AnimatedAiBadge() },
+            onClick = onEndlessClick,
+        )
+
+        ModeCard(
+            title = S.current.modeDailyRun,
+            subtitle = S.current.modeDailyRunSubtitle,
+            description = S.current.modeDailyRunDesc,
+            icon = Icons.Default.Today,
+            gradientColors = listOf(Color(0xFF10B981), Color(0xFF22D3EE)),
+            modifier = staggered(3),
+            titleBadge = { AnimatedAiBadge() },
+            onClick = onDailyRunClick,
+        )
+
+        ModeCard(
+            title = S.current.modeWeirdCore,
+            subtitle = S.current.modeWeirdCoreSubtitle,
+            description = S.current.modeWeirdCoreSoloDesc,
+            icon = Icons.Default.Psychology,
+            gradientColors = GradientWeird,
+            modifier = staggered(4),
+            titleBadge = { AnimatedAiBadge() },
+            onClick = onWeirdCoreSoloClick,
+        )
+
+        ModeCard(
+            title = S.current.modeRoulette,
+            subtitle = S.current.modeRouletteSubtitle,
+            description = S.current.modeRouletteDesc,
+            icon = Icons.Default.Casino,
+            gradientColors = listOf(Color(0xFFA855F7), Color(0xFF22D3EE)),
+            modifier = staggered(5),
+            titleBadge = { AnimatedAiBadge() },
+            onClick = onRouletteClick,
+        )
+
         // ── Multiplayer ──────────────────────────────────────────────
         MultiplayerSectionHeader()
 
@@ -265,7 +359,7 @@ private fun ModeSelectContent(
             onToggleExpand = onToggleAiJudgeExpand,
             onSelectOutdoor = onSelectAiJudgeOutdoor,
             onConfirm = onConfirmAiJudge,
-            modifier = staggered(1),
+            modifier = staggered(6),
         )
 
         QuickStartCard(
@@ -274,39 +368,36 @@ private fun ModeSelectContent(
             onToggleExpand = onToggleQuickStartExpand,
             onSelectOutdoor = onSelectQuickStartOutdoor,
             onConfirm = onConfirmQuickStart,
-            modifier = staggered(2),
+            modifier = staggered(7),
         )
 
         ModeCard(
-            mode = GameMode.CLASSIC,
             title = S.current.modeClassic,
             subtitle = S.current.modeClassicSubtitle,
             description = S.current.modeClassicDesc,
             icon = Icons.Default.GridView,
             gradientColors = GradientPrimary,
-            modifier = staggered(3),
+            modifier = staggered(8),
             onClick = onClassicClick,
         )
 
         ModeCard(
-            mode = GameMode.BLIND_BINGO,
             title = S.current.modeBlindBingo,
             subtitle = S.current.modeBlindBingoSubtitle,
             description = S.current.modeBlindBingoDesc,
             icon = Icons.Default.VisibilityOff,
             gradientColors = GradientCool,
-            modifier = staggered(4),
+            modifier = staggered(9),
             onClick = onBlindBingoClick,
         )
 
         ModeCard(
-            mode = GameMode.WEIRD_CORE,
             title = S.current.modeWeirdCore,
             subtitle = S.current.modeWeirdCoreSubtitle,
             description = S.current.modeWeirdCoreDesc,
             icon = Icons.Default.QuestionMark,
             gradientColors = GradientWeird,
-            modifier = staggered(5),
+            modifier = staggered(10),
             onClick = onWeirdCoreClick,
         )
 
@@ -329,6 +420,65 @@ private fun MultiplayerSectionHeader() {
         color = ColorOnSurfaceVariant,
     )
     Spacer(Modifier.height(4.dp))
+}
+
+// ── Solo Section Header (with leaderboard-scope hint) ───────────────────
+
+@Composable
+private fun SoloSectionHeader() {
+    Text(
+        "Solo",
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = ColorOnSurfaceVariant,
+    )
+    Spacer(Modifier.height(4.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            Icons.Default.EmojiEvents,
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+            tint = Color(0xFFF59E0B),
+        )
+        Text(
+            S.current.soloRankedHint,
+            style = MaterialTheme.typography.labelSmall,
+            color = ColorOnSurfaceVariant.copy(alpha = 0.75f),
+        )
+    }
+}
+
+// ── Ranked Badge (only the standard solo mode counts for the leaderboard) ──
+
+@Composable
+private fun RankedBadge() {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(Color(0xFFFBBF24).copy(alpha = 0.18f), Color(0xFFF59E0B).copy(alpha = 0.18f))
+                )
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            Icons.Default.EmojiEvents,
+            contentDescription = null,
+            modifier = Modifier.size(12.dp),
+            tint = Color(0xFFF59E0B),
+        )
+        Text(
+            S.current.soloRankedBadge,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = Color(0xFFF59E0B),
+        )
+    }
 }
 
 // ── Shared: Gradient Icon Box ───────────────────────────────────────────
@@ -590,7 +740,6 @@ private fun QuickStartCard(
 
 @Composable
 private fun ModeCard(
-    mode: GameMode,
     title: String,
     subtitle: String,
     description: String,
@@ -879,6 +1028,7 @@ private fun SoloChallengeCard(
                             color = ColorOnSurface,
                         )
                         AnimatedAiBadge()
+                        RankedBadge()
                     }
                     Text(
                         S.current.soloModeSubtitle,

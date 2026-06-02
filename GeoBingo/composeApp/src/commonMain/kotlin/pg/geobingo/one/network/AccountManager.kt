@@ -668,6 +668,15 @@ object AccountManager {
         } catch (e: Exception) {
             AppLogger.w(TAG, "StarsState reload after sync failed", e)
         }
+        // Same startup race as StarsState above: UiState loaded an empty
+        // history at construction because the session hadn't restored yet.
+        // Re-read it now that auth has settled so the user's match history
+        // survives a restart instead of disappearing.
+        try {
+            ServiceLocator.gameState.ui.reloadGameHistory()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "gameHistory reload after startup failed", e)
+        }
         // Only push local->cloud when we didn't just wipe local (otherwise we'd
         // be pushing freshly-cleared zeros back up). For same-user sessions this
         // preserves the offline-progress-survives-reconnect semantics.

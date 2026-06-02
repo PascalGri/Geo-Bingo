@@ -96,6 +96,23 @@ fun AnimatedGradientText(
 //  Card with animated gradient border
 // ─────────────────────────────────────────────
 
+/** Animated border sweep offset. Isolated so it is only composed (and thus
+ *  only drives recomposition) when motion is enabled — see [GradientBorderCard]. */
+@Composable
+private fun rememberBorderOffset(durationMillis: Int): Float {
+    val transition = rememberInfiniteTransition(label = "cardBorder")
+    val offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 800f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "borderOffset",
+    )
+    return offset
+}
+
 @Composable
 fun GradientBorderCard(
     modifier: Modifier = Modifier,
@@ -107,16 +124,11 @@ fun GradientBorderCard(
     glassmorphism: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val transition = rememberInfiniteTransition(label = "cardBorder")
-    val offset by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 800f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "borderOffset",
-    )
+    // Honour the reduce-motion setting: when on, skip the infinite transition
+    // entirely (no per-frame recomposition) and paint a static gradient. This
+    // matters on Web/wasmJs and older devices where many of these cards can be
+    // on screen at once (e.g. the mode-select grid).
+    val offset = if (LocalReduceMotion.current) 0f else rememberBorderOffset(durationMillis)
     val gradientBrush = Brush.linearGradient(
         colors = borderColors,
         start = Offset(offset, 0f),

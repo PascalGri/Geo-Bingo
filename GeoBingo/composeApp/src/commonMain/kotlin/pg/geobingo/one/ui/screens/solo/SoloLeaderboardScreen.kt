@@ -22,8 +22,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.i18n.S
@@ -65,10 +74,21 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     val currentUserId = AccountManager.currentUserId
     val playerName = gameState.solo.playerName
 
-    val createdAfter: String? = when (selectedTimePeriod) {
-        1 -> (Clock.System.now() - 7.days).toString()
-        2 -> (Clock.System.now() - 30.days).toString()
-        else -> null
+    // Calendar-aligned windows: the weekly board covers the current ISO week
+    // (Mon 00:00 → next Mon 00:00, i.e. it resets Sunday night) and the monthly
+    // board the current calendar month; all-time has no lower bound. This
+    // replaces the old rolling now-7d / now-30d windows, which never reset on a
+    // fixed boundary the player could anticipate.
+    val window = remember(selectedTimePeriod) { leaderboardWindow(selectedTimePeriod, Clock.System.now()) }
+    val createdAfter: String? = window.startInclusive?.toString()
+
+    // Ticks once per second so the visible reset countdown stays live.
+    var nowTick by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(selectedTimePeriod) {
+        while (true) {
+            nowTick = Clock.System.now()
+            delay(1000)
+        }
     }
 
     val scores = when {
@@ -119,14 +139,9 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         hasMore5Indoor = true
         hasMore10Outdoor = true
         hasMore10Indoor = true
-        val periodFilter: String? = when (selectedTimePeriod) {
-            1 -> (Clock.System.now() - 7.days).toString()
-            2 -> (Clock.System.now() - 30.days).toString()
-            else -> null
-        }
         try {
-            val outdoorCount = loadPage(isOutdoor = true, offset = 0, createdAfter = periodFilter)
-            val indoorCount = loadPage(isOutdoor = false, offset = 0, createdAfter = periodFilter)
+            val outdoorCount = loadPage(isOutdoor = true, offset = 0, createdAfter = createdAfter)
+            val indoorCount = loadPage(isOutdoor = false, offset = 0, createdAfter = createdAfter)
             hasMore5Outdoor = outdoorCount >= pageSize
             hasMore10Outdoor = outdoorCount >= pageSize
             hasMore5Indoor = indoorCount >= pageSize
@@ -311,6 +326,12 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                     }
                 }
 
+                LeaderboardResetCountdown(
+                    period = selectedTimePeriod,
+                    resetAt = window.resetAt,
+                    now = nowTick,
+                )
+
                 Spacer(Modifier.height(2.dp))
 
                 if (scores.isEmpty() && !loading) {
@@ -476,5 +497,75 @@ private fun deduplicateScores(scores: List<SoloScoreDto>): List<SoloScoreDto> {
     return scores.filter { score ->
         val key = score.user_id ?: "name:${score.player_name}"
         seen.add(key)
+    }
+}
+
+private data class LeaderboardWindow(val startInclusive: Instant?, val resetAt: Instant?)
+
+/**
+ * Calendar-aligned bounds for a leaderboard time filter.
+ * period 1 = current ISO week (Mon 00:00 .. next Mon 00:00 → resets Sunday night),
+ * period 2 = current calendar month (1st .. 1st of next month),
+ * anything else = all-time (no bounds, never resets).
+ */
+private fun leaderboardWindow(period: Int, now: Instant): LeaderboardWindow {
+    if (period != 1 && period != 2) return LeaderboardWindow(null, null)
+    val tz = TimeZone.currentSystemDefault()
+    val today = now.toLocalDateTime(tz).date
+    return if (period == 1) {
+        val weekStart = today.minus(DatePeriod(days = today.dayOfWeek.isoDayNumber - 1))
+        LeaderboardWindow(
+            startInclusive = weekStart.atStartOfDayIn(tz),
+            resetAt = weekStart.plus(DatePeriod(days = 7)).atStartOfDayIn(tz),
+        )
+    } else {
+        val monthStart = LocalDate(today.year, today.monthNumber, 1)
+        LeaderboardWindow(
+            startInclusive = monthStart.atStartOfDayIn(tz),
+            resetAt = monthStart.plus(DatePeriod(months = 1)).atStartOfDayIn(tz),
+        )
+    }
+}
+
+/** Small live row telling the player when this leaderboard view next resets. */
+@Composable
+private fun LeaderboardResetCountdown(period: Int, resetAt: Instant?, now: Instant) {
+    val isAllTime = period != 1 && period != 2
+    val label = when {
+        isAllTime -> S.current.leaderboardNeverResets
+        resetAt != null -> {
+            val secs = (resetAt - now).inWholeSeconds.coerceAtLeast(0)
+            val d = secs / 86_400
+            val h = (secs % 86_400) / 3_600
+            val m = (secs % 3_600) / 60
+            val s = secs % 60
+            val dur = when {
+                d > 0 -> "${d}d ${h}h ${m}m"
+                h > 0 -> "${h}h ${m}m ${s}s"
+                else -> "${m}m ${s}s"
+            }
+            "${S.current.leaderboardResetIn} $dur"
+        }
+        else -> return
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (isAllTime) Icons.Default.AllInclusive else Icons.Default.Timer,
+            contentDescription = null,
+            tint = ColorOnSurfaceVariant,
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(Modifier.width(5.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = ColorOnSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }

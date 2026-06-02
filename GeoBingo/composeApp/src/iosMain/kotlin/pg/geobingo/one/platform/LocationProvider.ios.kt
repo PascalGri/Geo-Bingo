@@ -46,15 +46,34 @@ private class LocationDelegate : NSObject(), CLLocationManagerDelegateProtocol {
 @OptIn(ExperimentalForeignApi::class)
 actual suspend fun getCurrentLocation(): LatLng? = suspendCancellableCoroutine { cont ->
     val manager = CLLocationManager()
-    manager.desiredAccuracy = kCLLocationAccuracyBest
+    // HundredMeters fixes far faster than Best and is plenty for the cosmetic
+    // results-map pin — Best could take tens of seconds for a marginal gain.
+    manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+
+    val status = manager.authorizationStatus
+    val authorized = status == kCLAuthorizationStatusAuthorizedWhenInUse ||
+        status == kCLAuthorizationStatusAuthorizedAlways
+
+    // Fast path: a recently cached fix resolves instantly without spinning up
+    // location updates (which is what made captures hang waiting for GPS).
+    if (authorized) {
+        val cached = manager.location
+        if (cached != null) {
+            val lat = cached.coordinate.useContents { latitude }
+            val lng = cached.coordinate.useContents { longitude }
+            cont.resume(LatLng(lat, lng))
+            return@suspendCancellableCoroutine
+        }
+    }
 
     val delegate = LocationDelegate()
     delegate.onLocation = { result ->
-        cont.resume(result)
+        // The call-site caps this with a timeout; the delegate can still fire
+        // afterwards, so never resume an already-cancelled continuation.
+        if (cont.isActive) cont.resume(result)
     }
     manager.delegate = delegate
 
-    val status = manager.authorizationStatus
     when (status) {
         kCLAuthorizationStatusAuthorizedWhenInUse, kCLAuthorizationStatusAuthorizedAlways -> {
             manager.startUpdatingLocation()
@@ -63,7 +82,7 @@ actual suspend fun getCurrentLocation(): LatLng? = suspendCancellableCoroutine {
             manager.requestWhenInUseAuthorization()
         }
         else -> {
-            cont.resume(null)
+            if (cont.isActive) cont.resume(null)
         }
     }
 

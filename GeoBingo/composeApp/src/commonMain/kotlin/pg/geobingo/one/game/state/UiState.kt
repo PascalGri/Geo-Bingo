@@ -72,6 +72,24 @@ class UiState {
         AppSettings.setString(SettingsKeys.GAME_HISTORY_JSON, "")
     }
 
+    /**
+     * Re-read persisted history from storage once auth has settled.
+     *
+     * UiState is constructed at app launch, BEFORE Supabase finishes restoring
+     * the session asynchronously — so the constructor's load sees
+     * isLoggedIn=false and leaves history empty even though the signed-in
+     * user's history is on disk. handleAppStartup() calls this after
+     * awaitInitialization() (mirroring StarsState.reload()) so the history
+     * survives a restart instead of vanishing. Guarded on isEmpty so it only
+     * recovers the lost-on-startup case and never clobbers entries already
+     * added this session.
+     */
+    fun reloadGameHistory() {
+        if (pg.geobingo.one.network.AccountManager.isLoggedIn && _gameHistory.isEmpty()) {
+            _gameHistory = loadHistoryFromStorage()
+        }
+    }
+
     var selectedDmFriendId by mutableStateOf<String?>(null)
     var selectedDmFriendName by mutableStateOf("")
     var selectedMatchGameId by mutableStateOf<String?>(null)

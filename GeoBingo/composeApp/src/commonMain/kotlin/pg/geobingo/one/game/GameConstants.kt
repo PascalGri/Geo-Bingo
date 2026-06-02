@@ -25,6 +25,11 @@ object GameConstants {
     // Upload / UI feedback
     const val UPLOAD_SUCCESS_TOAST_MS = 1_500L
 
+    // Max time to wait for a GPS fix before uploading a capture. The geotag is
+    // only used for the cosmetic results-map pin, so the upload must never be
+    // blocked on a slow/absent fix — cap hard and upload without coordinates.
+    const val LOCATION_TIMEOUT_MS = 1_500L
+
     // Photo cache
     const val PHOTO_CACHE_MAX_ENTRIES = 30
 

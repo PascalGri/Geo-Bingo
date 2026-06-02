@@ -1,5 +1,9 @@
 package pg.geobingo.one.data
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.random.Random
 import pg.geobingo.one.platform.AppSettings
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -371,3 +375,33 @@ fun soloCategories(outdoor: Boolean, count: Int = 5): List<Category> {
 
     return selected
 }
+
+// ── Curated Daily Run ────────────────────────────────────────────────────────
+
+/**
+ * Stable seed for the current calendar day in UTC, so the daily run is identical
+ * for every player worldwide and rotates to a fresh set every midnight UTC.
+ */
+fun dailyRunSeed(): Int {
+    val today = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+    return today.year * 1000 + today.dayOfYear
+}
+
+/**
+ * Deterministic outdoor category set for the Curated Daily Run. Seeded by the
+ * UTC calendar day → same five tasks for everyone, different tasks each day.
+ * Outdoor-only on purpose: the daily run is the flagship "go out and explore"
+ * challenge, and a coherent location keeps it fair across players.
+ */
+fun dailyRunCategories(count: Int = 5): List<Category> {
+    val rng = Random(dailyRunSeed())
+    return SOLO_OUTDOOR_POOL.shuffled(rng).take(count)
+}
+
+/**
+ * A freshly shuffled, full outdoor pool for the Endless / Survival mode. Unlike
+ * [soloCategories] this does NOT touch the anti-repeat history in AppSettings —
+ * Endless burns through many categories per run, so writing that history would
+ * pollute the standard solo rotation.
+ */
+fun endlessPool(): List<Category> = SOLO_OUTDOOR_POOL.shuffled()

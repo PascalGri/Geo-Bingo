@@ -371,6 +371,10 @@ interface StringRes {
     val soloSkipWithCard: String
     val soloWatchAd: String
     val soloSkipAd: String
+    val soloScoreSubmitted: String
+    val soloLeaderboardSignInCta: String
+    val soloLeaderboardNameCta: String
+    val soloSetNameAction: String
 
     // ── Transition Screens ──────────────────────────────────────────────
     val reviewInProgress: String
@@ -667,6 +671,8 @@ interface StringRes {
     val leaderboardAllTime: String
     val leaderboardWeekly: String
     val leaderboardMonthly: String
+    val leaderboardResetIn: String
+    val leaderboardNeverResets: String
 
     // ── Direct Messages ──────────────────────────────────────────────────
     val directMessages: String
@@ -726,4 +732,27 @@ interface StringRes {
 
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     val purchaseFailedNoForegroundScene: String
+
+    // ── New Solo Modes (Endless / Daily Run / Roulette + Weird Core solo) ──
+    val soloRankedBadge: String
+    val soloRankedHint: String
+    val modeEndless: String
+    val modeEndlessSubtitle: String
+    val modeEndlessDesc: String
+    val modeDailyRun: String
+    val modeDailyRunSubtitle: String
+    val modeDailyRunDesc: String
+    val modeWeirdCoreSoloDesc: String
+    val modeRoulette: String
+    val modeRouletteSubtitle: String
+    val modeRouletteDesc: String
+    val endlessStreak: String
+    val endlessBest: String
+    val endlessRunOver: String
+    fun endlessYouReached(count: Int): String
+    val endlessNewRecord: String
+    val endlessTryAgain: String
+    val rouletteRolling: String
+    val rouletteYourCategory: String
+    val dailyRunTodaysSet: String
 }

@@ -338,6 +338,10 @@ object De : StringRes {
     override val soloSkipWithCard = "Karte verwenden"
     override val soloWatchAd = "Video ansehen"
     override val soloSkipAd = "Überspringen"
+    override val soloScoreSubmitted = "Punkte zur Bestenliste hinzugefügt"
+    override val soloLeaderboardSignInCta = "Melde dich an, um in der Bestenliste mitzuspielen"
+    override val soloLeaderboardNameCta = "Wähle einen Namen, um in der Bestenliste zu erscheinen"
+    override val soloSetNameAction = "Namen festlegen"
 
     // ── Transition Screens ──────────────────────────────────────────────
     override val reviewInProgress = "Überprüfung läuft..."
@@ -625,6 +629,8 @@ object De : StringRes {
     override val leaderboardAllTime = "Gesamt"
     override val leaderboardWeekly = "Diese Woche"
     override val leaderboardMonthly = "Dieser Monat"
+    override val leaderboardResetIn = "Reset in"
+    override val leaderboardNeverResets = "Wird nie zurückgesetzt"
     override val directMessages = "Nachrichten"
     override val noMessagesYet = "Noch keine Nachrichten"
     override val typeMessageHint = "Nachricht schreiben..."
@@ -690,4 +696,27 @@ object De : StringRes {
 
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "App-Store-Dialog konnte nicht geöffnet werden. Bitte hole KatchIt in den Vordergrund und versuche es erneut."
+
+    // ── New Solo Modes ────────────────────────────────────────────────────
+    override val soloRankedBadge = "Bestenliste"
+    override val soloRankedHint = "Nur dieser Modus zählt zur Bestenliste"
+    override val modeEndless = "Endlos"
+    override val modeEndlessSubtitle = "Survival — wie weit kommst du?"
+    override val modeEndlessDesc = "Keine feste Kategorienzahl. Jeder Treffer bringt die nächste mit weniger Zeit. Ein Fehlschlag beendet den Lauf — knacke deine beste Serie."
+    override val modeDailyRun = "Täglicher Lauf"
+    override val modeDailyRunSubtitle = "Für alle gleich, jeden Tag neu"
+    override val modeDailyRunDesc = "Ein kuratiertes Set aus 5 Kategorien — heute für alle Spieler identisch, morgen frisch. Vergleiche deinen täglichen Lauf."
+    override val modeWeirdCoreSoloDesc = "Absurde Beobachtungen und Dinge, die nicht existieren sollten — jetzt als Solo-KI-Challenge. 5 schräge Aufgaben, von der KI bewertet."
+    override val modeRoulette = "Roulette"
+    override val modeRouletteSubtitle = "Dreh für ein zufälliges Thema"
+    override val modeRouletteDesc = "Drück auf Start und sieh zu, wie das Rad durch die Themen rollt. Wo es stehen bleibt, bekommst du 5 Aufgaben aus diesem Thema."
+    override val endlessStreak = "Serie"
+    override val endlessBest = "Beste"
+    override val endlessRunOver = "Lauf vorbei"
+    override fun endlessYouReached(count: Int) = "Du hast $count Kategorien geschafft"
+    override val endlessNewRecord = "Neuer Rekord!"
+    override val endlessTryAgain = "Nochmal"
+    override val rouletteRolling = "Es dreht…"
+    override val rouletteYourCategory = "Dein Thema"
+    override val dailyRunTodaysSet = "Heutiges Set"
 }

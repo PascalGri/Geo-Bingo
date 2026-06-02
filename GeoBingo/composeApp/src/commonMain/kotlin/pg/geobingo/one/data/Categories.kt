@@ -520,6 +520,25 @@ val CATEGORIES_BY_GROUP: Map<CategoryGroup, List<Category>> = PRESET_CATEGORIES.
     CATEGORY_GROUPS[cat.id] ?: CategoryGroup.CURIOUS
 }
 
+// ── Category Roulette ─────────────────────────────────────────────────────────
+// Only groups with enough distinct categories can be rolled (the roulette hands
+// the player 5 tasks from a single group). Computed from the real pool so it
+// stays correct if categories are added or removed.
+val ROULETTE_GROUPS: List<CategoryGroup> =
+    CATEGORIES_BY_GROUP.filterValues { it.size >= 5 }.keys.toList()
+
+/**
+ * Returns [count] distinct categories from a rolled [group], with freshly
+ * randomised variant names. Falls back to the overall preset pool if the group
+ * happens to be too small (shouldn't occur for groups in [ROULETTE_GROUPS]).
+ */
+fun rouletteCategories(group: CategoryGroup, count: Int = 5): List<Category> {
+    val fromGroup = (CATEGORIES_BY_GROUP[group] ?: emptyList()).shuffled()
+    if (fromGroup.size >= count) return fromGroup.take(count)
+    val filler = PRESET_CATEGORIES.filter { it !in fromGroup }.shuffled()
+    return (fromGroup + filler).take(count)
+}
+
 // Quick preset combos for one-tap selection
 data class CategoryPreset(val nameDe: String, val nameEn: String, val categoryIds: List<String>)
 

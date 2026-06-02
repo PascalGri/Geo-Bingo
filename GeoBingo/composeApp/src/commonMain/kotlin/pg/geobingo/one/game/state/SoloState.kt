@@ -6,6 +6,25 @@ import androidx.compose.runtime.setValue
 import pg.geobingo.one.data.Category
 
 /**
+ * The different solo game variants. IMPORTANT: only [STANDARD] submits to the
+ * shared online leaderboard (solo_scores). Every other mode is a personal /
+ * local experience — see the gate in SoloResultsScreen. This is intentional
+ * so the global ranking stays comparable (same rules for everyone).
+ */
+enum class SoloMode {
+    /** Classic AI solo challenge — the ONLY mode that counts for the leaderboard. */
+    STANDARD,
+    /** Endless / Survival — handled by its own screen, local best streak. */
+    ENDLESS,
+    /** Curated Daily Run — date-seeded set, same for everyone, different each day. */
+    DAILY_RUN,
+    /** Weird Core solo — absurd categories, reuses the standard grid screen. */
+    WEIRD_CORE,
+    /** Category Roulette — one rolled category group, 5 tasks from it. */
+    CATEGORY_ROULETTE,
+}
+
+/**
  * State for solo challenge mode with AI photo validation.
  *
  * Scoring formula:
@@ -15,6 +34,7 @@ import pg.geobingo.one.data.Category
  *   totalScore      = starScore + timeBonus + perfectBonus
  */
 class SoloState {
+    var mode by mutableStateOf(SoloMode.STANDARD)
     var categories by mutableStateOf(listOf<Category>())
     var capturedCategories by mutableStateOf(setOf<String>())
     var captureTimestamps by mutableStateOf(mapOf<String, Long>()) // categoryId -> epochMillis
@@ -28,6 +48,12 @@ class SoloState {
     var playerName by mutableStateOf("")
     var isOutdoor by mutableStateOf(true)
     var categoryCount by mutableStateOf(5) // 5 or 10
+
+    /** Guards: set once on the results screen so stats/history are recorded a
+     * single time and the leaderboard score is submitted once — even if the
+     * user leaves this screen (e.g. to sign in / set a name) and returns. */
+    var resultsProcessed by mutableStateOf(false)
+    var scoreSubmitted by mutableStateOf(false)
 
     /** Raw sum of all AI star ratings (each 1-5). */
     val starSum: Int get() = categoryRatings.values.sum()
@@ -60,6 +86,7 @@ class SoloState {
     }
 
     fun reset() {
+        mode = SoloMode.STANDARD
         categories = emptyList()
         capturedCategories = emptySet()
         captureTimestamps = emptyMap()
@@ -72,5 +99,7 @@ class SoloState {
         timeRemainingSeconds = totalDurationSeconds
         startTimeMillis = 0L
         isOutdoor = true
+        resultsProcessed = false
+        scoreSubmitted = false
     }
 }

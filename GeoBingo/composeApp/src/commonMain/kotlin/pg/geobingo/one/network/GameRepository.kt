@@ -869,10 +869,14 @@ object GameRepository {
             }
             .decodeList()
 
-    /** Delete all game photos and avatars from Supabase Storage to free space. */
-    suspend fun cleanupStoragePhotos(gameId: String, playerIds: List<String>) {
+    /**
+     * Delete a finished game's capture photos from Storage to free space.
+     * Only the per-game `gameId/<player>/<category>.jpg` objects are removed —
+     * avatars (`avatars/<player>.jpg`) are shared across games and profiles and
+     * MUST persist, so they are deliberately left untouched here.
+     */
+    suspend fun cleanupStoragePhotos(gameId: String) {
         try {
-            // List and delete game photos
             val gameFiles = supabase.storage.from("photos").list(gameId)
             for (playerFolder in gameFiles) {
                 val playerPath = "$gameId/${playerFolder.name}"
@@ -884,15 +888,6 @@ object GameRepository {
             }
         } catch (e: Exception) {
             AppLogger.w("Repo", "Game photo cleanup failed for $gameId", e)
-        }
-        try {
-            // Delete avatar photos
-            val avatarPaths = playerIds.map { "avatars/$it.jpg" }
-            if (avatarPaths.isNotEmpty()) {
-                supabase.storage.from("photos").delete(avatarPaths)
-            }
-        } catch (e: Exception) {
-            AppLogger.w("Repo", "Avatar cleanup failed for $gameId", e)
         }
     }
 }

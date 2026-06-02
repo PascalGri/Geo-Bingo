@@ -286,7 +286,7 @@ fun ResultsScreen(gameState: GameState) {
         if (gameState.session.isHost && gid != null) {
             kotlinx.coroutines.delay(GameConstants.RESULTS_CLEANUP_DELAY_MS)
             try {
-                GameRepository.cleanupStoragePhotos(gid, gameState.gameplay.players.map { it.id })
+                GameRepository.cleanupStoragePhotos(gid)
             } catch (e: Exception) { AppLogger.w("Results", "Storage cleanup failed", e) }
         }
         // Auto-sync to cloud if logged in
@@ -818,25 +818,19 @@ fun ResultsScreen(gameState: GameState) {
                             color = ColorOnSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp),
                         )
-                        val rows = gameState.review.allCaptures.chunked(2)
-                        rows.forEach { rowCaptures ->
-                            Row(
+                        val captures = gameState.review.allCaptures
+                        MasonryGrid(
+                            itemCount = captures.size,
+                            heightWeight = { 1f / masonryAspectRatio(it) },
+                        ) { idx ->
+                            GalleryPhotoItem(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                rowCaptures.forEach { capture ->
-                                    GalleryPhotoItem(
-                                        modifier = Modifier.weight(1f),
-                                        gameId = gameId,
-                                        capture = capture,
-                                        players = gameState.gameplay.players,
-                                        categories = gameState.gameplay.selectedCategories,
-                                    )
-                                }
-                                if (rowCaptures.size == 1) {
-                                    Spacer(Modifier.weight(1f))
-                                }
-                            }
+                                gameId = gameId,
+                                capture = captures[idx],
+                                players = gameState.gameplay.players,
+                                categories = gameState.gameplay.selectedCategories,
+                                aspectRatio = masonryAspectRatio(idx),
+                            )
                         }
                     }
                 }

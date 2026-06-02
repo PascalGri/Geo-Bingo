@@ -338,6 +338,10 @@ object En : StringRes {
     override val soloSkipWithCard = "Use card"
     override val soloWatchAd = "Watch video"
     override val soloSkipAd = "Skip"
+    override val soloScoreSubmitted = "Score submitted to the leaderboard"
+    override val soloLeaderboardSignInCta = "Sign in to compete on the leaderboard"
+    override val soloLeaderboardNameCta = "Choose a display name to appear on the leaderboard"
+    override val soloSetNameAction = "Set name"
 
     // ── Transition Screens ──────────────────────────────────────────────
     override val reviewInProgress = "Review in progress..."
@@ -625,6 +629,8 @@ object En : StringRes {
     override val leaderboardAllTime = "All-time"
     override val leaderboardWeekly = "This Week"
     override val leaderboardMonthly = "This Month"
+    override val leaderboardResetIn = "Resets in"
+    override val leaderboardNeverResets = "Never resets"
     override val directMessages = "Messages"
     override val noMessagesYet = "No messages yet"
     override val typeMessageHint = "Write a message..."
@@ -690,4 +696,27 @@ object En : StringRes {
 
     // ── IAP Errors / Feedback ───────────────────────────────────────────
     override val purchaseFailedNoForegroundScene = "Couldn't open the App Store dialog. Please bring KatchIt to the foreground and try again."
+
+    // ── New Solo Modes ────────────────────────────────────────────────────
+    override val soloRankedBadge = "Ranked"
+    override val soloRankedHint = "Only this mode counts toward the leaderboard"
+    override val modeEndless = "Endless"
+    override val modeEndlessSubtitle = "Survival — how far can you go?"
+    override val modeEndlessDesc = "No fixed number of categories. Every hit brings the next one with less time on the clock. One miss ends the run — beat your best streak."
+    override val modeDailyRun = "Daily Run"
+    override val modeDailyRunSubtitle = "Same set for everyone, new every day"
+    override val modeDailyRunDesc = "A curated set of 5 categories — identical for all players today, fresh tomorrow. Compare your daily run."
+    override val modeWeirdCoreSoloDesc = "Absurd observations and things that shouldn't exist — now as a solo AI challenge. 5 weird tasks, rated by the AI."
+    override val modeRoulette = "Roulette"
+    override val modeRouletteSubtitle = "Spin for a random theme"
+    override val modeRouletteDesc = "Hit start and watch the wheel roll through the themes. Wherever it lands, you get 5 tasks from that theme."
+    override val endlessStreak = "Streak"
+    override val endlessBest = "Best"
+    override val endlessRunOver = "Run Over"
+    override fun endlessYouReached(count: Int) = "You reached $count categories"
+    override val endlessNewRecord = "New record!"
+    override val endlessTryAgain = "Try again"
+    override val rouletteRolling = "Spinning…"
+    override val rouletteYourCategory = "Your theme"
+    override val dailyRunTodaysSet = "Today's set"
 }

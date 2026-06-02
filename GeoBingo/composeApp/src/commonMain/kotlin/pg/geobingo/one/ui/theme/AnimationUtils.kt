@@ -115,7 +115,10 @@ fun ConfettiEffect(
     trigger: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    if (!trigger) return
+    // Honour reduce-motion: confetti is pure celebration, so when the user has
+    // motion reduced (also our low-end / wasmJs escape hatch) we skip the Canvas
+    // and its animation entirely rather than just hiding it.
+    if (!trigger || LocalReduceMotion.current) return
 
     val particles = remember {
         val colors = listOf(

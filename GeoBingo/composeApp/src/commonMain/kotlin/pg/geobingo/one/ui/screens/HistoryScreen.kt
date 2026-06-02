@@ -41,6 +41,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.di.ServiceLocator
+import pg.geobingo.one.ui.screens.results.MasonryGrid
+import pg.geobingo.one.ui.screens.results.masonryAspectRatio
 import pg.geobingo.one.game.GameHistoryEntry
 import pg.geobingo.one.navigation.NavArgs
 import pg.geobingo.one.game.GameState
@@ -462,23 +464,16 @@ private fun HistoryEntryCard(
                             }
                         }
                         else -> {
-                            // Photo grid: 2 columns
-                            val rows = photos.chunked(2)
-                            rows.forEach { rowPhotos ->
-                                Row(
+                            // Photo grid: masonry (varying tile heights)
+                            MasonryGrid(
+                                itemCount = photos.size,
+                                heightWeight = { 1f / masonryAspectRatio(it) },
+                            ) { idx ->
+                                HistoryPhotoItem(
+                                    photo = photos[idx],
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    rowPhotos.forEach { photo ->
-                                        HistoryPhotoItem(
-                                            photo = photo,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                    }
-                                    if (rowPhotos.size == 1) {
-                                        Spacer(Modifier.weight(1f))
-                                    }
-                                }
+                                    aspectRatio = masonryAspectRatio(idx),
+                                )
                             }
                         }
                     }
@@ -492,6 +487,7 @@ private fun HistoryEntryCard(
 private fun HistoryPhotoItem(
     photo: HistoryPhoto,
     modifier: Modifier = Modifier,
+    aspectRatio: Float = 1f,
 ) {
     var showFullscreen by remember { mutableStateOf(false) }
 
@@ -532,7 +528,7 @@ private fun HistoryPhotoItem(
 
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            .aspectRatio(aspectRatio)
             .clip(RoundedCornerShape(10.dp))
             .background(ColorSurface)
             .clickable { showFullscreen = true },

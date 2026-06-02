@@ -280,8 +280,14 @@ fun SoloGameScreen(gameState: GameState) {
             confirmButton = {
                 TextButton(onClick = {
                     trySpend(SWAP_COST) {
-                        // Replace the category with a fresh one from the pool
-                        val pool = pg.geobingo.one.data.soloCategories(solo.isOutdoor, solo.categories.size + 5)
+                        // Replace the category with a fresh one from the pool that
+                        // matches the active mode (Weird Core swaps stay weird).
+                        val pool = when (solo.mode) {
+                            pg.geobingo.one.game.state.SoloMode.WEIRD_CORE ->
+                                pg.geobingo.one.data.weirdCoreCategories(solo.isOutdoor, solo.categories.size + 5)
+                            else ->
+                                pg.geobingo.one.data.soloCategories(solo.isOutdoor, solo.categories.size + 5)
+                        }
                         val existingIds = solo.categories.map { it.id }.toSet()
                         val replacement = pool.firstOrNull { it.id !in existingIds }
                         if (replacement != null) {

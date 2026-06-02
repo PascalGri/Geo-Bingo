@@ -3,6 +3,7 @@ package pg.geobingo.one.ui.screens.solo
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,7 @@ import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.game.state.AchievementManager
 import pg.geobingo.one.game.state.Achievement
+import pg.geobingo.one.game.state.SoloMode
 import pg.geobingo.one.game.state.SoloStatsManager
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.AccountManager
@@ -49,7 +51,7 @@ fun SoloResultsScreen(gameState: GameState) {
     val nav = remember { ServiceLocator.navigation }
     val solo = gameState.solo
     val scope = rememberCoroutineScope()
-    var submitted by remember { mutableStateOf(false) }
+    var submitted by remember { mutableStateOf(solo.scoreSubmitted) }
     var submitError by remember { mutableStateOf(false) }
     val AIGradient = listOf(Color(0xFF8B5CF6), Color(0xFFEC4899))
     val SoloGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
@@ -59,10 +61,32 @@ fun SoloResultsScreen(gameState: GameState) {
     var newAchievements by remember { mutableStateOf<List<Achievement>>(emptyList()) }
     var isNewPersonalBest by remember { mutableStateOf(false) }
 
-    // Interstitial ad state (survives navigation away and back)
+    // Leaderboard eligibility: a real account AND a non-default display name are
+    // BOTH required, otherwise the standard-mode score is not submitted. This
+    // keeps the global ranking attributable — no anonymous "Player"/"Spieler"
+    // rows. (Product rule: "nur mit Account + eigenem Namen auf die Bestenliste".)
+    // Recomputed every recomposition so it picks up a fresh sign-in / name
+    // change when the user returns from the account flow.
+    val isLoggedIn = AccountManager.isLoggedIn
+    val effectiveName = solo.playerName
+        .ifBlank { AppSettings.getString("last_player_name", "") }
+        .trim()
+    val hasCustomName = effectiveName.isNotEmpty() &&
+        !effectiveName.equals("Player", ignoreCase = true) &&
+        !effectiveName.equals("Spieler", ignoreCase = true)
+    val isLeaderboardMode = solo.mode == SoloMode.STANDARD
+    val leaderboardEligible = isLoggedIn && hasCustomName
+    // Show a "compete on the leaderboard" CTA only when this round would have
+    // counted but the player isn't eligible yet.
+    val showLeaderboardCta = isLeaderboardMode && !leaderboardEligible && !solo.scoreSubmitted
 
-    // Record stats, check achievements, submit score
+    // Record stats, check achievements, save history — exactly once per round.
+    // Guarded by a flag on the (non-remembered) solo state so it survives
+    // leaving and re-entering this screen via the account/name flow.
     LaunchedEffect(Unit) {
+        if (solo.resultsProcessed) return@LaunchedEffect
+        solo.resultsProcessed = true
+
         Analytics.track(Analytics.SOLO_GAME_COMPLETED, mapOf(
             "score" to solo.totalScore.toString(),
             "captured" to solo.capturedCategories.size.toString(),
@@ -75,7 +99,6 @@ fun SoloResultsScreen(gameState: GameState) {
         // Record stats and check achievements — only for signed-in users. Guests
         // play without any local stats persistence (per product decision
         // 2026-04-14): stats live on the account and sync via cloud.
-        val isLoggedIn = AccountManager.isLoggedIn
         if (isLoggedIn) {
             val statsBefore = SoloStatsManager.getStats()
             isNewPersonalBest = solo.totalScore > statsBefore.bestScore
@@ -96,16 +119,18 @@ fun SoloResultsScreen(gameState: GameState) {
         // Round is over — clear the rejoin snapshot so we don't offer to
         // continue a solved game on next app launch.
         pg.geobingo.one.game.ActiveSession.clearSolo()
+    }
 
-        // Submit to server (rate-limited)
+    // Submit to the online leaderboard. Keyed on eligibility so the score
+    // submits as soon as the user signs in / sets a name and returns here —
+    // but only once (guarded by solo.scoreSubmitted) and only for the standard
+    // mode (Endless / Daily Run / Weird Core / Roulette are personal modes).
+    LaunchedEffect(leaderboardEligible) {
+        if (!isLeaderboardMode || !leaderboardEligible || solo.scoreSubmitted) return@LaunchedEffect
         if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_SOLO_SUBMIT, pg.geobingo.one.util.RateLimiter.SOLO_SUBMIT_COOLDOWN_MS)) return@LaunchedEffect
         try {
             GameRepository.submitSoloScore(
-                // Guard against a blank name sneaking through — leaderboard
-                // entries with empty names render as unlabelled rows.
-                playerName = solo.playerName
-                    .ifBlank { AppSettings.getString("last_player_name", "Spieler") }
-                    .ifBlank { "Spieler" },
+                playerName = effectiveName,
                 score = solo.totalScore,
                 categoriesCount = solo.categoryCount,
                 timeBonus = solo.timeBonus,
@@ -113,7 +138,9 @@ fun SoloResultsScreen(gameState: GameState) {
                 isOutdoor = solo.isOutdoor,
                 userId = AccountManager.currentUserId,
             )
+            solo.scoreSubmitted = true
             submitted = true
+            submitError = false
             // Notify friends about high score
             if (isNewPersonalBest) {
                 pg.geobingo.one.network.NotificationHelper.notifySoloHighScore(solo.totalScore)
@@ -532,33 +559,80 @@ fun SoloResultsScreen(gameState: GameState) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Submission status
-            if (submitted) {
-                Text(
-                    "Score submitted!",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = ColorPrimary,
-                )
-            } else if (submitError) {
-                TextButton(onClick = {
-                    submitError = false
-                    scope.launch {
-                        try {
-                            GameRepository.submitSoloScore(
-                                playerName = solo.playerName,
-                                score = solo.totalScore,
-                                categoriesCount = solo.categoryCount,
-                                timeBonus = solo.timeBonus,
-                                durationSeconds = solo.totalDurationSeconds,
-                                userId = AccountManager.currentUserId,
+            // Submission status / leaderboard eligibility
+            when {
+                submitted -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, tint = ColorSuccess, modifier = Modifier.size(18.dp))
+                        Text(
+                            S.current.soloScoreSubmitted,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = ColorOnSurfaceVariant,
+                        )
+                    }
+                }
+                showLeaderboardCta -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(ColorSurface)
+                            .border(1.dp, ColorPrimary.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(Icons.Default.Leaderboard, null, tint = ColorPrimary, modifier = Modifier.size(20.dp))
+                            Text(
+                                if (!isLoggedIn) S.current.soloLeaderboardSignInCta else S.current.soloLeaderboardNameCta,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ColorOnSurface,
                             )
-                            submitted = true
-                        } catch (e: Exception) {
-                            submitError = true
+                        }
+                        Button(
+                            onClick = { nav.navigateTo(if (!isLoggedIn) Screen.ACCOUNT else Screen.PROFILE_SETUP) },
+                            colors = ButtonDefaults.buttonColors(containerColor = ColorPrimary),
+                        ) {
+                            Icon(
+                                if (!isLoggedIn) Icons.Default.AccountCircle else Icons.Default.Badge,
+                                null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (!isLoggedIn) S.current.signIn else S.current.soloSetNameAction)
                         }
                     }
-                }) {
-                    Text(S.current.retry, color = ColorPrimary)
+                }
+                submitError -> {
+                    TextButton(onClick = {
+                        submitError = false
+                        scope.launch {
+                            try {
+                                GameRepository.submitSoloScore(
+                                    playerName = effectiveName,
+                                    score = solo.totalScore,
+                                    categoriesCount = solo.categoryCount,
+                                    timeBonus = solo.timeBonus,
+                                    durationSeconds = solo.totalDurationSeconds,
+                                    isOutdoor = solo.isOutdoor,
+                                    userId = AccountManager.currentUserId,
+                                )
+                                solo.scoreSubmitted = true
+                                submitted = true
+                            } catch (e: Exception) {
+                                submitError = true
+                            }
+                        }
+                    }) {
+                        Text(S.current.retry, color = ColorPrimary)
+                    }
                 }
             }
 

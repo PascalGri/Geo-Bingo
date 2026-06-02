@@ -33,9 +33,11 @@ import pg.geobingo.one.ui.screens.create.CreateGameScreen
 import pg.geobingo.one.ui.screens.game.GameScreen
 import pg.geobingo.one.ui.screens.results.ResultsScreen
 import pg.geobingo.one.ui.screens.review.ReviewScreen
+import pg.geobingo.one.ui.screens.solo.SoloEndlessScreen
 import pg.geobingo.one.ui.screens.solo.SoloGameScreen
 import pg.geobingo.one.ui.screens.solo.SoloLeaderboardScreen
 import pg.geobingo.one.ui.screens.solo.SoloResultsScreen
+import pg.geobingo.one.ui.screens.solo.SoloRouletteScreen
 import pg.geobingo.one.ui.screens.solo.SoloStartTransitionScreen
 import pg.geobingo.one.ui.theme.KatchItTheme
 import pg.geobingo.one.ui.theme.OfflineBanner
@@ -146,6 +148,8 @@ private fun ScreenRouter(screen: Screen, gameState: GameState) {
         Screen.SOLO_GAME -> SoloGameScreen(gameState)
         Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
         Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
+        Screen.SOLO_ENDLESS -> SoloEndlessScreen(gameState)
+        Screen.SOLO_ROULETTE -> SoloRouletteScreen(gameState)
         Screen.SHOP -> ShopScreen(gameState)
         Screen.COSMETIC_SHOP -> CosmeticShopScreen(gameState)
         Screen.PROFILE_SETUP -> ProfileSetupScreen(gameState)

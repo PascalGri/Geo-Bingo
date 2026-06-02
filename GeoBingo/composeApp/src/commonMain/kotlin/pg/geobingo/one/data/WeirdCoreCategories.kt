@@ -1,5 +1,7 @@
 package pg.geobingo.one.data
 
+import pg.geobingo.one.platform.AppSettings
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Weird Core – absurde, ultra-nische Kategorien für den Weird-Core-Modus.
 //  Kein "Schönstes Foto" – nur Kreativität und Treffsicherheit zählen.
@@ -114,6 +116,36 @@ val WEIRD_CORE_OUTDOOR_CATEGORIES: List<Category> = listOf(
         "Ein Tisch (Café, Park, Straße) komplett alleine ohne Stuhl, ohne Gäste, ohne Sinn."),
     Category("wc_too_many_locks", "Schloss am Schloss", "wc_lock_lock",
         "Ein Objekt mit mehreren Schlössern dran – Geländer, Türen, Schränke draußen, Liebesschlösser-Brücke."),
+
+    // ── Runde 4 (expansion 2026-06-02) ─────────────────────────────────────
+    Category("wc_puddle", "Pfütze als Spiegel", "wc_puddle",
+        "Eine Pfütze, in der sich Himmel, Gebäude oder du selbst spiegeln."),
+    Category("wc_traffic_cone", "Einsamer Pylon", "wc_traffic_cone",
+        "Ein Verkehrshütchen (Pylon), das völlig sinnlos irgendwo alleine steht."),
+    Category("wc_overflow_bin", "Überquellender Mülleimer", "wc_overflow_bin",
+        "Ein öffentlicher Mülleimer, der so voll ist, dass alles oben rausquillt."),
+    Category("wc_gum_art", "Kaugummi-Muster am Boden", "wc_gum_art",
+        "Festgetretene Kaugummis auf dem Gehweg, die zufällig ein Muster bilden."),
+    Category("wc_face_object", "Gesicht in einem Ding", "wc_face_object",
+        "Ein Objekt, das zufällig wie ein Gesicht aussieht – Steckdose, Auto, Hauswand (Pareidolie)."),
+    Category("wc_shopping_cart", "Verirrter Einkaufswagen", "wc_shopping_cart",
+        "Ein Einkaufswagen weit weg von jedem Supermarkt – im Fluss, Park, Gebüsch."),
+    Category("wc_one_window_light", "Ein Fenster leuchtet", "wc_one_window_light",
+        "Eine dunkle Häuserfront, bei der nur ein einziges Fenster beleuchtet ist."),
+    Category("wc_weird_bollard", "Skurriler Poller", "wc_weird_bollard",
+        "Ein Poller oder Pömpel, der bemalt, beklebt oder völlig verbeult ist."),
+    Category("wc_taped_thing", "Mit Tape repariert", "wc_taped_thing",
+        "Irgendetwas in der Öffentlichkeit, das notdürftig mit Klebeband geflickt wurde."),
+    Category("wc_plant_takeover", "Natur erobert zurück", "wc_plant_takeover",
+        "Pflanzen, die ein menschliches Objekt überwuchern – Auto, Schild, Bank, Zaun."),
+    Category("wc_lost_key", "Verlorener Schlüssel", "wc_lost_key",
+        "Ein einzelner Schlüssel oder Schlüsselbund, den jemand irgendwo liegen oder hängen gelassen hat."),
+    Category("wc_laundry_mix", "Absurde Wäscheleine", "wc_laundry_mix",
+        "Eine Wäscheleine draußen mit einer absurden Kombination an Wäschestücken."),
+    Category("wc_crooked_sign", "Schiefes Schild", "wc_crooked_sign",
+        "Ein Verkehrs- oder Straßenschild, das komplett schief steht oder verbogen ist."),
+    Category("wc_animal_statue", "Tier-Statue zu ernst genommen", "wc_animal_statue",
+        "Eine Tier-Statue oder -Figur, die jemand wie ein echtes Tier behandelt – oder die einfach absurd platziert ist."),
 )
 
 val WEIRD_CORE_INDOOR_CATEGORIES: List<Category> = listOf(
@@ -161,7 +193,59 @@ val WEIRD_CORE_INDOOR_CATEGORIES: List<Category> = listOf(
         "Ein Handy auf irgendeiner Oberfläche, Display nach unten – Vertrauen oder Misstrauen?"),
     Category("wci_three_chargers", "Drei Ladegeräte im selben Raum", "wci_three_chargers",
         "Mindestens drei Ladegeräte im selben Zimmer – stecken oder liegen."),
+
+    // ── Runde 2 (expansion 2026-06-02) ─────────────────────────────────────
+    Category("wci_dryer_sock", "Trockner-Opfer", "wci_dryer_sock",
+        "Eine einzelne Socke nach dem Wäschemachen – ihr Partner ist für immer verschwunden."),
+    Category("wci_tv_cables", "Kabelsalat hinterm TV", "wci_tv_cables",
+        "Das Kabelchaos hinter Fernseher, Schreibtisch oder Router."),
+    Category("wci_fridge_empty", "Fast leerer Kühlschrank", "wci_fridge_empty",
+        "Ein Kühlschrank, in dem fast nichts mehr ist – nur ein einsames Objekt."),
+    Category("wci_charger_empty", "Ladegerät ohne Gerät", "wci_charger_empty",
+        "Ein Ladekabel, das eingesteckt ist, aber an nichts angeschlossen."),
+    Category("wci_spare_screw", "Übrige Schraube", "wci_spare_screw",
+        "Eine einzelne Schraube oder ein Teil, das nach einem Möbelaufbau übrig blieb."),
+    Category("wci_overloaded_hook", "Überladener Haken", "wci_overloaded_hook",
+        "Ein Garderoben- oder Türhaken, an dem viel zu viel hängt."),
+    Category("wci_expired_food", "Abgelaufenes im Schrank", "wci_expired_food",
+        "Ein Lebensmittel, dessen Datum längst überschritten ist – aber noch im Schrank steht."),
+    Category("wci_tangled_earphones", "Verknotete Kopfhörer", "wci_tangled_earphones",
+        "Ein Paar kabelgebundene Kopfhörer, perfekt zu einem Knoten verheddert."),
+    Category("wci_dead_batteries", "Sammlung leerer Batterien", "wci_dead_batteries",
+        "Mehrere alte Batterien, die rumliegen, weil keiner sie wegbringt."),
+    Category("wci_glove_indoor", "Einzelner Handschuh drinnen", "wci_glove_indoor",
+        "Ein einzelner Handschuh, der drinnen liegt – Winter-, Putz- oder Gartenhandschuh."),
+    Category("wci_pillow_fort", "Kissenburg", "wci_pillow_fort",
+        "Ein Bett oder Sofa mit absurd vielen Kissen drauf."),
+    Category("wci_mystery_stain", "Fleck unbekannter Herkunft", "wci_mystery_stain",
+        "Ein Fleck an Wand, Decke oder Boden, den niemand erklären kann."),
 )
+
+// ── Weird Core solo selector ─────────────────────────────────────────────────
+private const val RECENT_WC_OUTDOOR_IDS_KEY = "wc_recent_outdoor_ids"
+private const val RECENT_WC_INDOOR_IDS_KEY = "wc_recent_indoor_ids"
+
+/**
+ * Selects [count] Weird-Core categories for the solo Weird-Core mode, preferring
+ * ones not used in recent runs (same anti-repeat strategy as [soloCategories]).
+ */
+fun weirdCoreCategories(outdoor: Boolean, count: Int = 5): List<Category> {
+    val pool = if (outdoor) WEIRD_CORE_OUTDOOR_CATEGORIES else WEIRD_CORE_INDOOR_CATEGORIES
+    val historyKey = if (outdoor) RECENT_WC_OUTDOOR_IDS_KEY else RECENT_WC_INDOOR_IDS_KEY
+
+    val recentRaw = AppSettings.getString(historyKey, "")
+    val recentIds = if (recentRaw.isBlank()) emptySet() else recentRaw.split(",").toSet()
+
+    val fresh = pool.filter { it.id !in recentIds }.shuffled()
+    val stale = pool.filter { it.id in recentIds }.shuffled()
+    val selected = (fresh + stale).take(count)
+
+    val maxHistory = count * 3
+    val newHistory = (selected.map { it.id } + recentIds.toList()).take(maxHistory)
+    AppSettings.setString(historyKey, newHistory.joinToString(","))
+
+    return selected
+}
 
 // Backwards-compatible alias for any caller that hasn't been ported to
 // the outdoor/indoor split yet. New code should use the two pools above.
