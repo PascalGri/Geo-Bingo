@@ -1439,13 +1439,28 @@ private fun SoloLeaderboardPreview(
     val profileVersion = pg.geobingo.one.network.AccountManager.profileVersion
     val playerName = remember(profileVersion) { AppSettings.getString("last_player_name", "") }
 
-    LaunchedEffect(Unit) {
-        try {
-            val rawOut = GameRepository.getSoloLeaderboard(30, isOutdoor = true)
-            outdoorScores = rawOut.distinctBy { it.player_name }.take(5)
-            val rawIn = GameRepository.getSoloLeaderboard(30, isOutdoor = false)
-            indoorScores = rawIn.distinctBy { it.player_name }.take(5)
-        } catch (_: Exception) { }
+    // On a cold start the Supabase client / network often isn't ready yet when
+    // this first fires, so the fetch throws and (previously) the exception was
+    // swallowed and the board silently stayed empty — "nur manchmal geladen".
+    // Retry a few times with backoff, and re-run whenever the account profile
+    // becomes ready (profileVersion changes) so a freshly-attached session also
+    // triggers a reload.
+    LaunchedEffect(profileVersion) {
+        loading = true
+        var attempt = 0
+        while (true) {
+            try {
+                val rawOut = GameRepository.getSoloLeaderboard(30, isOutdoor = true)
+                val rawIn = GameRepository.getSoloLeaderboard(30, isOutdoor = false)
+                outdoorScores = rawOut.distinctBy { it.player_name }.take(5)
+                indoorScores = rawIn.distinctBy { it.player_name }.take(5)
+                break // fetched (even an empty board is a valid, cached result)
+            } catch (_: Exception) {
+                attempt++
+                if (attempt >= 4) break
+                delay(500L * attempt) // 0.5s → 1s → 1.5s
+            }
+        }
         loading = false
     }
 

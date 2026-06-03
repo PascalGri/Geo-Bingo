@@ -29,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -46,6 +47,8 @@ import pg.geobingo.one.platform.toImageBitmap
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.game.state.CosmeticsManager
 import pg.geobingo.one.ui.components.CosmeticPlayerName
+import pg.geobingo.one.ui.components.holoSheenBrush
+import pg.geobingo.one.ui.components.rememberHoloPhase
 import pg.geobingo.one.ui.theme.*
 
 @Composable
@@ -308,6 +311,12 @@ fun GameScreenContent(
                     // Reads once per composition — equipping a new design comes via
                     // CosmeticsManager.equippedRevision which this function already observes.
                     val equippedCardDesign = remember { CosmeticsManager.getEquippedCardDesign() }
+                    // Ultimate card designs are the one cosmetic surface that's otherwise
+                    // static: animate the board gradient + a holographic sheen for them.
+                    // Reduce-motion gated and only created for Ultimate cards, so ordinary
+                    // boards keep the exact static look (and zero animation cost).
+                    val ultimateCard = CosmeticsManager.isUltimate(equippedCardDesign.starsCost)
+                    val cardPhase = if (ultimateCard) rememberHoloPhase(5000) else 0f
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -315,9 +324,25 @@ fun GameScreenContent(
                             .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
                             .then(
                                 if (equippedCardDesign.id != "card_none" && equippedCardDesign.backgroundColors.size >= 2) {
-                                    Modifier.background(
-                                        brush = Brush.linearGradient(equippedCardDesign.backgroundColors),
-                                    )
+                                    if (ultimateCard) {
+                                        val shift = cardPhase * 260f
+                                        Modifier.background(
+                                            brush = Brush.linearGradient(
+                                                colors = equippedCardDesign.backgroundColors,
+                                                start = Offset(shift, 0f),
+                                                end = Offset(820f - shift, 820f),
+                                            ),
+                                        )
+                                    } else {
+                                        Modifier.background(
+                                            brush = Brush.linearGradient(equippedCardDesign.backgroundColors),
+                                        )
+                                    }
+                                } else Modifier,
+                            )
+                            .then(
+                                if (ultimateCard) {
+                                    Modifier.background(brush = holoSheenBrush(cardPhase, span = 820f))
                                 } else Modifier,
                             )
                             .padding(6.dp),

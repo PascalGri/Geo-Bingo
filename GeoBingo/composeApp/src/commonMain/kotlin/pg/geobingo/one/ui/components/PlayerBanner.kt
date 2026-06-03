@@ -75,6 +75,19 @@ fun PlayerBanner(
         ),
         label = "bgShift",
     )
+    val ultimate = CosmeticsManager.isUltimate(background.starsCost)
+    // Ultimate banners get a holographic sheen sweeping across the gradient.
+    // On the same transition (already ticking) → no extra cost for normal banners;
+    // constant when reduce-motion or non-Ultimate → no recomposition churn.
+    val holoPhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (ultimate && !reduceMotion) 1f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "bannerHolo",
+    )
 
     val gradient: Brush = run {
         val shift = gradientShift * 200f
@@ -99,10 +112,19 @@ fun PlayerBanner(
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
             .background(brush = gradient)
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(cornerRadius),
+            .then(
+                if (ultimate) {
+                    Modifier.background(brush = holoSheenBrush(holoPhase, span = 320f))
+                } else {
+                    Modifier
+                },
+            )
+            .then(
+                if (ultimate) {
+                    Modifier.border(1.5.dp, Brush.linearGradient(HoloEdgeColors), RoundedCornerShape(cornerRadius))
+                } else {
+                    Modifier.border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(cornerRadius))
+                },
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {

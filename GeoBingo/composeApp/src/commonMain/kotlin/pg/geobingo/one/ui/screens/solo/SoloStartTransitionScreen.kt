@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
+import pg.geobingo.one.game.state.SoloMode
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.ui.theme.*
 import pg.geobingo.one.util.Analytics
@@ -42,10 +43,17 @@ fun SoloStartTransitionScreen(gameState: GameState) {
         delay(1000L)
         countdown = 0
         feedback.gameStart()
-        // Now start the solo game
-        gameState.solo.isRunning = true
         Analytics.track(Analytics.SOLO_GAME_STARTED)
-        nav.replaceCurrent(Screen.SOLO_GAME)
+        // Endless runs on its own self-contained screen and manages its own
+        // lifecycle, so it must NOT flip the shared solo.isRunning flag (that
+        // drives the standard grid timer / autosave / resume). Every other solo
+        // mode plays on the standard grid game screen.
+        if (gameState.solo.mode == SoloMode.ENDLESS) {
+            nav.replaceCurrent(Screen.SOLO_ENDLESS)
+        } else {
+            gameState.solo.isRunning = true
+            nav.replaceCurrent(Screen.SOLO_GAME)
+        }
     }
 
     Box(

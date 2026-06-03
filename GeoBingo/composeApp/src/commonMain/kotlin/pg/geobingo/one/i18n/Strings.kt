@@ -481,6 +481,19 @@ interface StringRes {
     val nameEffects: String
     val playerTitles: String
     val cardDesigns: String
+    // Cosmetic shop UI (v1.4 refactor)
+    val shopAll: String
+    val shopCatFrames: String
+    val shopCatNames: String
+    val shopCatTitles: String
+    val shopCatBanners: String
+    val shopCatCards: String
+    val shopNew: String
+    val rarityRare: String
+    val rarityEpic: String
+    val rarityLegendary: String
+    val rarityUltimate: String
+    fun shopUnlocked(owned: Int, total: Int): String
     val equip: String
     val equipped: String
     val buy: String

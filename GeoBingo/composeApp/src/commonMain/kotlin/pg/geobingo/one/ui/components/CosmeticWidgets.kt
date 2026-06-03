@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,12 +58,15 @@ fun CosmeticPlayerName(
 
     if (effect != null && effect.id != "name_none" && effect.gradientColors.size >= 2) {
         // Shimmer across the gradient for any 2+ colour effect; AnimatedGradientText honours LocalReduceMotion.
+        // Ultimate name effects shimmer faster and gain the holographic foil + glow.
+        val ultimate = CosmeticsManager.isUltimate(effect.starsCost)
         AnimatedGradientText(
             text = name,
             modifier = modifier,
             style = style.copy(fontWeight = fontWeight),
             gradientColors = effect.gradientColors,
-            durationMillis = 4000,
+            durationMillis = if (ultimate) 3000 else 4000,
+            holographic = ultimate,
         )
     } else {
         Text(
@@ -88,10 +92,16 @@ fun PlayerTitleBadge(
     val title = CosmeticsManager.ALL_TITLES.find { it.id == titleId } ?: return
 
     val reduceMotion = LocalReduceMotion.current
+    val ultimate = CosmeticsManager.isUltimate(title.starsCost)
     val transition = rememberInfiniteTransition(label = "titlePulse")
     val pulseAlpha by transition.animateFloat(
-        initialValue = 0.12f,
-        targetValue = if (reduceMotion) 0.15f else 0.22f,
+        initialValue = if (ultimate) 0.18f else 0.12f,
+        targetValue = when {
+            reduceMotion && ultimate -> 0.24f
+            reduceMotion -> 0.15f
+            ultimate -> 0.34f
+            else -> 0.22f
+        },
         animationSpec = infiniteRepeatable(
             animation = tween(2200, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
@@ -103,15 +113,32 @@ fun PlayerTitleBadge(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(title.color.copy(alpha = pulseAlpha))
-            .border(0.5.dp, title.color.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+            .then(
+                if (ultimate) {
+                    Modifier.border(0.8.dp, Brush.linearGradient(HoloEdgeColors), RoundedCornerShape(4.dp))
+                } else {
+                    Modifier.border(0.5.dp, title.color.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                },
+            )
             .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
-        Text(
-            text = title.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = title.color,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (ultimate) {
+            // Ultimate title: holographic foil text + glow instead of a flat colour.
+            AnimatedGradientText(
+                text = title.name,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                gradientColors = listOf(Color.White, title.color),
+                durationMillis = 3000,
+                holographic = true,
+            )
+        } else {
+            Text(
+                text = title.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = title.color,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
@@ -134,6 +161,7 @@ fun FramedAvatar(
     if (frame != null && frame.id != "frame_none" && frame.borderColors.any { it != Color.Transparent }) {
         val reduceMotion = LocalReduceMotion.current
         val hasMultiColor = frame.borderColors.size >= 2
+        val ultimate = CosmeticsManager.isUltimate(frame.starsCost)
         val transition = rememberInfiniteTransition(label = "frameBorder")
         val rotation by transition.animateFloat(
             initialValue = 0f,
@@ -143,6 +171,22 @@ fun FramedAvatar(
                 repeatMode = RepeatMode.Restart,
             ),
             label = "frameRot",
+        )
+        // Ultimate frames breathe a soft iridescent halo. Kept on the SAME
+        // transition (already ticking for rotation) so ordinary frames add no
+        // animation; constant when reduce-motion or non-Ultimate → no churn.
+        val glow by transition.animateFloat(
+            initialValue = if (ultimate) 0.30f else 0f,
+            targetValue = when {
+                ultimate && !reduceMotion -> 0.55f
+                ultimate -> 0.30f
+                else -> 0f
+            },
+            animationSpec = infiniteRepeatable(
+                animation = tween(1600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "frameGlow",
         )
         val borderBrush = if (hasMultiColor) {
             // Doubling colours so rotation remains continuous.
@@ -155,6 +199,27 @@ fun FramedAvatar(
 
         Box(
             modifier = modifier
+                .then(
+                    if (ultimate) {
+                        // Drawn before clip → the halo bleeds outside the ring.
+                        Modifier.drawBehind {
+                            // `this.size` = DrawScope canvas size (the outer `size: Dp`
+                            // parameter would otherwise shadow it).
+                            val r = minOf(this.size.width, this.size.height) * 0.66f
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(HoloGlow.copy(alpha = glow), Color.Transparent),
+                                    center = this.center,
+                                    radius = r,
+                                ),
+                                radius = r,
+                                center = this.center,
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                )
                 .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
@@ -173,7 +238,7 @@ fun FramedAvatar(
             Box(modifier = Modifier.padding(frame.borderWidth.dp)) {
                 content()
             }
-            if (isPremium && !reduceMotion) {
+            if ((isPremium || ultimate) && !reduceMotion) {
                 SparkleOverlay(transition = transition)
             }
         }

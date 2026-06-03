@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -98,6 +103,7 @@ object CosmeticsManager {
     const val EQUIPPED_CARD_DESIGN = "cosmetic_equipped_card_design"
     private const val EQUIPPED_BANNER = "cosmetic_equipped_banner"
     private const val MIGRATED_TO_CLOUD = "cosmetic_migrated_to_cloud_v1"
+    private const val NEW_SEEN_PREFIX = "cosmetic_new_seen_"
 
     // Per-app coroutine scope for fire-and-forget sync writes.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -134,6 +140,15 @@ object CosmeticsManager {
             listOf(Color(0xFFFFFBEB), Color(0xFFFBBF24), Color(0xFFF59E0B), Color(0xFFB45309)), animated = true),
         ProfileFrame("frame_void", "Void", "Galaktisches Schwarzlicht", 400,
             listOf(Color(0xFF6D28D9), Color(0xFF1E1B4B), Color(0xFF06B6D4), Color(0xFF6D28D9)), animated = true),
+        // ── New in v1.4 ────────────────────────────────────────────────
+        ProfileFrame("frame_toxic", "Toxisch", "Giftgruen leuchtend", 60,
+            listOf(Color(0xFFA3E635), Color(0xFF22C55E), Color(0xFF166534)), animated = true),
+        ProfileFrame("frame_cyber", "Cyber", "Cyan-Magenta Neon", 70,
+            listOf(Color(0xFF06B6D4), Color(0xFFEC4899), Color(0xFF8B5CF6)), animated = true),
+        ProfileFrame("frame_rosegold", "Rosegold", "Rosa-goldener Schimmer", 90,
+            listOf(Color(0xFFFBCFE8), Color(0xFFF472B6), Color(0xFFFBBF24)), animated = true),
+        ProfileFrame("frame_aurora", "Aurora", "Polarlicht-Ring", 120,
+            listOf(Color(0xFF34D399), Color(0xFF22D3EE), Color(0xFF6366F1), Color(0xFF34D399)), animated = true),
     )
 
     // ── Name Effects ────────────────────────────────────────────────────
@@ -160,6 +175,15 @@ object CosmeticsManager {
             listOf(Color(0xFFFBBF24), Color(0xFFF97316), Color(0xFFEC4899))),
         NameEffect("name_galaxy", "Galaxie", "Kosmische Farben", 250,
             listOf(Color(0xFF6D28D9), Color(0xFF06B6D4), Color(0xFFEC4899), Color(0xFF6D28D9))),
+        // ── New in v1.4 ────────────────────────────────────────────────
+        NameEffect("name_cyber", "Cyber", "Cyan-Magenta Verlauf", 70,
+            listOf(Color(0xFF06B6D4), Color(0xFFEC4899))),
+        NameEffect("name_candy", "Candy", "Suesser Pink-Lila Verlauf", 75,
+            listOf(Color(0xFFF9A8D4), Color(0xFFEC4899), Color(0xFF8B5CF6))),
+        NameEffect("name_aurora", "Aurora", "Polarlicht-Verlauf", 90,
+            listOf(Color(0xFF34D399), Color(0xFF22D3EE), Color(0xFF6366F1))),
+        NameEffect("name_void", "Void", "Leere zwischen den Sternen", 200,
+            listOf(Color(0xFF6D28D9), Color(0xFF1E1B4B), Color(0xFF06B6D4), Color(0xFF6D28D9))),
     )
 
     // ── Player Titles ───────────────────────────────────────────────────
@@ -178,6 +202,11 @@ object CosmeticsManager {
         PlayerTitle("title_collector", "Sammler", "Sammelt alles", 70, Color(0xFF7C3AED)),
         PlayerTitle("title_unstoppable", "Unaufhaltsam", "Niemand kann dich stoppen", 320, Color(0xFFEF4444)),
         PlayerTitle("title_godlike", "Göttlich", "Über allem stehend", 500, Color(0xFFFFD700)),
+        // ── New in v1.4 ────────────────────────────────────────────────
+        PlayerTitle("title_cartograph", "Kartograf", "Meister der Karten", 80, Color(0xFF14B8A6)),
+        PlayerTitle("title_nightowl", "Nachteule", "Spielt bis spät in die Nacht", 85, Color(0xFF6366F1)),
+        PlayerTitle("title_globetrotter", "Globetrotter", "Ueberall zu Hause", 100, Color(0xFF0EA5E9)),
+        PlayerTitle("title_bingoboss", "Bingo-Boss", "Regiert das Spielfeld", 150, Color(0xFFF43F5E)),
     )
 
     // ── Card Designs ─────────────────────────────────────────────────────
@@ -194,6 +223,18 @@ object CosmeticsManager {
             listOf(Color(0xFF200122), Color(0xFFEF4444), Color(0xFFF97316)), "gradient"),
         CardDesign("card_forest", "Forest", "Ruhiger Waldweg", 70,
             listOf(Color(0xFF0A2E0A), Color(0xFF22C55E), Color(0xFF10B981)), "gradient"),
+        // ── New in v1.4 ────────────────────────────────────────────────
+        CardDesign("card_aurora", "Aurora", "Polarlicht-Schimmer", 70,
+            listOf(Color(0xFF0F172A), Color(0xFF22D3EE), Color(0xFF34D399)), "gradient"),
+        CardDesign("card_candy", "Candy", "Suesse Pink-Toene", 75,
+            listOf(Color(0xFF2D1B2E), Color(0xFFEC4899), Color(0xFF8B5CF6)), "gradient"),
+        CardDesign("card_sunset", "Sunset", "Warmer Sonnenuntergang", 80,
+            listOf(Color(0xFF1F2937), Color(0xFFF97316), Color(0xFFEC4899)), "gradient"),
+        CardDesign("card_gold", "Gold", "Edler Goldglanz", 120,
+            listOf(Color(0xFF1C1917), Color(0xFFB45309), Color(0xFFFBBF24)), "gradient"),
+        // ── Ultimativ (>= ULTIMATE_THRESHOLD) — animates the bingo board ──
+        CardDesign("card_prisma", "Prisma", "Holografisches Prisma", 450,
+            listOf(Color(0xFF0B1120), Color(0xFF22D3EE), Color(0xFFA855F7), Color(0xFFEC4899), Color(0xFFFBBF24)), "gradient"),
     )
 
     // ── Banner Backgrounds (NEW in v1.3) ────────────────────────────────
@@ -222,7 +263,74 @@ object CosmeticsManager {
             listOf(Color(0xFF000000), Color(0xFF6D28D9), Color(0xFF000000), Color(0xFF06B6D4)), animated = true),
         BannerBackground("banner_neon_city", "Neonstadt", "Cyberpunk-Vibes", 90,
             listOf(Color(0xFF0F0F1E), Color(0xFF7C3AED), Color(0xFFEC4899), Color(0xFF06B6D4)), animated = true),
+        // ── New in v1.4 ────────────────────────────────────────────────
+        BannerBackground("banner_magma", "Magma", "Gluehender Lavastrom", 80,
+            listOf(Color(0xFF1A0000), Color(0xFF7F1D1D), Color(0xFFEF4444), Color(0xFFF97316)), animated = true),
+        BannerBackground("banner_emerald", "Smaragd", "Tiefes Smaragdgruen", 90,
+            listOf(Color(0xFF052E16), Color(0xFF059669), Color(0xFF34D399), Color(0xFFA7F3D0)), animated = true),
+        BannerBackground("banner_rosegold", "Rosegold", "Rosa-goldener Glanz", 110,
+            listOf(Color(0xFF2D1B2E), Color(0xFFF472B6), Color(0xFFFBBF24), Color(0xFFFBCFE8)), animated = true),
+        BannerBackground("banner_nebula", "Nebula", "Kosmischer Sternennebel", 150,
+            listOf(Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF8B5CF6), Color(0xFFEC4899)), animated = true),
     )
+
+    // ────────────────────────────────────────────────────────────────────
+    // New-cosmetic tracking — "NEU" badge that auto-expires after 7 days
+    // ────────────────────────────────────────────────────────────────────
+    // IDs added in v1.4. The shop shows a "NEU" badge for 7 days starting the
+    // moment each user first opens the cosmetic shop after updating — this is
+    // independent of install/deploy date, so every user gets a full week. The
+    // first-seen date (yyyy-MM-dd) is stored per id in AppSettings; the badge
+    // clears 7 days later.
+    private val NEW_COSMETIC_IDS = setOf(
+        "frame_toxic", "frame_cyber", "frame_rosegold", "frame_aurora",
+        "name_cyber", "name_candy", "name_aurora", "name_void",
+        "title_cartograph", "title_nightowl", "title_globetrotter", "title_bingoboss",
+        "card_aurora", "card_candy", "card_sunset", "card_gold",
+        "banner_magma", "banner_emerald", "banner_rosegold", "banner_nebula",
+    )
+    private const val NEW_BADGE_DAYS = 7
+
+    private fun todayUtc(): LocalDate =
+        Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+
+    /**
+     * Record "first seen today" for every new cosmetic the user hasn't seen
+     * yet. Call once when the cosmetic shop opens — this starts each id's
+     * 7-day NEU window from the first time this user views the shop.
+     */
+    fun markNewCosmeticsSeen() {
+        val today = todayUtc().toString()
+        NEW_COSMETIC_IDS.forEach { id ->
+            if (AppSettings.getString("$NEW_SEEN_PREFIX$id", "").isEmpty()) {
+                AppSettings.setString("$NEW_SEEN_PREFIX$id", today)
+            }
+        }
+    }
+
+    /** True while [id] is still within its 7-day NEU window for this user. */
+    fun isNew(id: String): Boolean {
+        if (id !in NEW_COSMETIC_IDS) return false
+        val seen = AppSettings.getString("$NEW_SEEN_PREFIX$id", "")
+        if (seen.isEmpty()) return true // not yet recorded → brand new this session
+        return try {
+            LocalDate.parse(seen).daysUntil(todayUtc()) < NEW_BADGE_DAYS
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // Rarity — "Ultimativ" tier (single source of truth)
+    // ────────────────────────────────────────────────────────────────────
+    // The crown-jewel rarity. Items at or above this star cost render with the
+    // holographic + glow treatment on EVERY screen (shop, banners, board, etc.)
+    // and show the animated "ULTIMATIV" badge. Renderers and the shop both read
+    // [isUltimate] so the threshold lives in exactly one place.
+    const val ULTIMATE_THRESHOLD = 400
+
+    /** True if a cosmetic at this star cost belongs to the Ultimate rarity tier. */
+    fun isUltimate(cost: Int): Boolean = cost >= ULTIMATE_THRESHOLD
 
     // ────────────────────────────────────────────────────────────────────
     // Lookup helpers

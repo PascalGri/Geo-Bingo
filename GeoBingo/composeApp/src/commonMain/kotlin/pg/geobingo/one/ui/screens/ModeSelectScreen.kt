@@ -134,8 +134,13 @@ fun ModeSelectScreen(gameState: GameState) {
             onEndlessClick = {
                 gateRating {
                     Analytics.track(Analytics.MODE_SELECTED, mapOf("mode" to "SOLO_ENDLESS"))
-                    // Endless is fully self-contained (own screen, local best streak).
-                    nav.navigateTo(Screen.SOLO_ENDLESS)
+                    // Route through the shared 3-2-1 countdown so the player is ready
+                    // before the survival timer starts. Endless is still fully
+                    // self-contained (own screen, local best streak); the transition
+                    // just reads solo.mode to know it should hand off to SOLO_ENDLESS.
+                    gameState.solo.reset()
+                    gameState.solo.mode = SoloMode.ENDLESS
+                    nav.navigateTo(Screen.SOLO_START_TRANSITION)
                 }
             },
             onDailyRunClick = {
@@ -330,6 +335,8 @@ private fun ModeSelectContent(
             gradientColors = RainbowEndless,
             modifier = staggered(2),
             titleBadge = { AnimatedAiBadge() },
+            playersIcon = Icons.Default.Person,
+            playersLabel = "1",
             onClick = onEndlessClick,
         )
 
@@ -346,6 +353,8 @@ private fun ModeSelectContent(
                     RankedBadge()
                 }
             },
+            playersIcon = Icons.Default.Person,
+            playersLabel = "1",
             onClick = onDailyRunClick,
         )
 
@@ -357,6 +366,8 @@ private fun ModeSelectContent(
             gradientColors = RainbowWeirdSolo,
             modifier = staggered(4),
             titleBadge = { AnimatedAiBadge() },
+            playersIcon = Icons.Default.Person,
+            playersLabel = "1",
             onClick = onWeirdCoreSoloClick,
         )
 
@@ -368,6 +379,8 @@ private fun ModeSelectContent(
             gradientColors = RainbowRoulette,
             modifier = staggered(5),
             titleBadge = { AnimatedAiBadge() },
+            playersIcon = Icons.Default.Person,
+            playersLabel = "1",
             onClick = onRouletteClick,
         )
 
@@ -401,6 +414,8 @@ private fun ModeSelectContent(
             icon = Icons.Default.GridView,
             gradientColors = RainbowClassic,
             modifier = staggered(8),
+            playersIcon = Icons.Default.Groups,
+            playersLabel = "2+",
             onClick = onClassicClick,
         )
 
@@ -411,6 +426,8 @@ private fun ModeSelectContent(
             icon = Icons.Default.VisibilityOff,
             gradientColors = RainbowBlindBingo,
             modifier = staggered(9),
+            playersIcon = Icons.Default.Groups,
+            playersLabel = "2+",
             onClick = onBlindBingoClick,
         )
 
@@ -421,6 +438,8 @@ private fun ModeSelectContent(
             icon = Icons.Default.QuestionMark,
             gradientColors = RainbowWeirdMp,
             modifier = staggered(10),
+            playersIcon = Icons.Default.Groups,
+            playersLabel = "2+",
             onClick = onWeirdCoreClick,
         )
 
@@ -457,13 +476,16 @@ private fun SoloSectionHeader() {
     )
     Spacer(Modifier.height(4.dp))
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        // Top-align so that if the hint wraps (large font scale / very narrow
+        // screen) the trophy icon stays beside the first line instead of floating
+        // in the vertical centre of a two-line block.
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(
             Icons.Default.EmojiEvents,
             contentDescription = null,
-            modifier = Modifier.size(13.dp),
+            modifier = Modifier.padding(top = 1.dp).size(13.dp),
             tint = Color(0xFFF59E0B),
         )
         Text(
@@ -500,6 +522,36 @@ private fun RankedBadge() {
             S.current.soloRankedBadge,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
             color = Color(0xFFF59E0B),
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+}
+
+// ── Player-count Badge (capacity indicator shown on every mode card) ────
+
+@Composable
+private fun PlayerCountBadge(icon: ImageVector, label: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(ColorSurfaceVariant)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(12.dp),
+            tint = ColorOnSurfaceVariant,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = ColorOnSurfaceVariant,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
@@ -724,12 +776,17 @@ private fun QuickStartCard(
                         fontWeight = FontWeight.Bold,
                         color = ColorOnSurface,
                     )
-                    Text(
-                        S.current.modeQuickStartSubtitle,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accentColor,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            S.current.modeQuickStartSubtitle,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = accentColor,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        PlayerCountBadge(icon = Icons.Default.Groups, label = "2+")
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         S.current.modeQuickStartDesc,
@@ -768,6 +825,8 @@ private fun ModeCard(
     description: String,
     icon: ImageVector,
     gradientColors: List<Color>,
+    playersIcon: ImageVector,
+    playersLabel: String,
     modifier: Modifier = Modifier,
     titleBadge: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
@@ -804,21 +863,35 @@ private fun ModeCard(
             GradientIconBox(icon = icon, gradientColors = gradientColors)
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // FlowRow so that on narrow phones the badge(s) wrap to the next line
+                // as intact chips instead of the "Ranked/Bestenliste" badge text
+                // breaking mid-word. Daily Run carries two badges (AI + Ranked),
+                // which is what overflowed the single Row before.
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Text(
                         title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = ColorOnSurface,
+                        maxLines = 1,
                     )
                     titleBadge?.invoke()
                 }
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = accentColor,
-                    fontWeight = FontWeight.Medium,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accentColor,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    PlayerCountBadge(icon = playersIcon, label = playersLabel)
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     description,
@@ -961,12 +1034,17 @@ private fun AiJudgeCard(
                         )
                         AnimatedAiBadge()
                     }
-                    Text(
-                        S.current.modeAiJudgeSubtitle,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accentColor,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            S.current.modeAiJudgeSubtitle,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = accentColor,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        PlayerCountBadge(icon = Icons.Default.Groups, label = "2+")
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         S.current.modeAiJudgeDesc,
@@ -1043,22 +1121,32 @@ private fun SoloChallengeCard(
             ) {
                 GradientIconBox(icon = Icons.Default.Person, gradientColors = gradientColors)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         Text(
                             S.current.soloMode,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = ColorOnSurface,
+                            maxLines = 1,
                         )
                         AnimatedAiBadge()
                         RankedBadge()
                     }
-                    Text(
-                        S.current.soloModeSubtitle,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accentColor,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            S.current.soloModeSubtitle,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = accentColor,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        PlayerCountBadge(icon = Icons.Default.Person, label = "1")
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         S.current.soloModeDesc,

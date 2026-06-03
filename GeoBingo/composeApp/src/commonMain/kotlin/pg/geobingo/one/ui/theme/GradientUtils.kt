@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
@@ -56,6 +57,7 @@ fun AnimatedGradientText(
     style: TextStyle = LocalTextStyle.current,
     gradientColors: List<Color> = GradientPrimary,
     durationMillis: Int = 5000,
+    holographic: Boolean = false,
 ) {
     // TextStyle.copy's brush-overload forbids passing `color` simultaneously,
     // so we clear color in a separate copy call first. Without this, a
@@ -64,10 +66,24 @@ fun AnimatedGradientText(
     // render as plain white text.
     fun TextStyle.withBrush(brush: Brush) = copy(color = Color.Unspecified).copy(brush = brush)
 
+    // Ultimate ("holographic") names/titles add a soft iridescent glow behind
+    // the glyphs (a text Shadow — cheap and works on every target, unlike blur)
+    // and weave a bright white foil highlight through the gradient.
+    val baseStyle = if (holographic) {
+        style.copy(shadow = Shadow(color = Color(0x9922D3EE), offset = Offset.Zero, blurRadius = 18f))
+    } else {
+        style
+    }
+    val brushColors = if (holographic) {
+        gradientColors + Color.White + gradientColors
+    } else {
+        gradientColors + gradientColors
+    }
+
     val reduceMotion = LocalReduceMotion.current
     if (reduceMotion) {
-        val brush = Brush.linearGradient(colors = gradientColors, start = Offset(0f, 0f), end = Offset(500f, 300f))
-        Text(text = text, style = style.withBrush(brush), modifier = modifier)
+        val brush = Brush.linearGradient(colors = brushColors, start = Offset(0f, 0f), end = Offset(500f, 300f))
+        Text(text = text, style = baseStyle.withBrush(brush), modifier = modifier)
         return
     }
     val transition = rememberInfiniteTransition(label = "gradText")
@@ -81,13 +97,13 @@ fun AnimatedGradientText(
         label = "textOffset",
     )
     val brush = Brush.linearGradient(
-        colors = gradientColors + gradientColors,
+        colors = brushColors,
         start = Offset(offset, 0f),
         end = Offset(offset + 500f, 300f),
     )
     Text(
         text = text,
-        style = style.withBrush(brush),
+        style = baseStyle.withBrush(brush),
         modifier = modifier,
     )
 }
