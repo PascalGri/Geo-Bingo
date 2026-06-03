@@ -2,6 +2,7 @@ package pg.geobingo.one.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -85,6 +86,16 @@ fun MultiplayerLeaderboardScreen(gameState: GameState) {
         containerColor = ColorBackground,
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Cross-link to the global Daily Run leaderboard. It's a different
+            // board than these multiplayer stats, but players look for the
+            // daily ranking here too, so surface a direct entry point.
+            DailyBoardLink(onClick = {
+                nav.navigateTo(
+                    pg.geobingo.one.game.Screen.SOLO_LEADERBOARD,
+                    pg.geobingo.one.navigation.NavArgs.Leaderboard(daily = true),
+                )
+            })
+
             // Sort tabs
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -196,5 +207,43 @@ fun MultiplayerLeaderboardScreen(gameState: GameState) {
                 }
             }
         }
+    }
+}
+
+// ── Daily Run leaderboard cross-link ────────────────────────────────────
+
+/** Tappable banner that jumps to the global Daily Run leaderboard (Daily tab). */
+@Composable
+private fun DailyBoardLink(onClick: () -> Unit) {
+    val gradient = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.linearGradient(gradient.map { it.copy(alpha = 0.16f) }))
+            .border(1.dp, gradient.first().copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Default.Today, null, tint = gradient.first(), modifier = Modifier.size(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                S.current.modeDailyRun,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = ColorOnSurface,
+            )
+            Text(
+                S.current.modeDailyRunSubtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = ColorOnSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = gradient.first(), modifier = Modifier.size(18.dp))
     }
 }

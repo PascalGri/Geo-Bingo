@@ -45,6 +45,22 @@ import pg.geobingo.one.i18n.S
 import pg.geobingo.one.util.Analytics
 import pg.geobingo.one.ui.theme.*
 
+// ── Mode-card rainbow ───────────────────────────────────────────────────
+// The mode list reads as a single top-to-bottom rainbow: each card gets the
+// next hue. These override the per-mode brand gradients (GradientAiJudge etc.)
+// ONLY on this selection screen — the in-game/transition screens keep their
+// own mode colors. Order matches the card order in ModeSelectScreen.
+private val RainbowSolo = listOf(Color(0xFFF87171), Color(0xFFEF4444))      // red
+private val RainbowEndless = listOf(Color(0xFFFB923C), Color(0xFFF97316))   // orange
+private val RainbowDaily = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))     // amber
+private val RainbowWeirdSolo = listOf(Color(0xFF34D399), Color(0xFF10B981)) // green
+private val RainbowRoulette = listOf(Color(0xFF22D3EE), Color(0xFF06B6D4))  // cyan
+private val RainbowAiJudge = listOf(Color(0xFF38BDF8), Color(0xFF3B82F6))   // blue
+private val RainbowQuickStart = listOf(Color(0xFF818CF8), Color(0xFF6366F1)) // indigo
+private val RainbowClassic = listOf(Color(0xFFA78BFA), Color(0xFF8B5CF6))   // violet
+private val RainbowBlindBingo = listOf(Color(0xFFC084FC), Color(0xFFA855F7)) // purple
+private val RainbowWeirdMp = listOf(Color(0xFFF472B6), Color(0xFFEC4899))   // pink
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSelectScreen(gameState: GameState) {
@@ -292,7 +308,7 @@ private fun ModeSelectContent(
 
         Spacer(Modifier.height(4.dp))
 
-        // ── Solo (all AI-rated; only the standard mode is ranked) ─────
+        // ── Solo (all AI-rated; Standard + Daily are ranked) ─────────
         SoloSectionHeader()
 
         SoloChallengeCard(
@@ -311,7 +327,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeEndlessSubtitle,
             description = S.current.modeEndlessDesc,
             icon = Icons.Default.LocalFireDepartment,
-            gradientColors = listOf(Color(0xFFF97316), Color(0xFFEF4444)),
+            gradientColors = RainbowEndless,
             modifier = staggered(2),
             titleBadge = { AnimatedAiBadge() },
             onClick = onEndlessClick,
@@ -322,9 +338,14 @@ private fun ModeSelectContent(
             subtitle = S.current.modeDailyRunSubtitle,
             description = S.current.modeDailyRunDesc,
             icon = Icons.Default.Today,
-            gradientColors = listOf(Color(0xFF10B981), Color(0xFF22D3EE)),
+            gradientColors = RainbowDaily,
             modifier = staggered(3),
-            titleBadge = { AnimatedAiBadge() },
+            titleBadge = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AnimatedAiBadge()
+                    RankedBadge()
+                }
+            },
             onClick = onDailyRunClick,
         )
 
@@ -333,7 +354,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeWeirdCoreSubtitle,
             description = S.current.modeWeirdCoreSoloDesc,
             icon = Icons.Default.Psychology,
-            gradientColors = GradientWeird,
+            gradientColors = RainbowWeirdSolo,
             modifier = staggered(4),
             titleBadge = { AnimatedAiBadge() },
             onClick = onWeirdCoreSoloClick,
@@ -344,7 +365,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeRouletteSubtitle,
             description = S.current.modeRouletteDesc,
             icon = Icons.Default.Casino,
-            gradientColors = listOf(Color(0xFFA855F7), Color(0xFF22D3EE)),
+            gradientColors = RainbowRoulette,
             modifier = staggered(5),
             titleBadge = { AnimatedAiBadge() },
             onClick = onRouletteClick,
@@ -359,6 +380,7 @@ private fun ModeSelectContent(
             onToggleExpand = onToggleAiJudgeExpand,
             onSelectOutdoor = onSelectAiJudgeOutdoor,
             onConfirm = onConfirmAiJudge,
+            gradientColors = RainbowAiJudge,
             modifier = staggered(6),
         )
 
@@ -368,6 +390,7 @@ private fun ModeSelectContent(
             onToggleExpand = onToggleQuickStartExpand,
             onSelectOutdoor = onSelectQuickStartOutdoor,
             onConfirm = onConfirmQuickStart,
+            gradientColors = RainbowQuickStart,
             modifier = staggered(7),
         )
 
@@ -376,7 +399,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeClassicSubtitle,
             description = S.current.modeClassicDesc,
             icon = Icons.Default.GridView,
-            gradientColors = GradientPrimary,
+            gradientColors = RainbowClassic,
             modifier = staggered(8),
             onClick = onClassicClick,
         )
@@ -386,7 +409,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeBlindBingoSubtitle,
             description = S.current.modeBlindBingoDesc,
             icon = Icons.Default.VisibilityOff,
-            gradientColors = GradientCool,
+            gradientColors = RainbowBlindBingo,
             modifier = staggered(9),
             onClick = onBlindBingoClick,
         )
@@ -396,7 +419,7 @@ private fun ModeSelectContent(
             subtitle = S.current.modeWeirdCoreSubtitle,
             description = S.current.modeWeirdCoreDesc,
             icon = Icons.Default.QuestionMark,
-            gradientColors = GradientWeird,
+            gradientColors = RainbowWeirdMp,
             modifier = staggered(10),
             onClick = onWeirdCoreClick,
         )
@@ -451,7 +474,7 @@ private fun SoloSectionHeader() {
     }
 }
 
-// ── Ranked Badge (only the standard solo mode counts for the leaderboard) ──
+// ── Ranked Badge (shown on solo modes that count for the leaderboard) ──
 
 @Composable
 private fun RankedBadge() {
@@ -661,9 +684,9 @@ private fun QuickStartCard(
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
     onConfirm: () -> Unit,
+    gradientColors: List<Color> = GradientQuickStart,
     modifier: Modifier = Modifier,
 ) {
-    val gradientColors = GradientQuickStart
     val accentColor = gradientColors.first()
     val scope = rememberCoroutineScope()
     val pressScale = remember { Animatable(1f) }
@@ -895,9 +918,9 @@ private fun AiJudgeCard(
     onToggleExpand: () -> Unit,
     onSelectOutdoor: (Boolean) -> Unit,
     onConfirm: () -> Unit,
+    gradientColors: List<Color> = GradientAiJudge,
     modifier: Modifier = Modifier,
 ) {
-    val gradientColors = GradientAiJudge
     val accentColor = gradientColors.first()
     val scope = rememberCoroutineScope()
     val pressScale = remember { Animatable(1f) }
@@ -975,7 +998,7 @@ private fun AiJudgeCard(
 
 // ── Solo Challenge Card ──────────────────────────────────────────────────
 
-private val SoloGradientColors = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+private val SoloGradientColors = RainbowSolo
 
 @Composable
 private fun SoloChallengeCard(

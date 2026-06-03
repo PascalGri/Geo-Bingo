@@ -542,6 +542,7 @@ object En : StringRes {
     override val reportPhotoTitle = "Report photo"
     override fun reportPhotoBody(name: String) = "Report this photo from $name for offensive or inappropriate content? We review all reports."
     override val imageRejectedByModeration = "Image contains inappropriate content and was not accepted."
+    override val photoValidationFailed = "Couldn't verify the photo – try again."
     override val changePassword = "Change password"
     override val changePasswordDesc = "Set a new password"
     override val currentPassword = "Current password"
@@ -631,6 +632,8 @@ object En : StringRes {
     override val leaderboardMonthly = "This Month"
     override val leaderboardResetIn = "Resets in"
     override val leaderboardNeverResets = "Never resets"
+    override val leaderboardTabStandard = "All-time"
+    override val leaderboardTabDaily = "Daily"
     override val directMessages = "Messages"
     override val noMessagesYet = "No messages yet"
     override val typeMessageHint = "Write a message..."
@@ -699,7 +702,7 @@ object En : StringRes {
 
     // ── New Solo Modes ────────────────────────────────────────────────────
     override val soloRankedBadge = "Ranked"
-    override val soloRankedHint = "Only this mode counts toward the leaderboard"
+    override val soloRankedHint = "Ranked modes count toward the leaderboard"
     override val modeEndless = "Endless"
     override val modeEndlessSubtitle = "Survival — how far can you go?"
     override val modeEndlessDesc = "No fixed number of categories. Every hit brings the next one with less time on the clock. One miss ends the run — beat your best streak."
@@ -716,6 +719,7 @@ object En : StringRes {
     override fun endlessYouReached(count: Int) = "You reached $count categories"
     override val endlessNewRecord = "New record!"
     override val endlessTryAgain = "Try again"
+    override val endlessValidationFailed = "Couldn't verify the photo – try again."
     override val rouletteRolling = "Spinning…"
     override val rouletteYourCategory = "Your theme"
     override val dailyRunTodaysSet = "Today's set"

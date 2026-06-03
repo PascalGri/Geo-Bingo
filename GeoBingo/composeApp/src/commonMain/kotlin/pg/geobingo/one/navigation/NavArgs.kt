@@ -16,6 +16,9 @@ sealed interface NavArgs {
     /** Arguments for MatchDetailScreen. */
     data class MatchDetail(val gameId: String, val entry: GameHistoryEntry) : NavArgs
 
+    /** Arguments for SoloLeaderboardScreen — open straight onto the daily board. */
+    data class Leaderboard(val daily: Boolean = false) : NavArgs
+
     /**
      * Arguments for SettingsScreen — when navigated from an AI-consent
      * gate dialog, the screen scrolls to the AI/Privacy section so the

@@ -147,7 +147,10 @@ private fun ScreenRouter(screen: Screen, gameState: GameState) {
         Screen.SOLO_START_TRANSITION -> SoloStartTransitionScreen(gameState)
         Screen.SOLO_GAME -> SoloGameScreen(gameState)
         Screen.SOLO_RESULTS -> SoloResultsScreen(gameState)
-        Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(gameState)
+        Screen.SOLO_LEADERBOARD -> SoloLeaderboardScreen(
+            gameState,
+            startOnDaily = nav.getArgs<pg.geobingo.one.navigation.NavArgs.Leaderboard>(Screen.SOLO_LEADERBOARD)?.daily == true,
+        )
         Screen.SOLO_ENDLESS -> SoloEndlessScreen(gameState)
         Screen.SOLO_ROULETTE -> SoloRouletteScreen(gameState)
         Screen.SHOP -> ShopScreen(gameState)

@@ -94,6 +94,8 @@ data class SoloScoreDto(
     val duration_seconds: Int = 0,
     val is_outdoor: Boolean = true,
     val created_at: String = "",
+    val mode: String = "standard",
+    val daily_date: String? = null,
 )
 
 data class PhotoValidationResult(val rating: Int, val reason: String, val safe: Boolean = true)
@@ -111,6 +113,8 @@ private data class SoloScoreInsertDto(
     val time_bonus: Int,
     val duration_seconds: Int,
     val is_outdoor: Boolean,
+    val mode: String = "standard",
+    val daily_date: String? = null,
 )
 
 @Serializable
@@ -619,9 +623,18 @@ object GameRepository {
             }
             setBody(io.ktor.http.content.TextContent(jsonBody, io.ktor.http.ContentType.Application.Json))
         }
+        // The default HttpClient does not throw on non-2xx, so an edge-function
+        // error would otherwise fall through to the `?: 5` rating default below
+        // and look like a passing AI rating. Callers that gate on the rating
+        // (Endless mode) must never treat a server error as a pass, so fail loudly.
+        if (response.status.value !in 200..299) {
+            throw IllegalStateException("validate-photo HTTP ${response.status.value}")
+        }
         val body: String = response.body()
         val json = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
-        val rating = (json["rating"]?.jsonPrimitive?.int ?: 5).coerceIn(1, 5)
+        val rating = (json["rating"]?.jsonPrimitive?.int
+            ?: throw IllegalStateException("validate-photo response had no rating"))
+            .coerceIn(1, 5)
         val reasonPrimitive = json["reason"]?.jsonPrimitive
         val reason = reasonPrimitive?.content ?: ""
         val safe = json["safe"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
@@ -695,7 +708,7 @@ object GameRepository {
 
     // ── Solo Leaderboard ────────────────────────────────────────────────
 
-    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null): SoloScoreDto {
+    suspend fun submitSoloScore(playerName: String, score: Int, categoriesCount: Int, timeBonus: Int, durationSeconds: Int, isOutdoor: Boolean = true, userId: String? = null, mode: String = "standard", dailyDate: String? = null): SoloScoreDto {
         val result = supabase.from("solo_scores").insert(
             SoloScoreInsertDto(
                 player_name = playerName,
@@ -705,19 +718,23 @@ object GameRepository {
                 time_bonus = timeBonus,
                 duration_seconds = durationSeconds,
                 is_outdoor = isOutdoor,
+                mode = mode,
+                daily_date = dailyDate,
             )
         ) { select() }.decodeSingle<SoloScoreDto>()
         soloLeaderboardCaches.values.forEach { it.invalidate() }
         return result
     }
 
-    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null, offset: Int = 0, createdAfter: String? = null): List<SoloScoreDto> {
-        val cacheKey = "$limit:$isOutdoor:$offset:$createdAfter"
+    suspend fun getSoloLeaderboard(limit: Int = 50, isOutdoor: Boolean? = null, offset: Int = 0, createdAfter: String? = null, mode: String = "standard", dailyDate: String? = null): List<SoloScoreDto> {
+        val cacheKey = "$limit:$isOutdoor:$offset:$createdAfter:$mode:$dailyDate"
         val cache = soloLeaderboardCaches.getOrPut(cacheKey) { ResponseCache(ttlMs = 60_000L) }
         return cache.getOrFetch {
             supabase.from("solo_scores")
                 .select {
                     filter {
+                        eq("mode", mode)
+                        if (dailyDate != null) eq("daily_date", dailyDate)
                         if (isOutdoor != null) eq("is_outdoor", isOutdoor)
                         if (createdAfter != null) gte("created_at", createdAfter)
                     }
@@ -731,7 +748,10 @@ object GameRepository {
     suspend fun getSoloPersonalBest(playerName: String): SoloScoreDto? =
         supabase.from("solo_scores")
             .select {
-                filter { eq("player_name", playerName) }
+                filter {
+                    eq("mode", "standard")
+                    eq("player_name", playerName)
+                }
                 order("score", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                 limit(1)
             }
@@ -745,7 +765,10 @@ object GameRepository {
         val best = getSoloPersonalBest(playerName) ?: return null
         val higherCount = supabase.from("solo_scores")
             .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("player_name")) {
-                filter { gt("score", best.score) }
+                filter {
+                    eq("mode", "standard")
+                    gt("score", best.score)
+                }
             }
             .decodeList<SoloScoreNameDto>()
             .map { it.player_name }
@@ -758,6 +781,7 @@ object GameRepository {
     suspend fun getSoloTotalPlayers(): Int {
         val count = supabase.from("solo_scores")
             .select {
+                filter { eq("mode", "standard") }
                 head = true
                 count(Count.EXACT)
             }

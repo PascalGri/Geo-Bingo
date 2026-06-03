@@ -51,6 +51,7 @@ import pg.geobingo.one.util.AppLogger
 
 private val EndlessGradient = listOf(Color(0xFFF97316), Color(0xFFEF4444))
 private val AIGradient = listOf(Color(0xFF8B5CF6), Color(0xFFEC4899))
+private val GoldGradient = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
 
 private const val BEST_STREAK_KEY = "endless_best_streak"
 private const val START_SECONDS = 30
@@ -156,11 +157,21 @@ fun SoloEndlessScreen(gameState: GameState) {
         phase = Phase.GAME_OVER
     }
 
+    // AI evaluation is mandatory: a round only counts once the model has actually
+    // rated the photo. If the call fails (network / crash) we must NOT award it —
+    // otherwise any photo would pass without being judged. Hand the round back
+    // with the time that was left so a flaky network costs a retake, not the streak.
+    fun onValidationError() {
+        gameState.ui.pendingToast = S.current.endlessValidationFailed
+        if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
+        phase = Phase.PLAYING
+        roundIndex += 1
+    }
+
     fun validate(cat: Category, bytes: ByteArray) {
         val handler = kotlinx.coroutines.CoroutineExceptionHandler { _, t ->
             AppLogger.w("SoloEndless", "Validation coroutine escaped: ${t::class.simpleName}", t)
-            // Fail open on a crash so a flaky network never punishes the player.
-            onHit(5)
+            onValidationError()
         }
         scope.launch(handler) {
             try {
@@ -181,7 +192,7 @@ fun SoloEndlessScreen(gameState: GameState) {
                 if (result.rating >= PASS_THRESHOLD) onHit(result.rating) else onMiss(result.rating)
             } catch (t: Throwable) {
                 AppLogger.w("SoloEndless", "Validation failed: ${t::class.simpleName}", t)
-                onHit(5)
+                onValidationError()
             }
         }
     }
@@ -365,81 +376,143 @@ private fun GameOverOverlay(
     onTryAgain: () -> Unit,
     onHome: () -> Unit,
 ) {
+    val reduceMotion = LocalReduceMotion.current
+    val accent = if (isNewRecord) GoldGradient else EndlessGradient
+
+    // One-shot entrance: the card scales + fades in. Gated by reduce-motion (our
+    // wasmJs / low-end escape hatch) — when on, it simply renders settled.
+    val appear = remember { Animatable(if (reduceMotion) 1f else 0f) }
+    LaunchedEffect(Unit) { if (!reduceMotion) appear.animateTo(1f, tween(380)) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.92f),
+                        accent.last().copy(alpha = 0.26f),
+                        Color.Black.copy(alpha = 0.94f),
+                    )
+                )
+            )
+            // Swallow taps so the paused game underneath can't be poked.
             .clickable(enabled = false) {},
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier.padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+        GradientBorderCard(
+            modifier = Modifier
+                .padding(horizontal = 28.dp)
+                .widthIn(max = 380.dp)
+                .graphicsLayer {
+                    val s = 0.9f + 0.1f * appear.value
+                    scaleX = s
+                    scaleY = s
+                    alpha = appear.value
+                },
+            cornerRadius = 28.dp,
+            borderColors = accent,
+            borderWidth = 1.5.dp,
         ) {
-            Icon(Icons.Default.Flag, null, tint = EndlessGradient.last(), modifier = Modifier.size(48.dp))
-            AnimatedGradientText(
-                text = S.current.endlessRunOver,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                gradientColors = EndlessGradient,
-            )
-            Text(
-                "$streak",
-                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black),
-                color = Color.White,
-            )
-            Text(
-                S.current.endlessYouReached(streak),
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center,
-            )
-            if (isNewRecord) {
+            Column(
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                // Streak medal: a gradient disc inside a soft, low-alpha halo.
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(132.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(accent.map { it.copy(alpha = 0.18f) })),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(108.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(accent)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                if (isNewRecord) Icons.Default.EmojiEvents else Icons.Default.LocalFireDepartment,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Text(
+                                "$streak",
+                                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black),
+                                color = Color.White,
+                            )
+                        }
+                    }
+                }
+
+                AnimatedGradientText(
+                    text = if (isNewRecord) S.current.endlessNewRecord else S.current.endlessRunOver,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    gradientColors = accent,
+                )
+                Text(
+                    S.current.endlessYouReached(streak),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center,
+                )
+
+                // Best-streak pill. On a fresh record this equals the streak just
+                // set, so it doubles as the celebratory headline stat.
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Default.EmojiEvents, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    Text(S.current.endlessNewRecord, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                    Icon(Icons.Default.EmojiEvents, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(16.dp))
+                    Text(
+                        "${S.current.endlessBest}: $best",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
                 }
-            } else {
-                Text(
-                    "${S.current.endlessBest}: $best",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.6f),
-                )
-            }
 
-            Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(EndlessGradient))
-                    .clickable(onClick = onTryAgain)
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Replay, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                    Text(S.current.endlessTryAgain, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                // Primary action. Static gradient (no per-frame animation) so the
+                // overlay stays cheap and respects reduce-motion.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.linearGradient(EndlessGradient))
+                        .clickable(onClick = onTryAgain)
+                        .padding(vertical = 15.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Replay, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Text(S.current.endlessTryAgain, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    }
                 }
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable(onClick = onHome)
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(S.current.close, color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable(onClick = onHome)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(S.current.close, color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
+
+        // Celebrate a personal best with confetti. Auto-skips under reduce-motion.
+        ConfettiEffect(trigger = isNewRecord, modifier = Modifier.fillMaxSize())
     }
 }

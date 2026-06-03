@@ -99,13 +99,23 @@ fun SoloGameScreen(gameState: GameState) {
         val category = solo.categories.find { it.id == catId } ?: return
         solo.validatingCategories = solo.validatingCategories + catId
         solo.captureTimestamps = solo.captureTimestamps + (catId to kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
+        // Fail-closed: if the AI check can't run, the photo must NOT be scored.
+        // Undo the just-added capture so nothing counts and the player can
+        // retake. Only fresh captures (fallbackOnError) are undone — a retake
+        // that errors keeps the prior rating instead of wiping a good capture.
+        fun failValidation() {
+            if (!fallbackOnError) return
+            solo.capturedCategories = solo.capturedCategories - catId
+            solo.categoryRatings = solo.categoryRatings - catId
+            solo.categoryReasons = solo.categoryReasons - catId
+            solo.captureTimestamps = solo.captureTimestamps - catId
+            gameState.ui.pendingToast = pg.geobingo.one.i18n.S.current.photoValidationFailed
+            if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
+        }
         val handler = kotlinx.coroutines.CoroutineExceptionHandler { _, t ->
             AppLogger.w("SoloGame", "Photo validation coroutine escaped: ${t::class.simpleName}", t)
             solo.validatingCategories = solo.validatingCategories - catId
-            if (fallbackOnError) {
-                solo.categoryRatings = solo.categoryRatings + (catId to 5)
-                solo.categoryReasons = solo.categoryReasons + (catId to "")
-            }
+            failValidation()
         }
         scope.launch(handler) {
             try {
@@ -133,10 +143,7 @@ fun SoloGameScreen(gameState: GameState) {
                 }
             } catch (t: Throwable) {
                 AppLogger.w("SoloGame", "Photo validation failed: ${t::class.simpleName}", t)
-                if (fallbackOnError) {
-                    solo.categoryRatings = solo.categoryRatings + (catId to 5)
-                    solo.categoryReasons = solo.categoryReasons + (catId to "")
-                }
+                failValidation()
             } finally {
                 solo.validatingCategories = solo.validatingCategories - catId
             }

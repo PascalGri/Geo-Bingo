@@ -582,6 +582,7 @@ interface StringRes {
     val reportPhotoTitle: String
     fun reportPhotoBody(name: String): String
     val imageRejectedByModeration: String
+    val photoValidationFailed: String
     val changePassword: String
     val changePasswordDesc: String
     val currentPassword: String
@@ -673,6 +674,8 @@ interface StringRes {
     val leaderboardMonthly: String
     val leaderboardResetIn: String
     val leaderboardNeverResets: String
+    val leaderboardTabStandard: String
+    val leaderboardTabDaily: String
 
     // ── Direct Messages ──────────────────────────────────────────────────
     val directMessages: String
@@ -752,6 +755,7 @@ interface StringRes {
     fun endlessYouReached(count: Int): String
     val endlessNewRecord: String
     val endlessTryAgain: String
+    val endlessValidationFailed: String
     val rouletteRolling: String
     val rouletteYourCategory: String
     val dailyRunTodaysSet: String

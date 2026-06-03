@@ -168,6 +168,29 @@ fun HomeScreen(gameState: GameState) {
     }
     val dailyChallenge = remember { DailyChallengeManager.getTodayChallenge() }
 
+    // Launch today's Daily Run from the home banner. The mode is AI-rated, so
+    // honor the rating-consent hard-gate (Apple 5.1.1(i)): if consent isn't
+    // granted yet, route through Mode-Select where the consent dialog fires.
+    val launchDailyRun: () -> Unit = {
+        if (!pg.geobingo.one.platform.AiConsent.ratingAccepted) {
+            nav.navigateTo(Screen.SELECT_MODE)
+        } else {
+            pg.geobingo.one.util.Analytics.track(
+                pg.geobingo.one.util.Analytics.MODE_SELECTED,
+                mapOf("mode" to "SOLO_DAILY_RUN"),
+            )
+            gameState.solo.reset()
+            gameState.solo.mode = pg.geobingo.one.game.state.SoloMode.DAILY_RUN
+            gameState.solo.isOutdoor = true
+            gameState.solo.categoryCount = 5
+            gameState.solo.categories = pg.geobingo.one.data.dailyRunCategories(5)
+            gameState.solo.totalDurationSeconds = 300
+            gameState.solo.timeRemainingSeconds = 300
+            gameState.solo.playerName = AppSettings.getString("last_player_name", "Player")
+            nav.navigateTo(Screen.SOLO_START_TRANSITION)
+        }
+    }
+
     if (showEarnStarsDialog) {
         EarnStarsDialog(
             starsState = gameState.stars,
@@ -258,6 +281,17 @@ fun HomeScreen(gameState: GameState) {
                     // ── HOW TO PLAY (pinned under hero heading) ──────────
                     HowToPlayPill(onClick = { nav.navigateTo(Screen.HOW_TO_PLAY) })
                 }
+
+                // ── DAILY RUN BANNER (links to today's ranked daily mode) ─────
+                DailyRunBanner(
+                    onPlay = launchDailyRun,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.screenHorizontal)
+                        .fillMaxWidth()
+                        .staggered(1),
+                )
+
+                Spacer(Modifier.height(8.dp))
 
                 // ── DAILY BONUS BANNER ────────────────────────────────────────
                 DailyBonusBanner(
@@ -594,6 +628,79 @@ private fun HowToPlayPill(onClick: () -> Unit) {
             modifier = Modifier.size(14.dp),
             tint = ColorOnSurfaceVariant,
         )
+    }
+}
+
+// ── DAILY RUN BANNER ─────────────────────────────────────────────────────────
+
+/**
+ * Prominent home banner that launches today's Daily Run — the ranked, global,
+ * resets-every-day solo mode. Static gradient (no animation) to stay cheap on
+ * web/wasm and older devices.
+ */
+@Composable
+private fun DailyRunBanner(onPlay: () -> Unit, modifier: Modifier = Modifier) {
+    val gradient = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(gradient))
+            .clickable(onClick = onPlay)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.22f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.Today, null, tint = Color.White, modifier = Modifier.size(24.dp))
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    S.current.modeDailyRun,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White.copy(alpha = 0.25f))
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Icon(Icons.Default.EmojiEvents, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                    Text(
+                        S.current.soloRankedBadge,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        fontSize = 9.sp,
+                    )
+                }
+            }
+            Text(
+                S.current.modeDailyRunSubtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.92f),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White.copy(alpha = 0.25f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
     }
 }
 

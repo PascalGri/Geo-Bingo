@@ -6,17 +6,19 @@ import androidx.compose.runtime.setValue
 import pg.geobingo.one.data.Category
 
 /**
- * The different solo game variants. IMPORTANT: only [STANDARD] submits to the
- * shared online leaderboard (solo_scores). Every other mode is a personal /
- * local experience — see the gate in SoloResultsScreen. This is intentional
- * so the global ranking stays comparable (same rules for everyone).
+ * The different solo game variants. IMPORTANT: [STANDARD] submits to the global
+ * all-time leaderboard and [DAILY_RUN] to the daily leaderboard (both in
+ * solo_scores, distinguished by the `mode` column). Endless / Weird Core /
+ * Roulette are personal experiences with no online ranking — see the gate in
+ * SoloResultsScreen. The two ranked boards stay comparable because each has the
+ * same rules for everyone (daily is the same date-seeded set worldwide).
  */
 enum class SoloMode {
-    /** Classic AI solo challenge — the ONLY mode that counts for the leaderboard. */
+    /** Classic AI solo challenge — submits to the global all-time leaderboard. */
     STANDARD,
     /** Endless / Survival — handled by its own screen, local best streak. */
     ENDLESS,
-    /** Curated Daily Run — date-seeded set, same for everyone, different each day. */
+    /** Curated Daily Run — date-seeded set, same for everyone; submits to the daily leaderboard. */
     DAILY_RUN,
     /** Weird Core solo — absurd categories, reuses the standard grid screen. */
     WEIRD_CORE,

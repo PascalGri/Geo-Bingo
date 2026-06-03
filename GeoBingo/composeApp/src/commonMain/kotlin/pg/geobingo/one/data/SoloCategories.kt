@@ -388,6 +388,14 @@ fun dailyRunSeed(): Int {
 }
 
 /**
+ * ISO-8601 (YYYY-MM-DD) key for the current UTC day. This is the daily-run's
+ * leaderboard bucket: scores are filed under this key and the daily board
+ * naturally "resets" at midnight UTC when the key rolls over.
+ */
+fun dailyRunDateKey(): String =
+    Clock.System.now().toLocalDateTime(TimeZone.UTC).date.toString()
+
+/**
  * Deterministic outdoor category set for the Curated Daily Run. Seeded by the
  * UTC calendar day → same five tasks for everyone, different tasks each day.
  * Outdoor-only on purpose: the daily run is the flagship "go out and explore"

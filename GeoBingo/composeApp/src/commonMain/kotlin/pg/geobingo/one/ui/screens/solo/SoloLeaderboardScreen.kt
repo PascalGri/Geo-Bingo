@@ -45,8 +45,10 @@ import pg.geobingo.one.util.AppLogger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SoloLeaderboardScreen(gameState: GameState) {
+fun SoloLeaderboardScreen(gameState: GameState, startOnDaily: Boolean = false) {
     val nav = remember { ServiceLocator.navigation }
+    // Top-level board switch: 0 = standard all-time/weekly/monthly, 1 = today's daily.
+    var boardMode by remember { mutableStateOf(if (startOnDaily) 1 else 0) }
     var selectedEnvironment by remember { mutableStateOf(0) } // 0 = outdoor, 1 = indoor
     var selectedCatCount by remember { mutableStateOf(0) } // 0 = 5 categories, 1 = 10 categories
     var selectedTimePeriod by remember { mutableStateOf(0) } // 0 = all-time, 1 = this week, 2 = this month
@@ -58,6 +60,13 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     var scores10Indoor by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
+
+    // Daily board: a single global list for today's UTC date, no env/cat/time
+    // sub-filters. Loaded lazily the first time the player opens the Daily tab.
+    var dailyScores by remember { mutableStateOf<List<SoloScoreDto>>(emptyList()) }
+    var dailyLoading by remember { mutableStateOf(false) }
+    var dailyError by remember { mutableStateOf(false) }
+    var dailyLoaded by remember { mutableStateOf(false) }
 
     // Pagination state per variant: raw offset tracks how many raw rows have been fetched from DB
     var rawOffset5Outdoor by remember { mutableStateOf(0) }
@@ -81,6 +90,14 @@ fun SoloLeaderboardScreen(gameState: GameState) {
     // fixed boundary the player could anticipate.
     val window = remember(selectedTimePeriod) { leaderboardWindow(selectedTimePeriod, Clock.System.now()) }
     val createdAfter: String? = window.startInclusive?.toString()
+
+    // The daily board "resets" at the next UTC midnight, when the date key rolls
+    // over and a fresh daily set goes live worldwide.
+    val dailyDateKey = pg.geobingo.one.data.dailyRunDateKey()
+    val dailyResetAt: Instant = remember(dailyDateKey) {
+        val tz = TimeZone.UTC
+        Clock.System.now().toLocalDateTime(tz).date.plus(DatePeriod(days = 1)).atStartOfDayIn(tz)
+    }
 
     // Ticks once per second so the visible reset countdown stays live.
     var nowTick by remember { mutableStateOf(Clock.System.now()) }
@@ -123,8 +140,9 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         return raw.size
     }
 
-    // Reload all variants when time period changes
-    LaunchedEffect(selectedTimePeriod) {
+    // Reload all variants when time period changes (standard board only)
+    LaunchedEffect(selectedTimePeriod, boardMode) {
+        if (boardMode != 0) return@LaunchedEffect
         loading = true
         error = false
         scores5Outdoor = emptyList()
@@ -154,9 +172,25 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         }
     }
 
+    // Load today's global daily board the first time the Daily tab is opened.
+    LaunchedEffect(boardMode) {
+        if (boardMode != 1 || dailyLoaded) return@LaunchedEffect
+        dailyLoading = true
+        dailyError = false
+        try {
+            dailyScores = deduplicateScores(
+                GameRepository.getSoloLeaderboard(limit = 200, mode = "daily", dailyDate = dailyDateKey)
+            )
+            dailyLoaded = true
+        } catch (e: Exception) {
+            AppLogger.w("Leaderboard", "Daily load failed", e)
+            dailyError = true
+        }
+        dailyLoading = false
+    }
+
     SystemBackHandler { nav.goBack() }
 
-    val isInTop50 = scores.any { isOwnScore(it, currentUserId, playerName) }
     val tabGradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
 
     Scaffold(
@@ -180,12 +214,25 @@ fun SoloLeaderboardScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
-        if (loading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ColorPrimary)
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            BoardModeTabs(boardMode = boardMode, onSelect = { boardMode = it })
+
+            if (boardMode == 1) {
+                DailyBoard(
+                    scores = dailyScores,
+                    loading = dailyLoading,
+                    error = dailyError,
+                    resetAt = dailyResetAt,
+                    now = nowTick,
+                    currentUserId = currentUserId,
+                    playerName = playerName,
+                )
+            } else if (loading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = ColorPrimary)
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
                 // Category count tabs (5 / 10)
                 Row(
                     modifier = Modifier
@@ -418,6 +465,7 @@ fun SoloLeaderboardScreen(gameState: GameState) {
                         }
                     }
                 }
+                }
             }
         }
     }
@@ -567,5 +615,130 @@ private fun LeaderboardResetCountdown(period: Int, resetAt: Instant?, now: Insta
             color = ColorOnSurfaceVariant,
             fontWeight = FontWeight.Medium,
         )
+    }
+}
+
+/** Top-level segmented switch between the all-time Standard board and today's global Daily board. */
+@Composable
+private fun BoardModeTabs(boardMode: Int, onSelect: (Int) -> Unit) {
+    val gradient = listOf(Color(0xFF22D3EE), Color(0xFF6366F1))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        listOf(
+            0 to (Icons.Default.Leaderboard to S.current.leaderboardTabStandard),
+            1 to (Icons.Default.Today to S.current.leaderboardTabDaily),
+        ).forEach { (idx, iconLabel) ->
+            val (icon, label) = iconLabel
+            val selected = boardMode == idx
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (selected) Brush.linearGradient(gradient)
+                        else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (selected) Color.Transparent else ColorOutline,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .clickable { onSelect(idx) }
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        icon,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (selected) Color.White else ColorOnSurfaceVariant,
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (selected) Color.White else ColorOnSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Today's global daily board. One flat ranked list (no env/cat/time sub-filters)
+ * scoped to the current UTC date key; it naturally "resets" when a new daily set
+ * goes live at midnight UTC.
+ */
+@Composable
+private fun ColumnScope.DailyBoard(
+    scores: List<SoloScoreDto>,
+    loading: Boolean,
+    error: Boolean,
+    resetAt: Instant,
+    now: Instant,
+    currentUserId: String?,
+    playerName: String,
+) {
+    LeaderboardResetCountdown(period = 1, resetAt = resetAt, now = now)
+    Spacer(Modifier.height(2.dp))
+
+    when {
+        loading -> {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = ColorPrimary)
+            }
+        }
+        scores.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        if (error) Icons.Default.CloudOff else Icons.Default.Today,
+                        null,
+                        tint = ColorOnSurfaceVariant,
+                        modifier = Modifier.size(48.dp),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        if (error) S.current.error else S.current.soloNoScoresYet,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ColorOnSurfaceVariant,
+                    )
+                }
+            }
+        }
+        else -> {
+            val scoreUserIds = remember(scores) { scores.mapNotNull { it.user_id?.takeIf { id -> id.isNotBlank() } } }
+            val cosmeticsByUserId by pg.geobingo.one.ui.components.rememberPlayerCosmeticsMap(scoreUserIds)
+            val localCosmetics = pg.geobingo.one.ui.components.rememberLocalUserCosmetics()
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                itemsIndexed(scores) { index, score ->
+                    val isMe = isOwnScore(score, currentUserId, playerName)
+                    val rowCosmetics = when {
+                        isMe -> localCosmetics
+                        score.user_id != null -> cosmeticsByUserId[score.user_id] ?: pg.geobingo.one.network.PlayerCosmetics.NONE
+                        else -> pg.geobingo.one.network.PlayerCosmetics.NONE
+                    }
+                    LeaderboardRow(
+                        rank = index + 1,
+                        score = score,
+                        isCurrentPlayer = isMe,
+                        cosmetics = rowCosmetics,
+                    )
+                }
+            }
+        }
     }
 }

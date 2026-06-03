@@ -74,7 +74,11 @@ fun SoloResultsScreen(gameState: GameState) {
     val hasCustomName = effectiveName.isNotEmpty() &&
         !effectiveName.equals("Player", ignoreCase = true) &&
         !effectiveName.equals("Spieler", ignoreCase = true)
-    val isLeaderboardMode = solo.mode == SoloMode.STANDARD
+    // Both the classic Standard run and the Daily Run are ranked: Standard feeds
+    // the global all-time board, Daily the per-day global board (same date-seeded
+    // set worldwide). Endless / Weird Core / Roulette stay personal (no ranking).
+    val isDailyMode = solo.mode == SoloMode.DAILY_RUN
+    val isLeaderboardMode = solo.mode == SoloMode.STANDARD || isDailyMode
     val leaderboardEligible = isLoggedIn && hasCustomName
     // Show a "compete on the leaderboard" CTA only when this round would have
     // counted but the player isn't eligible yet.
@@ -123,8 +127,9 @@ fun SoloResultsScreen(gameState: GameState) {
 
     // Submit to the online leaderboard. Keyed on eligibility so the score
     // submits as soon as the user signs in / sets a name and returns here —
-    // but only once (guarded by solo.scoreSubmitted) and only for the standard
-    // mode (Endless / Daily Run / Weird Core / Roulette are personal modes).
+    // but only once (guarded by solo.scoreSubmitted) and only for ranked modes
+    // (Standard → all-time board, Daily → daily board). Endless / Weird Core /
+    // Roulette are personal modes and never submit.
     LaunchedEffect(leaderboardEligible) {
         if (!isLeaderboardMode || !leaderboardEligible || solo.scoreSubmitted) return@LaunchedEffect
         if (!pg.geobingo.one.util.RateLimiter.allow(pg.geobingo.one.util.RateLimiter.KEY_SOLO_SUBMIT, pg.geobingo.one.util.RateLimiter.SOLO_SUBMIT_COOLDOWN_MS)) return@LaunchedEffect
@@ -137,6 +142,8 @@ fun SoloResultsScreen(gameState: GameState) {
                 durationSeconds = solo.totalDurationSeconds,
                 isOutdoor = solo.isOutdoor,
                 userId = AccountManager.currentUserId,
+                mode = if (isDailyMode) "daily" else "standard",
+                dailyDate = if (isDailyMode) pg.geobingo.one.data.dailyRunDateKey() else null,
             )
             solo.scoreSubmitted = true
             submitted = true
@@ -234,7 +241,12 @@ fun SoloResultsScreen(gameState: GameState) {
         bottomBar = {
             Column(modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 OutlinedButton(
-                    onClick = { nav.navigateTo(Screen.SOLO_LEADERBOARD) },
+                    onClick = {
+                        nav.navigateTo(
+                            Screen.SOLO_LEADERBOARD,
+                            pg.geobingo.one.navigation.NavArgs.Leaderboard(daily = isDailyMode),
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(24.dp),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, SoloGradient.first()),

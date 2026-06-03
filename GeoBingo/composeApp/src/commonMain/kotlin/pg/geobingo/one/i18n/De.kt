@@ -542,6 +542,7 @@ object De : StringRes {
     override val reportPhotoTitle = "Foto melden"
     override fun reportPhotoBody(name: String) = "Möchtest du dieses Foto von $name wegen anstößiger oder unangemessener Inhalte melden? Wir prüfen alle Meldungen."
     override val imageRejectedByModeration = "Bild enthält unangemessene Inhalte und wurde nicht übernommen."
+    override val photoValidationFailed = "Foto konnte nicht geprüft werden – nochmal versuchen."
     override val changePassword = "Passwort ändern"
     override val changePasswordDesc = "Neues Passwort festlegen"
     override val currentPassword = "Aktuelles Passwort"
@@ -631,6 +632,8 @@ object De : StringRes {
     override val leaderboardMonthly = "Dieser Monat"
     override val leaderboardResetIn = "Reset in"
     override val leaderboardNeverResets = "Wird nie zurückgesetzt"
+    override val leaderboardTabStandard = "Gesamt"
+    override val leaderboardTabDaily = "Täglich"
     override val directMessages = "Nachrichten"
     override val noMessagesYet = "Noch keine Nachrichten"
     override val typeMessageHint = "Nachricht schreiben..."
@@ -699,7 +702,7 @@ object De : StringRes {
 
     // ── New Solo Modes ────────────────────────────────────────────────────
     override val soloRankedBadge = "Bestenliste"
-    override val soloRankedHint = "Nur dieser Modus zählt zur Bestenliste"
+    override val soloRankedHint = "Gewertete Modi zählen zur Bestenliste"
     override val modeEndless = "Endlos"
     override val modeEndlessSubtitle = "Survival — wie weit kommst du?"
     override val modeEndlessDesc = "Keine feste Kategorienzahl. Jeder Treffer bringt die nächste mit weniger Zeit. Ein Fehlschlag beendet den Lauf — knacke deine beste Serie."
@@ -716,6 +719,7 @@ object De : StringRes {
     override fun endlessYouReached(count: Int) = "Du hast $count Kategorien geschafft"
     override val endlessNewRecord = "Neuer Rekord!"
     override val endlessTryAgain = "Nochmal"
+    override val endlessValidationFailed = "Foto konnte nicht geprüft werden – nochmal versuchen."
     override val rouletteRolling = "Es dreht…"
     override val rouletteYourCategory = "Dein Thema"
     override val dailyRunTodaysSet = "Heutiges Set"
