@@ -942,7 +942,10 @@ internal fun GoogleSignInButton(
 
 /**
  * Authentic "Sign in with Apple" button per Apple Human Interface Guidelines:
- * black background, white Apple logo and text, no border.
+ * black background, white Apple logo and text. A light 1dp outline keeps the
+ * button readable as a tappable control on the app's near-black dialog surface
+ * (HIG permits outlining the black button on dark backgrounds; without it Apple
+ * review flags the button as indistinguishable from the background).
  */
 @Composable
 internal fun AppleSignInButton(
@@ -961,6 +964,7 @@ internal fun AppleSignInButton(
             disabledContainerColor = Color.Black.copy(alpha = 0.6f),
             disabledContentColor = Color.White.copy(alpha = 0.6f),
         ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
         contentPadding = PaddingValues(horizontal = 12.dp),
     ) {
         androidx.compose.foundation.Image(

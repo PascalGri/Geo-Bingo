@@ -156,8 +156,13 @@ fun ShopScreen(gameState: GameState) {
             }
 
             // Redeem-code section — giveaways, influencer drops, apology gifts.
-            ShopSection(title = S.current.redeemCode, icon = Icons.Default.CardGiftcard) {
-                RedeemCodeCard(gameState = gameState)
+            // Hidden on iOS: Apple Guideline 3.1.1 forbids granting Stars (the
+            // paid in-app currency) through non-StoreKit codes. iOS must use
+            // StoreKit Offer Codes instead; Android/web keep the in-app flow.
+            if (!pg.geobingo.one.platform.isApplePlatform) {
+                ShopSection(title = S.current.redeemCode, icon = Icons.Default.CardGiftcard) {
+                    RedeemCodeCard(gameState = gameState)
+                }
             }
 
             if (!BillingManager.isBillingSupported) {
