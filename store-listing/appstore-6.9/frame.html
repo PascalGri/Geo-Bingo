@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1320px; height: 2868px; overflow: hidden; }
+  body {
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background:
+      radial-gradient(ellipse 72% 44% at 50% 60%, rgba(217,70,239,.32), rgba(168,85,247,.10) 46%, transparent 72%),
+      linear-gradient(168deg, #34206A 0%, #4A2A8E 46%, #5A2F9E 62%, #371F6E 100%);
+  }
+
+  /* ── Decorations (photo-game theme: map pins, polaroids, sparkles) ── */
+  .deco { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .deco > * { position: absolute; }
+  .polaroid {
+    background: #F7F4FF; padding: 14px 14px 34px; border-radius: 12px;
+    box-shadow: 0 26px 54px rgba(0,0,0,.34);
+  }
+  .polaroid .photo { width: 156px; height: 156px; border-radius: 5px; }
+
+  /* ── Headline block ── */
+  .head { position: absolute; top: 156px; left: 0; right: 0; z-index: 2; text-align: center; padding: 0 86px; }
+  .head h1 { font-size: 122px; font-weight: 800; line-height: 1.02; letter-spacing: -2.5px; color: #FFFFFF; }
+  .head h2 {
+    font-size: 122px; font-weight: 800; line-height: 1.04; letter-spacing: -2.5px;
+    background: linear-gradient(118deg, #F8BBFF, #D946EF 52%, #A855F7);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .head p { margin-top: 36px; font-size: 50px; font-weight: 500; color: #D9CAF7; letter-spacing: .3px; }
+
+  /* ── Phone mockup ── */
+  .phone {
+    position: absolute; left: 50%; top: 806px; z-index: 1;
+    width: 842px; transform: translateX(-50%) rotate(-6deg);
+    filter: drop-shadow(0 64px 96px rgba(0,0,0,.46));
+  }
+  .frame-metal {
+    border-radius: 104px; padding: 14px;
+    background: linear-gradient(150deg, #ECECF1, #B8B8C2 38%, #8C8C97 68%, #D2D2DA);
+  }
+  .frame-bezel { background: #000; border-radius: 92px; padding: 16px; }
+  .screen {
+    position: relative; border-radius: 76px; overflow: hidden;
+    background: linear-gradient(160deg, #15132A, #0C0B15); aspect-ratio: 1320 / 2868;
+  }
+  .screen .shot { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .screen .hint {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; color: #6E5C9E; font-size: 40px; font-weight: 600; line-height: 1.45; padding: 0 60px;
+  }
+</style>
+</head>
+<body>
+  <div class="deco">
+    <!-- map pins -->
+    <svg style="left:64px; top:990px;" width="80" height="110" viewBox="0 0 32 44"><path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 28 16 28s16-16 16-28C32 7.2 24.8 0 16 0z" fill="#C9B3F2"/><circle cx="16" cy="16" r="7" fill="#3A2470"/></svg>
+    <svg style="right:88px; top:1156px; opacity:.92;" width="96" height="132" viewBox="0 0 32 44"><path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 28 16 28s16-16 16-28C32 7.2 24.8 0 16 0z" fill="#E9D5FF"/><circle cx="16" cy="16" r="7" fill="#3A2470"/></svg>
+    <svg style="right:150px; top:2010px; opacity:.82;" width="66" height="92" viewBox="0 0 32 44"><path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 28 16 28s16-16 16-28C32 7.2 24.8 0 16 0z" fill="#C9B3F2"/><circle cx="16" cy="16" r="7" fill="#3A2470"/></svg>
+
+    <!-- polaroids -->
+    <div class="polaroid" style="left:44px; top:1648px; transform:rotate(-12deg);"><div class="photo" style="background:linear-gradient(135deg,#FB7185,#E879F9);"></div></div>
+    <div class="polaroid" style="right:36px; top:1636px; transform:rotate(11deg);"><div class="photo" style="background:linear-gradient(135deg,#A855F7,#6366F1);"></div></div>
+    <div class="polaroid" style="left:78px; top:2188px; transform:rotate(8deg);"><div class="photo" style="background:linear-gradient(135deg,#22D3EE,#A855F7);"></div></div>
+
+    <!-- sparkles -->
+    <svg style="left:298px; top:902px;" width="48" height="48" viewBox="0 0 24 24"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#F5D0FE"/></svg>
+    <svg style="right:300px; top:930px;" width="34" height="34" viewBox="0 0 24 24"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#F5D0FE"/></svg>
+    <svg style="left:160px; top:1392px;" width="30" height="30" viewBox="0 0 24 24"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#FFFFFF"/></svg>
+    <svg style="right:118px; top:2380px;" width="42" height="42" viewBox="0 0 24 24"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#F5D0FE"/></svg>
+  </div>
+
+  <div class="head">
+    <h1 id="t1">Headline</h1>
+    <h2 id="t2"></h2>
+    <p id="sub">Untertitel</p>
+  </div>
+
+  <div class="phone">
+    <div class="frame-metal"><div class="frame-bezel">
+      <div class="screen">
+        <div class="hint">Lege deinen 6,9&quot;-Screenshot (1320&times;2868)<br>als <b id="shotname">…</b> in den Ordner <b>screenshots/</b></div>
+        <img class="shot" id="shot" alt="" onerror="this.style.display='none'">
+      </div>
+    </div></div>
+  </div>
+
+  <script src="frames.js"></script>
+  <script>
+    var i = parseInt((location.search.match(/i=(\d+)/) || [])[1] || "0", 10);
+    var F = (window.FRAMES || [])[i] || {};
+    document.getElementById('t1').textContent = F.t1 || '';
+    var t2 = document.getElementById('t2');
+    if (F.t2) { t2.textContent = F.t2; } else { t2.style.display = 'none'; }
+    document.getElementById('sub').textContent = F.sub || '';
+    document.getElementById('shotname').textContent = F.shot || '…';
+    if (F.shot) { document.getElementById('shot').src = 'screenshots/' + F.shot; }
+  </script>
+</body>
+</html>
