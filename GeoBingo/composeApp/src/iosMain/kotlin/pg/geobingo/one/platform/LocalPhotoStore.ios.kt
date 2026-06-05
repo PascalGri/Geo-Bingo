@@ -75,6 +75,11 @@ actual object LocalPhotoStore {
         return contents.filter { fm.fileExistsAtPath("$gamesDir/$it/meta.json") }
     }
 
+    actual fun deleteGame(gameId: String) {
+        if (gameId.isBlank()) return
+        NSFileManager.defaultManager.removeItemAtPath("$baseDir/games/$gameId", error = null)
+    }
+
     actual fun deleteAllGameData() {
         val gamesDir = "$baseDir/games"
         val fm = NSFileManager.defaultManager

@@ -108,6 +108,10 @@ object En : StringRes {
     override val aiJudgeRandomCount = "Category count"
     override fun aiJudgeRandomCountValue(n: Int) = "$n categories"
     override val indoorOutdoorAndRandom = "Indoor / Outdoor + Random"
+    override val autoCategoriesHint = "We'll put together a category set for you automatically."
+    override val customCategoriesButton = "Choose your own categories"
+    override val autoCategoriesButton = "Choose automatically"
+    override val yourSelection = "Your selection"
 
     // ── Duration ────────────────────────────────────────────────────────
     override val gameDuration = "Game duration"
@@ -270,22 +274,6 @@ object En : StringRes {
     override val difficultyMedium = "Medium"
     override val difficultyHard = "Hard"
     override val previewCategories = "Preview"
-
-    // ── Team Mode ───────────────────────────────────────────────────────
-    override val teamMode = "Team mode"
-    override val teamModeDesc = "Play in teams! Shared score, shared strategy."
-    override val team = "Team"
-    override fun teamName(number: Int) = "Team $number"
-    override val teamScore = "Team score"
-    override val selectTeams = "Select teams"
-    override val createTeam = "Create team"
-    override val teamNamePlaceholder = "Enter team name"
-    override val joinTeam = "Join"
-    override val noTeam = "No team"
-    override val minTwoTeamsNeeded = "At least 2 teams needed"
-    override fun teamOfTotal(current: Int, total: Int) = "Team $current/$total"
-    override fun capturedBy(name: String) = "Photo by $name"
-    override fun teamFoundCount(found: Int, total: Int) = "Team: $found/$total"
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     override val ready = "Ready!"

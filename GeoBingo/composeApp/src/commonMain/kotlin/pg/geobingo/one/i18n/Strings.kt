@@ -132,6 +132,10 @@ interface StringRes {
     val aiJudgeRandomCount: String
     fun aiJudgeRandomCountValue(n: Int): String
     val indoorOutdoorAndRandom: String
+    val autoCategoriesHint: String
+    val customCategoriesButton: String
+    val autoCategoriesButton: String
+    val yourSelection: String
 
     // ── Duration ────────────────────────────────────────────────────────
     val gameDuration: String
@@ -303,22 +307,6 @@ interface StringRes {
     val difficultyMedium: String
     val difficultyHard: String
     val previewCategories: String
-
-    // ── Team Mode ───────────────────────────────────────────────────────
-    val teamMode: String
-    val teamModeDesc: String
-    val team: String
-    fun teamName(number: Int): String
-    val teamScore: String
-    val selectTeams: String
-    val createTeam: String
-    val teamNamePlaceholder: String
-    val joinTeam: String
-    val noTeam: String
-    val minTwoTeamsNeeded: String
-    fun teamOfTotal(current: Int, total: Int): String
-    fun capturedBy(name: String): String
-    fun teamFoundCount(found: Int, total: Int): String
 
     // ── Chat / Reactions ────────────────────────────────────────────────
     val ready: String

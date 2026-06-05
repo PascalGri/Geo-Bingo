@@ -67,27 +67,26 @@ fun CreateGameScreen(gameState: GameState) {
     // which has its own setting) lets the host pick which pool to draw
     // from. WEIRD_CORE now has a dedicated indoor variant alongside the
     // expanded outdoor list.
-    val presetPool = remember(gameMode, gameState.session.playOutdoor) {
+    val presetPool = remember(gameMode, gameState.session.playOutdoor, S.language) {
         when (gameMode) {
-            GameMode.WEIRD_CORE -> if (gameState.session.playOutdoor) {
+            GameMode.WEIRD_CORE -> (if (gameState.session.playOutdoor) {
                 WEIRD_CORE_OUTDOOR_CATEGORIES
             } else {
                 WEIRD_CORE_INDOOR_CATEGORIES
-            }
-            GameMode.QUICK_START -> PRESET_CATEGORIES // quickStart has its own flow
-            else -> if (gameState.session.playOutdoor) {
+            }).map { it.localized(WEIRD_CORE_CATEGORIES_EN) }
+            GameMode.QUICK_START -> PRESET_CATEGORIES.map { it.localizedTemplate(MP_TEMPLATES_EN) } // quickStart has its own flow
+            else -> (if (gameState.session.playOutdoor) {
                 PRESET_CATEGORIES
             } else {
                 INDOOR_PRESET_CATEGORIES
-            }
+            }).map { it.localizedTemplate(MP_TEMPLATES_EN) }
         }
     }
-    var visiblePresets by remember(gameMode, gameState.session.playOutdoor) {
+    var visiblePresets by remember(gameMode, gameState.session.playOutdoor, S.language) {
         mutableStateOf(presetPool.take(VISIBLE_PRESET_COUNT))
     }
 
     var durationMinutes by remember { mutableStateOf(GameConstants.DEFAULT_GAME_DURATION_MINUTES.toFloat()) }
-    var teamModeEnabled by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -181,6 +180,7 @@ fun CreateGameScreen(gameState: GameState) {
                         text = when {
                             hostNameInput.trim().isEmpty() -> S.current.enterName
                             gameMode == GameMode.QUICK_START -> S.current.quickStartCreateRound
+                            randomActive -> S.current.createRoundWithCategories(gameState.session.randomCategoriesCount)
                             totalCategories < 2 -> S.current.minCategoriesNeeded
                             else -> S.current.createRoundWithCategories(totalCategories)
                         },
@@ -243,7 +243,6 @@ fun CreateGameScreen(gameState: GameState) {
                                         gameState.joker.jokerMode = false
                                         gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
                                         gameState.gameplay.lobbyPlayers = listOf(hostDto)
-                                        gameState.gameplay.teamModeEnabled = teamModeEnabled
                                         nav.navigateTo(Screen.LOBBY)
                                     } catch (e: Exception) {
                                         // Cleanup: mark orphaned game as closed
@@ -339,8 +338,8 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── Favoriten ─────────────────────────────────────────────────
-            if (gameMode != GameMode.QUICK_START) {
+            // ── Favoriten (nur bei manueller Auswahl) ─────────────────────
+            if (gameMode != GameMode.QUICK_START && !randomActive) {
                 val favGradient = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
@@ -564,14 +563,13 @@ fun CreateGameScreen(gameState: GameState) {
                 }
             }
 
-            // ── Indoor / Outdoor + Random Pool toggle ─────────────────────
-            // Universal for every mode except QUICK_START (which has its
-            // own indoor/outdoor + random behaviour). Lets the host pick
-            // which preset pool the categories come from, and optionally
-            // skip the manual list entirely by enabling the random pool
-            // (count selector below).
+            // ── Kategorien: automatische Auswahl (Standard) ───────────────
+            // Default for every mode except QUICK_START: we draw
+            // [randomCategoriesCount] categories from the chosen
+            // indoor/outdoor pool at start time. The host can opt out via
+            // "Eigene Kategorien" to hand-pick instead (manual picker below).
             if (gameMode != GameMode.QUICK_START) {
-                val randomSectionGradient = when (gameMode) {
+                val catGradient = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
                     GameMode.BLIND_BINGO -> GradientCool
                     GameMode.WEIRD_CORE -> GradientWeird
@@ -579,107 +577,25 @@ fun CreateGameScreen(gameState: GameState) {
                     GameMode.AI_JUDGE -> GradientAiJudge
                 }
                 DarkSectionCard(
-                    title = S.current.indoorOutdoorAndRandom,
-                    modifier = Modifier.staggered(2),
-                    gradientColors = randomSectionGradient,
+                    title = S.current.categoriesSelected,
+                    modifier = Modifier.staggered(if (gameMode == GameMode.CLASSIC) 1 else 2),
+                    gradientColors = catGradient,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                S.current.aiJudgeRandomToggle,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = ColorOnSurface,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                S.current.aiJudgeRandomToggleDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = gameState.session.randomCategoriesEnabled,
-                            onCheckedChange = { gameState.session.randomCategoriesEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = randomSectionGradient.first(),
-                                uncheckedThumbColor = ColorOnSurfaceVariant,
-                                uncheckedTrackColor = ColorSurfaceVariant,
-                            ),
+                    // Pool selector — relevant in both auto and manual mode.
+                    IndoorOutdoorSelector(
+                        outdoor = gameState.session.playOutdoor,
+                        onSelect = { gameState.session.playOutdoor = it },
+                        gradient = catGradient,
+                    )
+
+                    if (randomActive) {
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            S.current.autoCategoriesHint,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorOnSurfaceVariant,
                         )
-                    }
-
-                    if (gameState.session.randomCategoriesEnabled) {
-                        Spacer(Modifier.height(16.dp))
-                        // Indoor / Outdoor selector — reuses the
-                        // session.aiJudgeOutdoor flag so the pool we draw
-                        // from below matches what the user picked.
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            val outdoorSelected = gameState.session.playOutdoor
-                            val btnMod = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                            Box(
-                                modifier = btnMod
-                                    .background(
-                                        if (outdoorSelected) Brush.linearGradient(randomSectionGradient)
-                                        else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                                    )
-                                    .clickable { gameState.session.playOutdoor = true }
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        Icons.Default.WbSunny, null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = if (outdoorSelected) Color.White else ColorOnSurfaceVariant,
-                                    )
-                                    Text(
-                                        S.current.outdoor,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (outdoorSelected) Color.White else ColorOnSurfaceVariant,
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = btnMod
-                                    .background(
-                                        if (!outdoorSelected) Brush.linearGradient(randomSectionGradient)
-                                        else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
-                                    )
-                                    .clickable { gameState.session.playOutdoor = false }
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        Icons.Default.House, null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = if (!outdoorSelected) Color.White else ColorOnSurfaceVariant,
-                                    )
-                                    Text(
-                                        S.current.indoor,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (!outdoorSelected) Color.White else ColorOnSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(12.dp))
                         // Count stepper (clamped to [2, 10]).
                         val maxCount = 10
                         Row(
@@ -705,7 +621,7 @@ fun CreateGameScreen(gameState: GameState) {
                                 S.current.aiJudgeRandomCountValue(gameState.session.randomCategoriesCount),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = randomSectionGradient.first(),
+                                color = catGradient.first(),
                                 modifier = Modifier.padding(horizontal = 8.dp),
                             )
                             IconButton(
@@ -718,6 +634,56 @@ fun CreateGameScreen(gameState: GameState) {
                                 Icon(Icons.Default.Add, null, tint = ColorOnSurface)
                             }
                         }
+
+                        Spacer(Modifier.height(16.dp))
+                        // Secondary opt-in: hand-pick categories instead.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(1.dp, catGradient.first().copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .clickable { gameState.session.randomCategoriesEnabled = false }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Default.Tune, null, modifier = Modifier.size(16.dp), tint = catGradient.first())
+                                Text(
+                                    S.current.customCategoriesButton,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = catGradient.first(),
+                                )
+                            }
+                        }
+                    } else {
+                        Spacer(Modifier.height(14.dp))
+                        // Back to automatic selection.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(catGradient))
+                                .clickable { gameState.session.randomCategoriesEnabled = true }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                                Text(
+                                    S.current.autoCategoriesButton,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -726,7 +692,7 @@ fun CreateGameScreen(gameState: GameState) {
             if (gameMode != GameMode.QUICK_START && !randomActive) {
             val catSectionIndex = if (gameMode == GameMode.CLASSIC) 1 else 2
             DarkSectionCard(
-                title = "${S.current.categoriesSelected}  \u00B7  $totalCategories",
+                title = "${S.current.yourSelection}  \u00B7  $totalCategories",
                 modifier = Modifier.staggered(catSectionIndex),
                 gradientColors = when (gameMode) {
                     GameMode.CLASSIC -> GradientPrimary
@@ -1051,76 +1017,6 @@ fun CreateGameScreen(gameState: GameState) {
                 )
             } // end if (gameMode != GameMode.QUICK_START)
 
-            // ── Team Mode Toggle ──────────────────────────────────────────
-            run {
-                val teamIndex = when (gameMode) {
-                    GameMode.CLASSIC -> 4
-                    GameMode.QUICK_START -> 3
-                    else -> 5
-                }
-                val teamGradient = when (gameMode) {
-                    GameMode.CLASSIC -> GradientPrimary
-                    GameMode.BLIND_BINGO -> GradientCool
-                    GameMode.WEIRD_CORE -> GradientWeird
-                    GameMode.QUICK_START -> GradientQuickStart
-                    GameMode.AI_JUDGE -> GradientAiJudge
-                }
-                DarkSectionCard(
-                    title = S.current.teamMode,
-                    modifier = Modifier.staggered(teamIndex),
-                    gradientColors = teamGradient,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                S.current.teamModeDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ColorOnSurfaceVariant,
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Switch(
-                            checked = teamModeEnabled,
-                            onCheckedChange = { teamModeEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = teamGradient.first(),
-                                uncheckedThumbColor = ColorOnSurfaceVariant,
-                                uncheckedTrackColor = ColorSurfaceVariant,
-                            ),
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = teamModeEnabled,
-                        enter = expandVertically(tween(300)) + fadeIn(tween(300)),
-                        exit = shrinkVertically(tween(300)) + fadeOut(tween(300)),
-                    ) {
-                        Column {
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.Groups,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = teamGradient.first().copy(alpha = 0.7f),
-                                )
-                                Text(
-                                    S.current.selectTeams,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = teamGradient.first().copy(alpha = 0.7f),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             Spacer(Modifier.height(4.dp))
         }
     }
@@ -1200,6 +1096,56 @@ private data class ModeBannerData(
     val text: String,
     val colors: List<Color>,
 )
+
+@Composable
+private fun IndoorOutdoorSelector(
+    outdoor: Boolean,
+    onSelect: (Boolean) -> Unit,
+    gradient: List<Color>,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        val btnMod = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+        Box(
+            modifier = btnMod
+                .background(
+                    if (outdoor) Brush.linearGradient(gradient)
+                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                )
+                .clickable { onSelect(true) }
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.WbSunny, null, modifier = Modifier.size(16.dp), tint = if (outdoor) Color.White else ColorOnSurfaceVariant)
+                Text(S.current.outdoor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = if (outdoor) Color.White else ColorOnSurfaceVariant)
+            }
+        }
+        Box(
+            modifier = btnMod
+                .background(
+                    if (!outdoor) Brush.linearGradient(gradient)
+                    else Brush.linearGradient(listOf(ColorSurfaceVariant, ColorSurfaceVariant))
+                )
+                .clickable { onSelect(false) }
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.House, null, modifier = Modifier.size(16.dp), tint = if (!outdoor) Color.White else ColorOnSurfaceVariant)
+                Text(S.current.indoor, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = if (!outdoor) Color.White else ColorOnSurfaceVariant)
+            }
+        }
+    }
+}
 
 @Composable
 internal fun DarkSectionCard(

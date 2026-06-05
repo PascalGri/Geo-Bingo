@@ -127,6 +127,31 @@ fun ResultsScreen(gameState: GameState) {
         }
     }
 
+    // Pre-cache the FULL photo gallery to local disk on EVERY device (not just
+    // the host), so the 7-day Spielverlauf gallery stays complete and works
+    // offline even after the host deletes the remote copies. The host's storage
+    // cleanup is delayed (RESULTS_CLEANUP_DELAY_MS) specifically to give this a
+    // head start. Best-effort and batched to spare the network; downloadPhoto
+    // skips anything already cached locally.
+    LaunchedEffect(Unit) {
+        val gid = gameState.session.gameId ?: return@LaunchedEffect
+        try {
+            val caps = GameRepository.getCaptures(gid)
+            caps.chunked(6).forEach { batch ->
+                kotlinx.coroutines.coroutineScope {
+                    batch.forEach { cap ->
+                        launch {
+                            try { GameRepository.downloadPhoto(gid, cap.player_id, cap.category_id) }
+                            catch (e: Exception) { AppLogger.d("Results", "Gallery pre-cache item failed", e) }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.w("Results", "Gallery pre-cache failed", e)
+        }
+    }
+
     // Save to history once on entry, then cleanup server storage
     LaunchedEffect(Unit) {
         ActiveSession.clear() // Game is over, no rejoin needed
@@ -513,154 +538,51 @@ fun ResultsScreen(gameState: GameState) {
                 .verticalScroll(rememberScrollState()),
         ) {
             // Winner banner
-            if (gameState.gameplay.teamModeEnabled) {
-                // Team mode: show winning team
-                val rankedTeams = gameState.teams.rankedTeams
-                val winnerTeam = rankedTeams.firstOrNull()
-                if (winnerTeam != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .staggered(0)
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = S.current.wins,
-                            modifier = Modifier.size(44.dp),
-                            tint = Color(0xFFFBBF24),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            winnerTeam.second,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorOnBackground,
-                        )
-                        Text(
-                            S.current.wins,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                }
-
-                // Team ranking cards
-                val teamColors = listOf(modeGradient.first(), modeGradient.last(), Color(0xFF22D3EE), Color(0xFFFB923C), Color(0xFF84CC16), Color(0xFFFF6B6B))
+            if (winner != null) {
                 Column(
-                    modifier = Modifier.padding(16.dp).staggered(1),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .staggered(0)
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    AnimatedGradientText(
-                        text = S.current.teamScore,
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        gradientColors = modeGradient,
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = S.current.wins,
+                        modifier = Modifier.size(44.dp),
+                        tint = Color(0xFFFBBF24),
                     )
-                    rankedTeams.forEachIndexed { idx, (teamNum, teamName, score) ->
-                        val isWinner = idx == 0
-                        val teamColor = teamColors[idx % teamColors.size]
-                        val teamPlayers = gameState.teams.getTeamPlayers(teamNum)
-                        GradientBorderCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = 14.dp,
-                            borderColors = if (isWinner) GradientGold else listOf(teamColor, teamColor.copy(alpha = 0.5f)),
-                            backgroundColor = ColorSurface,
-                            borderWidth = if (isWinner) 2.dp else 1.dp,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp).fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    val rankColor = when (idx) {
-                                        0 -> Color(0xFFFBBF24)
-                                        1 -> Color(0xFF94A3B8)
-                                        2 -> Color(0xFFCD7F32)
-                                        else -> ColorOnSurfaceVariant
-                                    }
-                                    Text(
-                                        "#${idx + 1}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = rankColor,
-                                    )
-                                    Column {
-                                        Text(
-                                            teamName,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = teamColor,
-                                        )
-                                        Text(
-                                            teamPlayers.joinToString(", ") { it.name },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = ColorOnSurfaceVariant,
-                                        )
-                                    }
-                                }
-                                Text(
-                                    "$score ${S.current.pointsAbbrev}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isWinner) Color(0xFFFBBF24) else ColorOnSurface,
-                                )
-                            }
-                        }
-                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        winner.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorOnBackground,
+                    )
+                    Text(
+                        S.current.wins,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ColorOnSurfaceVariant,
+                    )
                 }
-            } else {
-                // Individual mode: show winning player
-                if (winner != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .staggered(0)
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = S.current.wins,
-                            modifier = Modifier.size(44.dp),
-                            tint = Color(0xFFFBBF24),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            winner.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorOnBackground,
-                        )
-                        Text(
-                            S.current.wins,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = ColorOnSurfaceVariant,
-                        )
-                    }
-                }
+            }
 
-                // Podium
-                if (ranked.size >= 2) {
-                    Spacer(Modifier.height(20.dp))
-                    Box(modifier = Modifier.staggered(1)) {
-                        DarkPodiumSection(
-                            ranked = ranked.take(3),
-                            playerAvatarBytes = gameState.photo.playerAvatarBytes,
-                            gameState = gameState,
-                            cosmeticsByUserId = cosmeticsByUserId,
-                        )
-                    }
+            // Podium
+            if (ranked.size >= 2) {
+                Spacer(Modifier.height(20.dp))
+                Box(modifier = Modifier.staggered(1)) {
+                    DarkPodiumSection(
+                        ranked = ranked.take(3),
+                        playerAvatarBytes = gameState.photo.playerAvatarBytes,
+                        gameState = gameState,
+                        cosmeticsByUserId = cosmeticsByUserId,
+                    )
                 }
             }
 
             // Full ranking
             Column(
-                modifier = Modifier.padding(16.dp).staggered(if (gameState.gameplay.teamModeEnabled) 3 else 2),
+                modifier = Modifier.padding(16.dp).staggered(2),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(

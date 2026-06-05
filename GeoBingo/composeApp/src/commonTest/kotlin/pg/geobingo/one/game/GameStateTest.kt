@@ -191,21 +191,6 @@ class GameStateTest {
     }
 
     @Test
-    fun teamHelpers_work() {
-        val gs = createGameState()
-        gs.gameplay.captures = mapOf("p1" to setOf("cat1"), "p2" to setOf("cat1", "cat2"))
-        gs.gameplay.teamAssignments = mapOf("p1" to 1, "p2" to 2)
-
-        val team1Players = gs.teams.getTeamPlayers(1)
-        assertEquals(1, team1Players.size)
-        assertEquals("p1", team1Players[0].id)
-
-        val team2Players = gs.teams.getTeamPlayers(2)
-        assertEquals(1, team2Players.size)
-        assertEquals("p2", team2Players[0].id)
-    }
-
-    @Test
     fun delegatesToScoringManager() {
         val gs = createGameState()
         gs.gameplay.captures = mapOf("p1" to setOf("cat1"), "p2" to emptySet())

@@ -20,11 +20,12 @@ class SessionState {
     // primary value proposition of the app.
     var playOutdoor by mutableStateOf(true)
 
-    // Universal random-pool mode: when enabled, the host skips the manual
-    // preset/custom picker on CreateGameScreen and the round runs against
-    // [randomCategoriesCount] categories drawn from the indoor or outdoor
-    // preset pool at start time. Available on every mode except
-    // QUICK_START (which is intrinsically random already).
-    var randomCategoriesEnabled by mutableStateOf(false)
+    // Universal random-pool mode: the DEFAULT for every mode except
+    // QUICK_START (which is intrinsically random already). When enabled,
+    // the host skips the manual preset/custom picker on CreateGameScreen
+    // and the round runs against [randomCategoriesCount] categories drawn
+    // from the indoor or outdoor preset pool at start time. The host can
+    // opt out via "Eigene Kategorien" to hand-pick instead.
+    var randomCategoriesEnabled by mutableStateOf(true)
     var randomCategoriesCount by mutableStateOf(5)
 }

@@ -51,7 +51,8 @@ class FeedbackManager(
 
     // Social
     fun playerJoined() { sound(SoundEffect.PlayerJoined) }
-    fun friendRequest() { sound(SoundEffect.FriendRequest) }
+    fun friendRequest() { hapticTick(); sound(SoundEffect.FriendRequest) }
+    fun gameInvite() { hapticTick(); sound(SoundEffect.FriendRequest) }
     fun vote() { hapticTick(); sound(SoundEffect.Vote) }
 
     // Shop/items

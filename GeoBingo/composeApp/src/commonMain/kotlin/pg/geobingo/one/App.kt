@@ -76,7 +76,7 @@ fun App() {
                 enter = expandVertically(),
                 exit = shrinkVertically(),
             ) {
-                OfflineBanner(message = S.current.noInternet)
+                OfflineBanner(message = S.current.noInternet, modifier = Modifier.statusBarsPadding())
             }
 
             // Game invite + friend request banners

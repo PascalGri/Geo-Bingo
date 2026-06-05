@@ -31,7 +31,6 @@ internal fun DarkWaitingScreen(
     requiredVotes: Int = totalPlayers - 1,
     isHost: Boolean,
     isSelf: Boolean = false,
-    isTeamMode: Boolean = false,
     modeGradient: List<Color> = GradientPrimary,
     onReadyToAdvance: () -> Unit,
     onForceAdvance: () -> Unit,

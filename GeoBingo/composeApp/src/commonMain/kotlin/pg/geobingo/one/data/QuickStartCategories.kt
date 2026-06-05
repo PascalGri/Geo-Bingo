@@ -61,5 +61,5 @@ private val QUICK_START_INDOOR_POOL: List<Category> = listOf(
 
 fun quickStartCategories(outdoor: Boolean): List<Category> {
     val pool = if (outdoor) QUICK_START_OUTDOOR_POOL else QUICK_START_INDOOR_POOL
-    return pool.shuffled().take(5)
+    return pool.shuffled().take(5).map { it.localized(QUICK_START_CATEGORIES_EN) }
 }

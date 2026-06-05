@@ -493,7 +493,7 @@ val INDOOR_PRESET_CATEGORIES: List<Category> = INDOOR_CATEGORY_TEMPLATES.map { t
 
 fun INDOOR_TEMPLATES_SHUFFLED(): List<Category> = INDOOR_CATEGORY_TEMPLATES.map { t ->
     Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
-}.shuffled()
+}.shuffled().map { it.localizedTemplate(MP_TEMPLATES_EN) }
 
 val INDOOR_CATEGORY_DESCRIPTIONS: Map<String, String> = INDOOR_CATEGORY_TEMPLATES.associate { it.id to it.description }
 
@@ -506,7 +506,7 @@ val PRESET_CATEGORIES: List<Category> = CATEGORY_TEMPLATES.map { t ->
 /** Returns a freshly shuffled list of categories with new random variant names. */
 fun CATEGORY_TEMPLATES_SHUFFLED(): List<Category> = CATEGORY_TEMPLATES.map { t ->
     Category(id = t.id, name = t.variants.random(), emoji = t.emoji, description = t.description)
-}.shuffled()
+}.shuffled().map { it.localizedTemplate(MP_TEMPLATES_EN) }
 
 // Lookup map: template id → description (used client-side without DB storage)
 val CATEGORY_DESCRIPTIONS: Map<String, String> = (CATEGORY_TEMPLATES + INDOOR_CATEGORY_TEMPLATES).associate { it.id to it.description }
@@ -534,9 +534,13 @@ val ROULETTE_GROUPS: List<CategoryGroup> =
  */
 fun rouletteCategories(group: CategoryGroup, count: Int = 5): List<Category> {
     val fromGroup = (CATEGORIES_BY_GROUP[group] ?: emptyList()).shuffled()
-    if (fromGroup.size >= count) return fromGroup.take(count)
-    val filler = PRESET_CATEGORIES.filter { it !in fromGroup }.shuffled()
-    return (fromGroup + filler).take(count)
+    val result = if (fromGroup.size >= count) {
+        fromGroup.take(count)
+    } else {
+        val filler = PRESET_CATEGORIES.filter { it !in fromGroup }.shuffled()
+        (fromGroup + filler).take(count)
+    }
+    return result.map { it.localizedTemplate(MP_TEMPLATES_EN) }
 }
 
 // Quick preset combos for one-tap selection

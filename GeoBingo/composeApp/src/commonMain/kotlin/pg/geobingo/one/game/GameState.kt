@@ -61,7 +61,6 @@ class GameState {
 
     // ── Feature managers (single source of truth for logic) ──────────────
     val scoring = ScoringManager(gameplay, review)
-    val teams = TeamManager(session, gameplay, review, scoring)
     val history = HistoryManager(session, gameplay, ui, scoring)
 
     // ── Shared realtime + sync managers ─────────────────────────────────
@@ -187,17 +186,9 @@ class GameState {
     /** Recheck the allCategoriesCaptured flag after captures change. Call inside stateMutex. */
     private fun checkAllCategoriesCaptured(playerId: String) {
         if (!gameplay.isGameRunning || gameplay.selectedCategories.isEmpty() || review.allCategoriesCaptured) return
-        if (gameplay.teamModeEnabled) {
-            val myTeam = gameplay.teamAssignments[playerId] ?: return
-            val teamCaptures = teams.getTeamCaptures(myTeam)
-            if (gameplay.selectedCategories.all { it.id in teamCaptures }) {
-                review.allCategoriesCaptured = true
-            }
-        } else {
-            val playerCaptures = gameplay.captures[playerId] ?: emptySet()
-            if (gameplay.selectedCategories.all { it.id in playerCaptures }) {
-                review.allCategoriesCaptured = true
-            }
+        val playerCaptures = gameplay.captures[playerId] ?: emptySet()
+        if (gameplay.selectedCategories.all { it.id in playerCaptures }) {
+            review.allCategoriesCaptured = true
         }
     }
 
@@ -256,10 +247,6 @@ class GameState {
         review.endVoteCount = 0
         review.allCategoriesCaptured = false
         review.finishSignalDetected = false
-        gameplay.teamAssignments = mapOf()
-        gameplay.teamNames = mapOf()
-        gameplay.teamModeEnabled = false
-        gameplay.nextTeamNumber = 1
         joker.myJokerUsed = false
         joker.jokerLabels = mapOf()
         ui.consecutiveNetworkErrors = 0

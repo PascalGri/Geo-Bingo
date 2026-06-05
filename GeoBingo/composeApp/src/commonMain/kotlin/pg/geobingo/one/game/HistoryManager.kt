@@ -60,7 +60,7 @@ class HistoryManager(
             ),
             jokerMode = false,
             date = now,
-            gameId = "",
+            gameId = solo.gameId,
             categories = solo.categories.map { HistoryCategory(id = it.id, name = it.name) },
         )
         ui.gameHistory = listOf(entry) + ui.gameHistory

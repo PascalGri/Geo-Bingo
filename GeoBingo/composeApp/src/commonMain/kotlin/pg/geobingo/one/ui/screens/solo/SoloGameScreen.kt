@@ -35,13 +35,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pg.geobingo.one.di.ServiceLocator
 import pg.geobingo.one.game.GameState
 import pg.geobingo.one.game.Screen
 import pg.geobingo.one.i18n.S
 import pg.geobingo.one.network.GameRepository
+import pg.geobingo.one.platform.LocalPhotoStore
 import pg.geobingo.one.platform.SoundEffect
 import pg.geobingo.one.platform.SoundPlayer
 import pg.geobingo.one.platform.play
@@ -95,6 +98,22 @@ fun SoloGameScreen(gameState: GameState) {
     // crash the app as "unhandled coroutine exception". The extra
     // CoroutineExceptionHandler is a second-line defense for anything that
     // escapes even the Throwable catch.
+    // Cache an accepted solo photo on disk so the Spielverlauf can rebuild the
+    // round's gallery later. Only safe/accepted photos reach here; the file is
+    // keyed the same way the history screen reads it (gameId/playerId/categoryId).
+    fun persistSoloPhoto(catId: String, bytes: ByteArray) {
+        val gid = solo.gameId
+        if (gid.isEmpty()) return
+        val pid = gameState.session.myPlayerId ?: "solo"
+        scope.launch {
+            try {
+                withContext(Dispatchers.Default) { LocalPhotoStore.savePhoto(gid, pid, catId, bytes) }
+            } catch (e: Exception) {
+                AppLogger.w("SoloGame", "Solo photo local save failed", e)
+            }
+        }
+    }
+
     fun validatePhoto(catId: String, bytes: ByteArray, fallbackOnError: Boolean) {
         val category = solo.categories.find { it.id == catId } ?: return
         solo.validatingCategories = solo.validatingCategories + catId
@@ -135,6 +154,7 @@ fun SoloGameScreen(gameState: GameState) {
                     if (gameState.ui.soundEnabled) SoundPlayer.play(SoundEffect.PhotoRejected)
                     return@launch
                 }
+                persistSoloPhoto(catId, bytes)
                 solo.categoryRatings = solo.categoryRatings + (catId to result.rating)
                 solo.categoryReasons = solo.categoryReasons + (catId to result.reason)
                 if (gameState.ui.soundEnabled) {
@@ -164,6 +184,7 @@ fun SoloGameScreen(gameState: GameState) {
             if (aiConsentAccepted) {
                 validatePhoto(catId, bytes, fallbackOnError = true)
             } else {
+                persistSoloPhoto(catId, bytes)
                 solo.categoryRatings = solo.categoryRatings + (catId to 3)
                 solo.categoryReasons = solo.categoryReasons + (catId to "")
             }

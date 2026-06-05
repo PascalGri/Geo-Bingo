@@ -41,7 +41,18 @@ object GameConstants {
     const val INFINITY_TIME = "9999-99-99T99:99:99Z"
 
     // Results
-    const val RESULTS_CLEANUP_DELAY_MS = 10_000L
+    // Host waits this long after the results screen opens before deleting the
+    // game's photos from remote storage, giving every device time to pre-cache
+    // the full gallery locally first (so the 7-day Spielverlauf gallery stays
+    // complete and works offline even after the remote copies are gone).
+    const val RESULTS_CLEANUP_DELAY_MS = 30_000L
+
+    // Spielverlauf (game history) retention: games older than this are dropped
+    // from the local history list and their cached photos are deleted from disk.
+    const val HISTORY_RETENTION_DAYS = 7
+    // Generous safety cap so a pathological number of games in one week can't
+    // grow history/disk without bound. The 7-day window is the primary rule.
+    const val HISTORY_MAX_ENTRIES = 200
 
     // Retry defaults
     const val RETRY_MAX_ATTEMPTS = 3

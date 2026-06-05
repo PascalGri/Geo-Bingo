@@ -37,6 +37,13 @@ enum class SoloMode {
  */
 class SoloState {
     var mode by mutableStateOf(SoloMode.STANDARD)
+    /**
+     * Stable local id for this solo round, assigned at game start. Solo photos
+     * are cached on disk under `games/<gameId>/...` and the same id is written
+     * into the GameHistoryEntry so the Spielverlauf can rebuild the round's
+     * image gallery. Empty until a round actually starts.
+     */
+    var gameId by mutableStateOf("")
     var categories by mutableStateOf(listOf<Category>())
     var capturedCategories by mutableStateOf(setOf<String>())
     var captureTimestamps by mutableStateOf(mapOf<String, Long>()) // categoryId -> epochMillis
@@ -89,6 +96,7 @@ class SoloState {
 
     fun reset() {
         mode = SoloMode.STANDARD
+        gameId = ""
         categories = emptyList()
         capturedCategories = emptySet()
         captureTimestamps = emptyMap()

@@ -244,7 +244,7 @@ fun weirdCoreCategories(outdoor: Boolean, count: Int = 5): List<Category> {
     val newHistory = (selected.map { it.id } + recentIds.toList()).take(maxHistory)
     AppSettings.setString(historyKey, newHistory.joinToString(","))
 
-    return selected
+    return selected.map { it.localized(WEIRD_CORE_CATEGORIES_EN) }
 }
 
 // Backwards-compatible alias for any caller that hasn't been ported to

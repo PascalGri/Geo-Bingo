@@ -51,6 +51,10 @@ fun SoloStartTransitionScreen(gameState: GameState) {
         if (gameState.solo.mode == SoloMode.ENDLESS) {
             nav.replaceCurrent(Screen.SOLO_ENDLESS)
         } else {
+            // Assign a fresh local id for this round so captured photos can be
+            // cached on disk and rebuilt into the Spielverlauf gallery later.
+            gameState.solo.gameId = "solo-" + kotlinx.datetime.Clock.System.now().toEpochMilliseconds() +
+                "-" + kotlin.random.Random.nextInt(100000, 1000000)
             gameState.solo.isRunning = true
             nav.replaceCurrent(Screen.SOLO_GAME)
         }

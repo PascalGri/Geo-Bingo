@@ -6,7 +6,7 @@ import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.result.PostgrestResult
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.Serializable
-import pg.geobingo.one.data.CATEGORY_DESCRIPTIONS
+import pg.geobingo.one.data.categoryDescription
 import pg.geobingo.one.data.Category
 import pg.geobingo.one.data.Player
 import pg.geobingo.one.data.PLAYER_COLORS
@@ -163,7 +163,7 @@ fun CategoryDto.toCategory(): Category = Category(
     id = id,
     name = label,
     emoji = icon_id,
-    description = CATEGORY_DESCRIPTIONS[icon_id] ?: ""
+    description = categoryDescription(icon_id)
 )
 
 fun Color.toHex(): String {
@@ -222,100 +222,6 @@ object GameRepository {
             .select { filter { eq("game_id", gameId) } }
             .decodeList<JokerLabelDto>()
             .associate { it.player_id to it.label }
-
-    // ── Team assignments ────────────────────────────────────────────────
-    // Uses dedicated team_assignments table. Falls back to joker_labels
-    // with "__team__" prefix for backward compatibility with existing games.
-
-    @Serializable
-    private data class TeamAssignmentDto(
-        val game_id: String = "",
-        val player_id: String = "",
-        val team_number: Int = 1,
-    )
-
-    suspend fun saveTeamAssignments(gameId: String, assignments: Map<String, Int>) {
-        if (assignments.isEmpty()) return
-        // Try dedicated table first, fall back to joker_labels
-        try {
-            val dtos = assignments.map { (playerId, team) ->
-                TeamAssignmentDto(game_id = gameId, player_id = playerId, team_number = team)
-            }
-            supabase.from("team_assignments").insert(dtos)
-            return
-        } catch (e: Exception) {
-            AppLogger.d("Repo", "team_assignments table not available, using fallback", e)
-        }
-        // Fallback: store in joker_labels with prefix (upsert to avoid race conditions)
-        assignments.forEach { (playerId, team) ->
-            try {
-                supabase.from("joker_labels").upsert(
-                    JokerLabelInsertDto(game_id = gameId, player_id = "__team__$playerId", label = team.toString())
-                )
-            } catch (e: Exception) {
-                AppLogger.w("Repo", "Team assignment save failed for $playerId", e)
-            }
-        }
-    }
-
-    suspend fun getTeamAssignments(gameId: String): Map<String, Int> {
-        // Try dedicated table first
-        try {
-            val result = supabase.from("team_assignments")
-                .select { filter { eq("game_id", gameId) } }
-                .decodeList<TeamAssignmentDto>()
-            if (result.isNotEmpty()) {
-                return result.associate { it.player_id to it.team_number }
-            }
-        } catch (e: Exception) {
-            AppLogger.d("Repo", "team_assignments table not available, using fallback", e)
-        }
-        // Fallback: read from joker_labels
-        return supabase.from("joker_labels")
-            .select { filter { eq("game_id", gameId) } }
-            .decodeList<JokerLabelDto>()
-            .filter { it.player_id.startsWith("__team__") }
-            .associate { it.player_id.removePrefix("__team__") to (it.label.toIntOrNull() ?: 1) }
-    }
-
-    // ── Team names ───────────────────────────────────────────────────────
-    // Dedicated team_names table keyed by (game_id, team_number).
-    // The previous implementation tried to abuse joker_labels by writing
-    // "__team_name__<N>" into the player_id column, but joker_labels.
-    // player_id is uuid-typed → every insert was rejected server-side
-    // and team names never persisted, so guests always saw "Team 1"
-    // instead of the host's custom name.
-
-    @Serializable
-    private data class TeamNameDto(
-        val game_id: String = "",
-        val team_number: Int = 1,
-        val name: String = "",
-    )
-
-    suspend fun saveTeamNames(gameId: String, teamNames: Map<Int, String>) {
-        if (teamNames.isEmpty()) return
-        val dtos = teamNames.map { (teamNum, name) ->
-            TeamNameDto(game_id = gameId, team_number = teamNum, name = name)
-        }
-        try {
-            supabase.from("team_names").upsert(dtos)
-        } catch (e: Exception) {
-            AppLogger.w("Repo", "Team names save failed", e)
-        }
-    }
-
-    suspend fun getTeamNames(gameId: String): Map<Int, String> {
-        return try {
-            supabase.from("team_names")
-                .select { filter { eq("game_id", gameId) } }
-                .decodeList<TeamNameDto>()
-                .associate { it.team_number to it.name }
-        } catch (e: Exception) {
-            AppLogger.w("Repo", "Team names fetch failed", e)
-            emptyMap()
-        }
-    }
 
     suspend fun addPlayer(gameId: String, name: String, color: String, userId: String? = null): PlayerDto =
         supabase.from("players").insert(

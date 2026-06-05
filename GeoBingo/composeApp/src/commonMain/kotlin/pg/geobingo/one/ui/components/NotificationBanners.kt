@@ -39,6 +39,7 @@ import pg.geobingo.one.network.FriendsManager
 import pg.geobingo.one.network.GameInviteDto
 import pg.geobingo.one.network.NotificationRealtimeManager
 import pg.geobingo.one.network.UserProfile
+import pg.geobingo.one.ui.theme.rememberFeedback
 import pg.geobingo.one.util.AppLogger
 
 /**
@@ -52,6 +53,15 @@ fun NotificationBanners(
     var pendingInviteBanner by remember { mutableStateOf<Pair<GameInviteDto, UserProfile>?>(null) }
     var pendingFriendBanner by remember { mutableStateOf<Pair<FriendshipDto, UserProfile>?>(null) }
     val bannerScope = rememberCoroutineScope()
+    val feedback = rememberFeedback(gameState)
+
+    // Haptic + sound when a banner newly appears (fires once per incoming, not per poll).
+    LaunchedEffect(pendingInviteBanner) {
+        if (pendingInviteBanner != null) feedback.gameInvite()
+    }
+    LaunchedEffect(pendingFriendBanner) {
+        if (pendingFriendBanner != null) feedback.friendRequest()
+    }
 
     // Try realtime subscription, fall back to polling if it fails
     LaunchedEffect(Unit) {
@@ -159,6 +169,7 @@ private fun GameInviteBanner(
                     .fillMaxWidth()
                     .background(Brush.horizontalGradient(listOf(Color(0xFF6366F1), Color(0xFFEC4899))))
                     .clickable { onAccept(inv) }
+                    .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Row(
@@ -211,6 +222,7 @@ private fun FriendRequestBanner(
                     .fillMaxWidth()
                     .background(Brush.horizontalGradient(listOf(Color(0xFF6366F1), Color(0xFF22D3EE))))
                     .clickable { onNavigateToFriends(friendship) }
+                    .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Row(

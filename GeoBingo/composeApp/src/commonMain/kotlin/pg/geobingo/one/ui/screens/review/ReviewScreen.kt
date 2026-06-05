@@ -65,23 +65,9 @@ fun ReviewScreen(gameState: GameState) {
     val isSelf = vm.isCurrentStepSelf()
 
     // Determine target info for display
-    val targetDisplayName: String
-    val targetPlayerId: String? // the player whose photo to show
-    val targetPlayerForAvatar: pg.geobingo.one.data.Player?
-
-    if (vm.isTeamMode) {
-        val targetTeam = vm.sortedTeams[targetIndex]
-        val teamName = gameState.gameplay.teamNames[targetTeam] ?: S.current.teamName(targetTeam)
-        val capturer = gameState.teams.getTeamCapturer(targetTeam, currentCategory.id)
-        targetDisplayName = teamName
-        targetPlayerId = capturer?.id
-        targetPlayerForAvatar = capturer
-    } else {
-        val targetPlayer = vm.sortedPlayers[targetIndex]
-        targetDisplayName = targetPlayer.name
-        targetPlayerId = targetPlayer.id
-        targetPlayerForAvatar = targetPlayer
-    }
+    val targetPlayer = vm.sortedPlayers[targetIndex]
+    val targetDisplayName: String = targetPlayer.name
+    val targetPlayerForAvatar: pg.geobingo.one.data.Player? = targetPlayer
 
     // Auto-skip self-voting
     LaunchedEffect(stepIndex, isSelf) {
@@ -159,7 +145,6 @@ fun ReviewScreen(gameState: GameState) {
                 requiredVotes = vm.requiredVotesForCurrentStep(),
                 isHost = gameState.session.isHost,
                 isSelf = isSelf,
-                isTeamMode = vm.isTeamMode,
                 modeGradient = modeGradient,
                 onReadyToAdvance = { vm.submitNoPhoto() },
                 onForceAdvance = { vm.forceAdvance() },
@@ -177,13 +162,12 @@ fun ReviewScreen(gameState: GameState) {
                 playerAvatarBytes = gameState.photo.playerAvatarBytes[targetPlayerForAvatar.id],
                 hapticEnabled = gameState.ui.hapticEnabled,
                 soundEnabled = gameState.ui.soundEnabled,
-                teamName = if (vm.isTeamMode) targetDisplayName else null,
                 modeGradient = modeGradient,
                 onVote = { rating -> vm.submitVote(rating) },
                 onNoPhoto = { vm.submitNoPhoto() },
             )
         } else {
-            // No capturer found for this team/category - skip
+            // No photo found for this player/category - skip
             LaunchedEffect(stepIndex) { vm.submitNoPhoto() }
         }
     }

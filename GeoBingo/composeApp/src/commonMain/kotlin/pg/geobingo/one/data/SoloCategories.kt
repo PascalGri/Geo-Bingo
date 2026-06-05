@@ -373,7 +373,7 @@ fun soloCategories(outdoor: Boolean, count: Int = 5): List<Category> {
     val newHistory = (selected.map { it.id } + recentIds.toList()).take(maxHistory)
     AppSettings.setString(historyKey, newHistory.joinToString(","))
 
-    return selected
+    return selected.map { it.localized(SOLO_CATEGORIES_EN) }
 }
 
 // ── Curated Daily Run ────────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ fun dailyRunDateKey(): String =
  */
 fun dailyRunCategories(count: Int = 5): List<Category> {
     val rng = Random(dailyRunSeed())
-    return SOLO_OUTDOOR_POOL.shuffled(rng).take(count)
+    return SOLO_OUTDOOR_POOL.shuffled(rng).take(count).map { it.localized(SOLO_CATEGORIES_EN) }
 }
 
 /**
@@ -412,4 +412,4 @@ fun dailyRunCategories(count: Int = 5): List<Category> {
  * Endless burns through many categories per run, so writing that history would
  * pollute the standard solo rotation.
  */
-fun endlessPool(): List<Category> = SOLO_OUTDOOR_POOL.shuffled()
+fun endlessPool(): List<Category> = SOLO_OUTDOOR_POOL.shuffled().map { it.localized(SOLO_CATEGORIES_EN) }

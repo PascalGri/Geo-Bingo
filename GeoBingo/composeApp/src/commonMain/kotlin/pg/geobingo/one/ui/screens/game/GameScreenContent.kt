@@ -107,8 +107,6 @@ fun GameScreenContent(
     )
 
     val myPlayer = gameState.gameplay.players.find { it.id == gameState.session.myPlayerId }
-    val isTeamMode = gameState.gameplay.teamModeEnabled
-    val myTeam = if (isTeamMode) gameState.teams.getMyTeamNumber() else null
 
     Scaffold(containerColor = ColorBackground) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).graphicsLayer { alpha = contentAlpha.value }) {
@@ -206,7 +204,6 @@ fun GameScreenContent(
                                     totalCategories = gameState.gameplay.selectedCategories.size,
                                     photoBytes = gameState.photo.playerAvatarBytes[player.id],
                                     accentColor = modeColor,
-                                    teamNumber = if (gameState.gameplay.teamModeEnabled) gameState.gameplay.teamAssignments[player.id] else null,
                                     onClick = {},
                                 )
                             }
@@ -216,10 +213,7 @@ fun GameScreenContent(
 
                 // Player info + controls
                 if (myPlayer != null) {
-                    val myCount = if (isTeamMode && myTeam != null)
-                        gameState.teams.getTeamCaptures(myTeam).size
-                    else
-                        gameState.gameplay.captures[myPlayer.id]?.size ?: 0
+                    val myCount = gameState.gameplay.captures[myPlayer.id]?.size ?: 0
                     val totalCats = gameState.gameplay.selectedCategories.size
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(Spacing.screenHorizontal),
@@ -245,13 +239,9 @@ fun GameScreenContent(
                             }
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                val displayName = if (isTeamMode && myTeam != null)
-                                    gameState.gameplay.teamNames[myTeam] ?: myPlayer.name
-                                else myPlayer.name
-                                Text(displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
+                                Text(myPlayer.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ColorOnSurface)
                                 Text(
-                                    if (isTeamMode) S.current.teamFoundCount(myCount, totalCats)
-                                    else S.current.foundCount(myCount, totalCats),
+                                    S.current.foundCount(myCount, totalCats),
                                     style = MaterialTheme.typography.labelSmall, color = ColorOnSurfaceVariant,
                                 )
                             }
@@ -376,29 +366,10 @@ fun GameScreenContent(
                                         glowColors = modeGradient,
                                     )
                                 } else {
-                                    // Team mode: check team captures; Solo: check player captures
-                                    val captured: Boolean
-                                    val photoBytes: ByteArray?
-                                    val otherCapturers: List<Player>
-
-                                    if (isTeamMode && myTeam != null) {
-                                        captured = gameState.teams.isTeamCaptured(myTeam, category.id)
-                                        val capturer = gameState.teams.getTeamCapturer(myTeam, category.id)
-                                        photoBytes = if (capturer != null) gameState.getPhoto(capturer.id, category.id) else null
-                                        // Show other teams' capture counts
-                                        otherCapturers = gameState.teams.getTeamNumbers()
-                                            .filter { it != myTeam }
-                                            .flatMap { otherTeam ->
-                                                if (gameState.teams.isTeamCaptured(otherTeam, category.id))
-                                                    listOfNotNull(gameState.teams.getTeamCapturer(otherTeam, category.id))
-                                                else emptyList()
-                                            }
-                                    } else {
-                                        captured = gameState.isCaptured(myPlayer.id, category.id)
-                                        photoBytes = gameState.getPhoto(myPlayer.id, category.id)
-                                        otherCapturers = gameState.gameplay.players.filter { p ->
-                                            p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
-                                        }
+                                    val captured = gameState.isCaptured(myPlayer.id, category.id)
+                                    val photoBytes = gameState.getPhoto(myPlayer.id, category.id)
+                                    val otherCapturers = gameState.gameplay.players.filter { p ->
+                                        p.id != myPlayer.id && (gameState.gameplay.captures[p.id]?.contains(category.id) == true)
                                     }
 
                                     var thumbnail by remember(photoBytes) { mutableStateOf<ImageBitmap?>(null) }
@@ -501,7 +472,7 @@ internal fun BlindBingoLockedCard(
 }
 
 @Composable
-internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, accentColor: Color = ColorPrimary, teamNumber: Int? = null, onClick: () -> Unit) {
+internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int, totalCategories: Int, photoBytes: ByteArray? = null, accentColor: Color = ColorPrimary, onClick: () -> Unit) {
     val bg = if (isActive)
         Brush.linearGradient(listOf(player.color.copy(alpha = 0.2f), player.color.copy(alpha = 0.1f)))
     else
@@ -516,18 +487,6 @@ internal fun GamePlayerTab(player: Player, isActive: Boolean, captureCount: Int,
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (teamNumber != null) {
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(if (teamNumber == 1) accentColor.copy(alpha = 0.7f) else ColorOnSurfaceVariant.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("$teamNumber", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-                Spacer(Modifier.width(4.dp))
-            }
             PlayerAvatarView(player = player, size = 18.dp, fontSize = 8.sp, photoBytes = photoBytes)
             Spacer(Modifier.width(6.dp))
             CosmeticPlayerName(name = player.name, nameEffectId = "name_none", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, fallbackColor = if (isActive) ColorOnSurface else ColorOnSurfaceVariant)

@@ -166,7 +166,10 @@ fun HistoryScreen(gameState: GameState) {
                             onToggleExpand = {
                                 expandedEntryKey = if (isExpanded) null else entryKey
                             },
-                            onNavigateToDetail = if (entry.gameId.isNotEmpty()) {
+                            // MP rounds tap through to the online MatchDetail view;
+                            // solo rounds have no server-side match, so they expand
+                            // inline to show the locally-cached photo gallery instead.
+                            onNavigateToDetail = if (entry.gameId.isNotEmpty() && entry.gameCode != "SOLO") {
                                 {
                                     nav.navigateTo(pg.geobingo.one.game.Screen.MATCH_DETAIL, NavArgs.MatchDetail(gameId = entry.gameId, entry = entry))
                                 }

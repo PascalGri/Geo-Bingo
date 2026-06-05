@@ -17,6 +17,7 @@ private data class SoloCategoryDto(val id: String, val name: String, val emoji: 
 
 @Serializable
 private data class SoloSessionSnapshot(
+    val gameId: String = "",
     val categories: List<SoloCategoryDto>,
     val captured: List<String>,
     val captureTimestamps: Map<String, Long>,
@@ -90,6 +91,7 @@ object ActiveSession {
     fun saveSolo(solo: SoloState) {
         if (solo.categories.isEmpty() || solo.startTimeMillis == 0L) return
         val snap = SoloSessionSnapshot(
+            gameId = solo.gameId,
             categories = solo.categories.map { SoloCategoryDto(it.id, it.name, it.emoji, it.description) },
             captured = solo.capturedCategories.toList(),
             captureTimestamps = solo.captureTimestamps,
@@ -148,6 +150,7 @@ object ActiveSession {
             return null
         }
         val solo = gameState.solo
+        solo.gameId = snap.gameId
         solo.categories = snap.categories.map { Category(it.id, it.name, it.emoji, it.description) }
         solo.capturedCategories = snap.captured.toSet()
         solo.captureTimestamps = snap.captureTimestamps
@@ -232,23 +235,6 @@ object ActiveSession {
             gameState.gameplay.selectedCategories = categoryDtos.map { it.toCategory() }
             gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == playerId }
                 .takeIf { it >= 0 } ?: 0
-
-            // Load team assignments and names
-            try {
-                val teams = GameRepository.getTeamAssignments(gameId)
-                if (teams.isNotEmpty()) {
-                    gameState.gameplay.teamModeEnabled = true
-                    gameState.gameplay.teamAssignments = teams
-                    try {
-                        val names = GameRepository.getTeamNames(gameId)
-                        if (names.isNotEmpty()) gameState.gameplay.teamNames = names
-                    } catch (e: Exception) {
-                        AppLogger.w("ActiveSession", "Team names load failed", e)
-                    }
-                }
-            } catch (e: Exception) {
-                AppLogger.w("ActiveSession", "Team assignment load failed", e)
-            }
 
             when (game.status) {
                 "lobby" -> {

@@ -131,48 +131,10 @@ fun LobbyScreen(gameState: GameState) {
         }
     }
 
-    // Guest team-data sync. The host can flip the lobby into team mode
-    // and name teams BEFORE a given guest joins; without polling those
-    // separate tables, the guest stays on "Team 1" until game start.
-    // Cheap: two small reads every 4 s, only while in the lobby and only
-    // for non-hosts.
-    if (!gameState.session.isHost) {
-        LaunchedEffect(gameId) {
-            while (true) {
-                try {
-                    val assignments = GameRepository.getTeamAssignments(gameId)
-                    if (assignments.isNotEmpty()) {
-                        gameState.gameplay.teamModeEnabled = true
-                        gameState.gameplay.teamAssignments = assignments
-                        val names = GameRepository.getTeamNames(gameId)
-                        if (names.isNotEmpty()) gameState.gameplay.teamNames = names
-                    } else if (gameState.gameplay.teamModeEnabled) {
-                        // Host turned team mode off
-                        gameState.gameplay.teamModeEnabled = false
-                        gameState.gameplay.teamAssignments = emptyMap()
-                        gameState.gameplay.teamNames = emptyMap()
-                    }
-                } catch (e: Exception) { AppLogger.d("Lobby", "Team data poll failed", e) }
-                kotlinx.coroutines.delay(4_000L)
-            }
-        }
-    }
-
-    // Team mode state
-    var showCreateTeamDialog by remember { mutableStateOf(false) }
-    var newTeamNameInput by remember { mutableStateOf("") }
-
     // Friend invite state
     var showInviteFriendsDialog by remember { mutableStateOf(false) }
     var onlineFriends by remember { mutableStateOf<List<FriendInfo>>(emptyList()) }
     var friendsLoading by remember { mutableStateOf(false) }
-
-    // Count distinct teams that have players
-    val activeTeamCount = if (gameState.gameplay.teamModeEnabled) {
-        gameState.gameplay.teamAssignments.values.toSet().size
-    } else 0
-
-    val canStartTeamMode = !gameState.gameplay.teamModeEnabled || activeTeamCount >= 2
 
     // Sync: game status changes (handles both realtime + polling)
     LaunchedEffect(gameId) {
@@ -200,19 +162,6 @@ fun LobbyScreen(gameState: GameState) {
                             gameState.gameplay.isGameRunning = true
                             gameState.gameplay.currentPlayerIndex = playerDtos.indexOfFirst { it.id == gameState.session.myPlayerId }
                                 .takeIf { it >= 0 } ?: 0
-                            // Load team assignments + names from server (guest).
-                            // Without the team_names fetch here, a guest who
-                            // joined right before start would see "Team 1"
-                            // instead of the host's named team in the game.
-                            try {
-                                val teams = GameRepository.getTeamAssignments(gameId)
-                                if (teams.isNotEmpty()) {
-                                    gameState.gameplay.teamModeEnabled = true
-                                    gameState.gameplay.teamAssignments = teams
-                                    val names = GameRepository.getTeamNames(gameId)
-                                    if (names.isNotEmpty()) gameState.gameplay.teamNames = names
-                                }
-                            } catch (e: Exception) { AppLogger.w("Lobby", "Team load failed", e) }
                             feedback.gameStart()
                             nav.replaceCurrent(Screen.GAME_START_TRANSITION)
                         }
@@ -332,7 +281,6 @@ fun LobbyScreen(gameState: GameState) {
                         GradientButton(
                             text = when {
                                 gameState.gameplay.lobbyPlayers.size < 2 -> S.current.minPlayersNeeded(2)
-                                gameState.gameplay.teamModeEnabled && activeTeamCount < 2 -> S.current.minTwoTeamsNeeded
                                 else -> S.current.startGame(gameState.gameplay.lobbyPlayers.size)
                             },
                             gradientColors = modeGradient,
@@ -340,13 +288,6 @@ fun LobbyScreen(gameState: GameState) {
                                 scope.launch {
                                     isStarting = true
                                     try {
-                                        // Save team assignments before starting
-                                        if (gameState.gameplay.teamModeEnabled && gameState.gameplay.teamAssignments.isNotEmpty()) {
-                                            try { GameRepository.saveTeamAssignments(gameId, gameState.gameplay.teamAssignments) } catch (e: Exception) { AppLogger.w("Lobby", "Team save failed", e) }
-                                            if (gameState.gameplay.teamNames.isNotEmpty()) {
-                                                try { GameRepository.saveTeamNames(gameId, gameState.gameplay.teamNames) } catch (e: Exception) { AppLogger.w("Lobby", "Team names save failed", e) }
-                                            }
-                                        }
                                         GameRepository.startGame(gameId)
                                         val playerDtos = GameRepository.getPlayers(gameId)
                                         gameState.gameplay.players = playerDtos.map { it.toPlayer() }
@@ -362,7 +303,7 @@ fun LobbyScreen(gameState: GameState) {
                                     }
                                 }
                             },
-                            enabled = gameState.gameplay.lobbyPlayers.size >= 2 && canStartTeamMode && !isStarting,
+                            enabled = gameState.gameplay.lobbyPlayers.size >= 2 && !isStarting,
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Box(contentAlignment = Alignment.Center) {
@@ -414,59 +355,6 @@ fun LobbyScreen(gameState: GameState) {
         },
         containerColor = ColorBackground,
     ) { padding ->
-        // Create Team Dialog (must be outside LazyColumn)
-        if (gameState.gameplay.teamModeEnabled && showCreateTeamDialog) {
-            AlertDialog(
-                onDismissRequest = { showCreateTeamDialog = false; newTeamNameInput = "" },
-                containerColor = ColorSurface,
-                title = {
-                    Text(S.current.createTeam, fontWeight = FontWeight.Bold, color = ColorOnSurface)
-                },
-                text = {
-                    OutlinedTextField(
-                        value = newTeamNameInput,
-                        onValueChange = { if (it.length <= 20) newTeamNameInput = it },
-                        placeholder = { Text(S.current.teamNamePlaceholder, color = ColorOnSurfaceVariant) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = modeGradient.first(),
-                            unfocusedBorderColor = ColorOutline,
-                            focusedTextColor = ColorOnSurface,
-                            unfocusedTextColor = ColorOnSurface,
-                            cursorColor = modeGradient.first(),
-                        ),
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val name = newTeamNameInput.trim()
-                            if (name.isNotEmpty()) {
-                                val teamNum = gameState.gameplay.nextTeamNumber
-                                gameState.gameplay.nextTeamNumber = teamNum + 1
-                                gameState.gameplay.teamNames = gameState.gameplay.teamNames + (teamNum to name)
-                                val myId = gameState.session.myPlayerId
-                                if (myId != null) {
-                                    gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
-                                }
-                                newTeamNameInput = ""
-                                showCreateTeamDialog = false
-                            }
-                        },
-                        enabled = newTeamNameInput.trim().isNotEmpty(),
-                    ) {
-                        Text(S.current.confirm, color = modeGradient.first())
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showCreateTeamDialog = false; newTeamNameInput = "" }) {
-                        Text(S.current.cancel, color = ColorOnSurfaceVariant)
-                    }
-                },
-            )
-        }
-
         // Invite Friends Dialog
         if (showInviteFriendsDialog) {
             AlertDialog(
@@ -724,169 +612,6 @@ fun LobbyScreen(gameState: GameState) {
                     photoBytes = gameState.photo.playerAvatarBytes[player.id],
                     cosmetics = cosmetics,
                 )
-            }
-
-            // ── Team Assignment Section ──────────────────────────────────
-            if (gameState.gameplay.teamModeEnabled) {
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    AnimatedGradientText(
-                        text = S.current.selectTeams,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        gradientColors = modeGradient,
-                    )
-                }
-
-                // Show each team
-                val teamNumbers = gameState.gameplay.teamNames.keys.sorted()
-                val teamColors = listOf(
-                    modeGradient.first(),
-                    modeGradient.last(),
-                    Color(0xFF22D3EE), // cyan
-                    Color(0xFFFB923C), // orange
-                    Color(0xFF84CC16), // lime
-                    Color(0xFFFF6B6B), // coral
-                )
-
-                teamNumbers.forEachIndexed { idx, teamNum ->
-                    item(key = "team_$teamNum") {
-                        val teamColor = teamColors[idx % teamColors.size]
-                        val teamName = gameState.gameplay.teamNames[teamNum] ?: S.current.teamName(teamNum)
-                        val teamPlayers = gameState.gameplay.lobbyPlayers.filter {
-                            gameState.gameplay.teamAssignments[it.id] == teamNum
-                        }
-                        val myId = gameState.session.myPlayerId
-                        val isMyTeam = gameState.gameplay.teamAssignments[myId] == teamNum
-
-                        GradientBorderCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = 14.dp,
-                            borderColors = listOf(teamColor, teamColor.copy(alpha = 0.5f)),
-                            backgroundColor = ColorSurface,
-                            borderWidth = if (isMyTeam) 2.dp else 1.dp,
-                        ) {
-                            Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(teamColor),
-                                        )
-                                        Text(
-                                            teamName,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = teamColor,
-                                        )
-                                        Text(
-                                            "(${teamPlayers.size})",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = ColorOnSurfaceVariant,
-                                        )
-                                    }
-                                    if (!isMyTeam && myId != null) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(teamColor.copy(alpha = 0.15f))
-                                                .clickable {
-                                                    gameState.gameplay.teamAssignments = gameState.gameplay.teamAssignments + (myId to teamNum)
-                                                }
-                                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                                        ) {
-                                            Text(
-                                                S.current.joinTeam,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = teamColor,
-                                            )
-                                        }
-                                    }
-                                }
-                                if (teamPlayers.isNotEmpty()) {
-                                    Spacer(Modifier.height(8.dp))
-                                    teamPlayers.forEach { player ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            PlayerAvatarViewRaw(
-                                                name = player.name,
-                                                color = parseHexColor(player.color),
-                                                avatar = player.avatar,
-                                                size = 24.dp,
-                                                fontSize = 10.sp,
-                                                photoBytes = gameState.photo.playerAvatarBytes[player.id],
-                                            )
-                                            Spacer(Modifier.width(8.dp))
-                                            CosmeticPlayerName(
-                                                name = player.name,
-                                                nameEffectId = "name_none",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Medium,
-                                            )
-                                            if (player.id == myId) {
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    "(${S.current.you})",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = ColorPrimary,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Create Team button
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(modeGradient.first().copy(alpha = 0.1f))
-                            .border(
-                                width = 1.dp,
-                                color = modeGradient.first().copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .clickable { showCreateTeamDialog = true }
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = modeGradient.first(),
-                            )
-                            Text(
-                                S.current.createTeam,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = modeGradient.first(),
-                            )
-                        }
-                    }
-                }
             }
 
             // Quick reactions — local bubble flashes above the row for the
