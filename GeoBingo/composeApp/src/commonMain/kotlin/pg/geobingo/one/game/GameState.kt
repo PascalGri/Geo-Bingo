@@ -219,6 +219,10 @@ class GameState {
                     .thenByDescending { scoring.getSpeedBonusCount(it.first.id) }
                     .thenBy { scoring.getLastCaptureTime(it.first.id) }
                     .thenBy { it.first.name }
+                    // Final, totally-ordered tie-break: player id is unique, so
+                    // even two players with the same score, bonuses, time and
+                    // name rank identically on every device (no coin-flip order).
+                    .thenBy { it.first.id }
             )
     }
 

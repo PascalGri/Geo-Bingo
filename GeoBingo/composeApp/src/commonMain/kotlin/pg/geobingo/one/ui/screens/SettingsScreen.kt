@@ -442,7 +442,7 @@ private fun LegalSection(
 @Composable
 private fun VersionFooter(modifier: Modifier = Modifier) {
     Text(
-        "KatchIt! v1.6",
+        "KatchIt! v1.7",
         style = MaterialTheme.typography.bodySmall,
         color = ColorOutline,
         modifier = modifier.padding(top = 8.dp),

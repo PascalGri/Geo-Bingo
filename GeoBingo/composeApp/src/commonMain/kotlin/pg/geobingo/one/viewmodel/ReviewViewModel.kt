@@ -192,18 +192,17 @@ class ReviewViewModel(
         try { withRetry { GameRepository.setGameStatus(gameId, "results") } } catch (e: Exception) {
             AppLogger.e("ReviewVM", "Set results status failed", e)
         }
-        try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) {
-            AppLogger.w("ReviewVM", "Votes fetch failed", e)
-        }
-        // Re-fetch captures so the Results screen sees the same canonical
-        // list as every other client. ReviewVM loaded captures on entry,
-        // but late uploads (the appScope fix means uploads can land
-        // *after* the timer flips to voting) would otherwise stay invisible
-        // to the local Scoring path and reintroduce the multi-winner bug.
+        // Load the complete, canonical results snapshot so the Results screen
+        // sees the same votes/captures as every other client. The barrier waits
+        // until judging is done; it also covers late uploads (the appScope fix
+        // means uploads can land *after* the timer flips to voting) that would
+        // otherwise stay invisible and reintroduce the multi-winner bug.
         try {
-            gameState.review.allCaptures = GameRepository.getCaptures(gameId)
+            val (caps, votes) = GameRepository.loadFinalResults(gameId)
+            gameState.review.allCaptures = caps
+            gameState.review.allVotes = votes
         } catch (e: Exception) {
-            AppLogger.w("ReviewVM", "Captures fetch failed", e)
+            AppLogger.w("ReviewVM", "Final results load failed", e)
         }
         nav.replaceCurrent(Screen.RESULTS_TRANSITION)
     }
@@ -246,11 +245,12 @@ class ReviewViewModel(
                     gameState.review.hasSubmittedCurrentCategory = false
                 }
                 if (game.status == "results") {
-                    try { gameState.review.allVotes = GameRepository.getVotes(gameId) } catch (e: Exception) {
-                        AppLogger.w("ReviewVM", "Votes fetch failed", e)
-                    }
-                    try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) {
-                        AppLogger.w("ReviewVM", "Captures fetch failed", e)
+                    try {
+                        val (caps, votes) = GameRepository.loadFinalResults(gameId)
+                        gameState.review.allCaptures = caps
+                        gameState.review.allVotes = votes
+                    } catch (e: Exception) {
+                        AppLogger.w("ReviewVM", "Final results load failed", e)
                     }
                     nav.replaceCurrent(Screen.RESULTS_TRANSITION)
                 }
@@ -284,9 +284,12 @@ class ReviewViewModel(
                         gameState.review.hasSubmittedCurrentCategory = false
                     }
                     if (game?.status == "results" && nav.currentScreen == Screen.REVIEW) {
-                        gameState.review.allVotes = GameRepository.getVotes(gameId)
-                        try { gameState.review.allCaptures = GameRepository.getCaptures(gameId) } catch (e: Exception) {
-                            AppLogger.w("ReviewVM", "Captures fetch failed", e)
+                        try {
+                            val (caps, votes) = GameRepository.loadFinalResults(gameId)
+                            gameState.review.allCaptures = caps
+                            gameState.review.allVotes = votes
+                        } catch (e: Exception) {
+                            AppLogger.w("ReviewVM", "Final results load failed", e)
                         }
                         nav.replaceCurrent(Screen.RESULTS_TRANSITION)
                     }

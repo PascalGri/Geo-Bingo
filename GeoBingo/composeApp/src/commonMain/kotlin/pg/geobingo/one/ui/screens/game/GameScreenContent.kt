@@ -298,9 +298,18 @@ fun GameScreenContent(
                         else -> 4
                     }
                     // Apply equipped Card Design as the bingo board background.
-                    // Reads once per composition — equipping a new design comes via
-                    // CosmeticsManager.equippedRevision which this function already observes.
-                    val equippedCardDesign = remember { CosmeticsManager.getEquippedCardDesign() }
+                    // Keyed on equippedRevision so equipping a new design — or the
+                    // cloud sync landing after this screen first composed — updates
+                    // the board live. (A bare `remember {}` cached the initial value
+                    // forever, so a freshly-equipped/synced design never appeared.)
+                    val equipRev by CosmeticsManager.equippedRevision.collectAsState()
+                    val equippedCardDesign = remember(equipRev) { CosmeticsManager.getEquippedCardDesign() }
+                    // A non-default design is "active" → the category tiles go
+                    // translucent so the board design shows through as each
+                    // category's background (otherwise it only peeks through the
+                    // thin gutters and reads as "not shown").
+                    val cardDesignActive = equippedCardDesign.id != "card_none" &&
+                        equippedCardDesign.backgroundColors.size >= 2
                     // Ultimate card designs are the one cosmetic surface that's otherwise
                     // static: animate the board gradient + a holographic sheen for them.
                     // Reduce-motion gated and only created for Ultimate cards, so ordinary
@@ -313,7 +322,7 @@ fun GameScreenContent(
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                             .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
                             .then(
-                                if (equippedCardDesign.id != "card_none" && equippedCardDesign.backgroundColors.size >= 2) {
+                                if (cardDesignActive) {
                                     if (ultimateCard) {
                                         val shift = cardPhase * 260f
                                         Modifier.background(
@@ -386,6 +395,7 @@ fun GameScreenContent(
                                         playerColor = myPlayer.color,
                                         thumbnail = thumbnail,
                                         otherCapturingPlayers = otherCapturers,
+                                        translucentForCardDesign = cardDesignActive,
                                         onCameraClick = { onCameraClick(myPlayer.id, category.id) },
                                     )
                                 }

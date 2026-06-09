@@ -47,6 +47,7 @@ internal fun DarkBingoCategoryCard(
     playerColor: Color,
     thumbnail: ImageBitmap?,
     otherCapturingPlayers: List<Player> = emptyList(),
+    translucentForCardDesign: Boolean = false,
     onCameraClick: () -> Unit,
 ) {
     var showInfo by remember { mutableStateOf(false) }
@@ -65,7 +66,17 @@ internal fun DarkBingoCategoryCard(
         )
     }
 
-    val containerColor by animateColorAsState(if (isCaptured) playerColor.copy(alpha = 0.15f) else ColorSurface)
+    val containerColor by animateColorAsState(
+        when {
+            isCaptured -> playerColor.copy(alpha = 0.15f)
+            // A card design is equipped → keep the tile semi-transparent so the
+            // board gradient behind it shows through as this category's
+            // background. Captured tiles are already translucent (above), so
+            // this just brings the un-captured ones in line.
+            translucentForCardDesign -> ColorSurface.copy(alpha = 0.5f)
+            else -> ColorSurface
+        }
+    )
     val borderColor = if (isCaptured) playerColor.copy(alpha = 0.5f) else ColorOutlineVariant
 
     // Upload success checkmark scale animation

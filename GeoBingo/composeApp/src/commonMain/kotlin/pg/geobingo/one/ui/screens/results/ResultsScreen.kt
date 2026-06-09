@@ -110,6 +110,21 @@ fun ResultsScreen(gameState: GameState) {
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
+    // Converge on the authoritative, complete results snapshot. A device that
+    // reached this screen with a partial votes/captures list (e.g. it navigated
+    // before the host finished AI judging, or via the polling fallback) is
+    // corrected here. `ranked` and the best-photo block are keyed on
+    // review.allVotes/allCaptures, so the podium, scores and highlight recompute
+    // the moment this lands — the final guarantee that every phone agrees.
+    LaunchedEffect(Unit) {
+        val gid = gameState.session.gameId ?: return@LaunchedEffect
+        try {
+            val (caps, votes) = GameRepository.loadFinalResults(gid)
+            gameState.review.allCaptures = caps
+            gameState.review.allVotes = votes
+        } catch (e: Exception) { AppLogger.w("Results", "Final results refresh failed", e) }
+    }
+
     // Load joker categories if not yet present
     LaunchedEffect(Unit) {
         if (gameState.joker.jokerMode) {
@@ -642,10 +657,15 @@ fun ResultsScreen(gameState: GameState) {
             if (gameState.review.allCaptures.isNotEmpty() && gameState.review.allVotes.isNotEmpty()) {
                 val gameId = gameState.session.gameId
                 if (gameId != null) {
-                    // Find the capture with highest average rating
-                    val bestCapture = gameState.review.allCaptures.maxByOrNull { capture ->
-                        gameState.scoring.getCategoryAverageRating(capture.player_id, capture.category_id) ?: 0.0
-                    }
+                    // Find the capture with the highest average rating. Explicit
+                    // tie-breaks (earliest capture, then lowest id) keep "best
+                    // photo of the round" identical on every device when two
+                    // photos share the same average.
+                    val bestCapture = gameState.review.allCaptures.minWithOrNull(
+                        compareByDescending<pg.geobingo.one.network.CaptureDto> {
+                            gameState.scoring.getCategoryAverageRating(it.player_id, it.category_id) ?: 0.0
+                        }.thenBy { it.created_at }.thenBy { it.id }
+                    )
                     val bestRating = bestCapture?.let {
                         gameState.scoring.getCategoryAverageRating(it.player_id, it.category_id)
                     }

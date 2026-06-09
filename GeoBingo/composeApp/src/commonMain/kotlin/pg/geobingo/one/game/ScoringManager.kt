@@ -38,9 +38,12 @@ class ScoringManager(
             return emptyMap()
         }
         val result = gameplay.selectedCategories.mapNotNull { category ->
+            // Deterministic tie-break: earliest capture wins the speed bonus,
+            // and when two captures share a created_at the lower id wins. Same
+            // ordering on every device → same speed-bonus awards everywhere.
             val first = review.allCaptures
                 .filter { it.category_id == category.id && it.created_at.isNotEmpty() }
-                .minByOrNull { it.created_at }
+                .minWithOrNull(compareBy({ it.created_at }, { it.id }))
             if (first != null) category.id to first.player_id else null
         }.toMap()
         cachedFirstCapturers = result
@@ -109,23 +112,27 @@ class ScoringManager(
         return gameplay.captures[playerId] ?: emptySet()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun getPlayerScore(playerId: String, votes: Map<String, List<Boolean>>): Int {
-        val starScore: Int
-        if (review.allVotes.isNotEmpty()) {
-            var sum = 0.0
-            val capturedCategories = serverCaptures(playerId)
-            for (category in gameplay.selectedCategories) {
-                if (category.id !in capturedCategories) continue
-                val avg = getCategoryAverageRating(playerId, category.id) ?: continue
-                sum += avg
-            }
-            starScore = (sum + 0.5).toInt()
-        } else {
-            starScore = gameplay.selectedCategories.count { category ->
-                if (!isCaptured(playerId, category.id)) return@count false
-                getVoteResult(playerId, category.id, votes) ?: true
-            }
+        // ONE scoring formula on every client: sum the server-side average
+        // rating (1–5) of each captured category, then add speed bonuses.
+        //
+        // There is deliberately no capture-count fallback any more. The old
+        // `else` branch counted 1 point per capture whenever `review.allVotes`
+        // happened to be empty on a device — a completely different number
+        // scheme. That is exactly how the same game showed 23 points on one
+        // phone (rating-sum) and 2 on another (capture-count). With the results
+        // barrier (GameRepository.loadFinalResults) guaranteeing the vote list
+        // is loaded before this runs, an empty list now honestly means "no
+        // ratings yet" → 0, identically on every device, instead of diverging.
+        var sum = 0.0
+        val capturedCategories = serverCaptures(playerId)
+        for (category in gameplay.selectedCategories) {
+            if (category.id !in capturedCategories) continue
+            val avg = getCategoryAverageRating(playerId, category.id) ?: continue
+            sum += avg
         }
+        val starScore = (sum + 0.5).toInt()
         return starScore + getSpeedBonusCount(playerId)
     }
 

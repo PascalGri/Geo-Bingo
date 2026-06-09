@@ -24,6 +24,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.int
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import pg.geobingo.one.di.ServiceLocator
 
@@ -388,7 +389,19 @@ object GameRepository {
     }
 
     suspend fun getCaptures(gameId: String): List<CaptureDto> =
-        supabase.from("captures").select { filter { eq("game_id", gameId) } }.decodeList()
+        supabase.from("captures").select { filter { eq("game_id", gameId) } }
+            .decodeList<CaptureDto>()
+            // Deterministic, deduped capture set so every client computes
+            // identical scores, first-capturers and counts. The captures table
+            // has no unique constraint: a retake inserts a *second* row for the
+            // same (player, category) — both rows point at the same upserted
+            // storage path, so the photo is identical, but the duplicate would
+            // otherwise inflate capture counts and make ordering depend on fetch
+            // order. We sort by (created_at, id) — stable on all devices — and
+            // keep one row per (player, category): the earliest, i.e. the one
+            // that legitimately earns the speed bonus.
+            .sortedWith(compareBy({ it.created_at }, { it.id }))
+            .distinctBy { "${it.player_id}:${it.category_id}" }
 
     suspend fun submitStepVote(
         gameId: String,
@@ -448,6 +461,53 @@ object GameRepository {
 
     suspend fun getVotes(gameId: String): List<VoteDto> =
         supabase.from("votes").select { filter { eq("game_id", gameId) } }.decodeList()
+
+    // Results barrier tuning. 6 polls × 800 ms ≈ 5 s worst-case extra wait,
+    // fully masked by the RESULTS_TRANSITION animation. In the common case the
+    // very first fetch is already complete and we return immediately.
+    private const val RESULTS_BARRIER_MAX_ATTEMPTS = 6
+    private const val RESULTS_BARRIER_POLL_MS = 800L
+
+    /**
+     * The single authoritative, complete results snapshot for [gameId]: the
+     * deduped capture list plus every vote. Retries until judging has
+     * demonstrably finished — every capture carries at least one vote — or a
+     * short budget elapses, then returns the best-effort snapshot.
+     *
+     * This is the barrier that makes multiplayer results identical on every
+     * device. Previously each client fetched votes/captures exactly once at an
+     * arbitrary moment with the failure swallowed: a device whose fetch briefly
+     * failed (or that read before the host's AI votes had propagated) ended up
+     * with an *empty* vote list and silently scored from a different formula —
+     * the "23 points on one phone, 2 on another, different winner" divergence.
+     * Waiting for a complete snapshot means all clients score from the same
+     * inputs and therefore agree on points, winner and the results hierarchy.
+     */
+    suspend fun loadFinalResults(gameId: String): Pair<List<CaptureDto>, List<VoteDto>> {
+        var captures = getCaptures(gameId)
+        var votes = getVotes(gameId)
+        var attempt = 0
+        while (!resultsComplete(captures, votes) && attempt < RESULTS_BARRIER_MAX_ATTEMPTS) {
+            delay(RESULTS_BARRIER_POLL_MS)
+            attempt++
+            captures = getCaptures(gameId)
+            votes = getVotes(gameId)
+        }
+        return captures to votes
+    }
+
+    /**
+     * True once the snapshot is safe to score from: either there is nothing to
+     * judge, or every distinct capture has at least one vote. A non-empty
+     * capture list with an empty vote list is the telltale of a failed/early
+     * fetch and is never considered complete.
+     */
+    private fun resultsComplete(captures: List<CaptureDto>, votes: List<VoteDto>): Boolean {
+        if (captures.isEmpty()) return true
+        if (votes.isEmpty()) return false
+        val voted = votes.asSequence().map { "${it.target_player_id}:${it.category_id}" }.toSet()
+        return captures.all { "${it.player_id}:${it.category_id}" in voted }
+    }
 
     suspend fun setReviewCategoryIndex(gameId: String, index: Int) {
         supabase.from("games").update({ set("review_category_index", index) }) {
@@ -595,9 +655,17 @@ object GameRepository {
                             }
                         }
                         try {
-                            supabase.from("votes").insert(
-                                VoteInsertDto(game_id = gameId, voter_id = AI_JUDGE_VOTER_UUID, target_player_id = capture.player_id, category_id = capture.category_id, rating = rating)
-                            )
+                            // Retry transient network failures: a swallowed
+                            // insert here leaves the capture unrated, which
+                            // under-scores that player for *everyone* and can
+                            // stall the results barrier waiting for a vote that
+                            // never lands. Duplicates (re-judge) are expected
+                            // and ignored.
+                            withRetry {
+                                supabase.from("votes").insert(
+                                    VoteInsertDto(game_id = gameId, voter_id = AI_JUDGE_VOTER_UUID, target_player_id = capture.player_id, category_id = capture.category_id, rating = rating)
+                                )
+                            }
                         } catch (e: Exception) {
                             if (!isDuplicateError(e)) AppLogger.w("Repo", "AI vote insert failed", e)
                         }

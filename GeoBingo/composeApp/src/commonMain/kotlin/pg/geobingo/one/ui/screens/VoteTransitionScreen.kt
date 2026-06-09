@@ -197,20 +197,16 @@ private fun AiJudgeTransition(
                 AppLogger.e("VoteTransition", "Failed to set results status", e)
             }
 
-            // Load votes + canonical captures and navigate. The AI judge
-            // mode skips the ReviewScreen entirely, so unlike the classic
-            // path nothing else fetches review.allCaptures here — without
-            // this call ScoringManager falls back to the per-device
-            // realtime map and each client computes a different ranking.
+            // Load the complete, canonical results snapshot and navigate. The
+            // barrier waits until every capture has been judged, so the host
+            // and every guest score from the same votes/captures and agree on
+            // points, winner and the best-photo highlight.
             try {
-                gameState.review.allVotes = GameRepository.getVotes(gameId)
+                val (caps, votes) = GameRepository.loadFinalResults(gameId)
+                gameState.review.allCaptures = caps
+                gameState.review.allVotes = votes
             } catch (e: Exception) {
-                AppLogger.w("VoteTransition", "Votes fetch failed", e)
-            }
-            try {
-                gameState.review.allCaptures = GameRepository.getCaptures(gameId)
-            } catch (e: Exception) {
-                AppLogger.w("VoteTransition", "Captures fetch failed", e)
+                AppLogger.w("VoteTransition", "Final results load failed", e)
             }
             isDone = true
             nav.replaceCurrent(Screen.RESULTS_TRANSITION)
@@ -222,14 +218,11 @@ private fun AiJudgeTransition(
                     val game = GameRepository.getGameById(gameId)
                     if (game?.status == "results") {
                         try {
-                            gameState.review.allVotes = GameRepository.getVotes(gameId)
+                            val (caps, votes) = GameRepository.loadFinalResults(gameId)
+                            gameState.review.allCaptures = caps
+                            gameState.review.allVotes = votes
                         } catch (e: Exception) {
-                            AppLogger.w("VoteTransition", "Votes fetch failed", e)
-                        }
-                        try {
-                            gameState.review.allCaptures = GameRepository.getCaptures(gameId)
-                        } catch (e: Exception) {
-                            AppLogger.w("VoteTransition", "Captures fetch failed", e)
+                            AppLogger.w("VoteTransition", "Final results load failed", e)
                         }
                         isDone = true
                         nav.replaceCurrent(Screen.RESULTS_TRANSITION)
