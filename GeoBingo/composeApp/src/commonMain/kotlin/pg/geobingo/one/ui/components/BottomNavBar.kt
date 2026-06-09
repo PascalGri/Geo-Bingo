@@ -2,6 +2,7 @@ package pg.geobingo.one.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -9,19 +10,31 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,55 +82,200 @@ private fun NavTab.label(): String = when (this) {
     NavTab.SETTINGS -> S.current.settingsTitle
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomNavBar(
     currentScreen: Screen,
     friendsBadgeCount: Int = 0,
     onTabSelected: (NavTab) -> Unit,
     onActiveTabReselected: (NavTab) -> Unit = {},
+    onPlayCreate: () -> Unit = {},
+    onPlayJoin: () -> Unit = {},
 ) {
     val activeTab = currentScreen.activeTab()
     val haptic = LocalHapticFeedback.current
+    var showPlaySheet by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(ColorSurface)
-            .navigationBarsPadding(),
-    ) {
-        // Top border line
+    // How far the raised central "Spielen" FAB pokes above the bar surface.
+    val fabOverhang = 20.dp
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        // ── The bar itself, pinned to the bottom. The top padding leaves a
+        //    transparent strip so the centred Play FAB can float above it. ──
         Box(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(0.5.dp)
-                .background(ColorOutline.copy(alpha = 0.3f))
-                .align(Alignment.TopCenter),
+                .padding(top = fabOverhang)
+                .background(ColorSurface)
+                .navigationBarsPadding(),
+        ) {
+            // Top border line
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(ColorOutline.copy(alpha = 0.3f))
+                    .align(Alignment.TopCenter),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NavTab.entries.forEachIndexed { index, tab ->
+                    // Reserve the centre slot for the floating Play FAB.
+                    if (index == 2) Spacer(Modifier.weight(1f))
+                    val selected = tab == activeTab
+                    NavBarItem(
+                        tab = tab,
+                        selected = selected,
+                        label = tab.label(),
+                        badgeCount = if (tab == NavTab.FRIENDS) friendsBadgeCount else 0,
+                        onClick = {
+                            if (AppSettings.getBoolean(SettingsKeys.HAPTIC_ENABLED, true)) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            if (selected) {
+                                onActiveTabReselected(tab)
+                            } else {
+                                onTabSelected(tab)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
+        // ── Raised central "Spielen" FAB → opens the create/join sheet. ──
+        PlayFab(
+            modifier = Modifier.align(Alignment.TopCenter),
+            onClick = {
+                if (AppSettings.getBoolean(SettingsKeys.HAPTIC_ENABLED, true)) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                showPlaySheet = true
+            },
         )
-        Row(
+    }
+
+    if (showPlaySheet) {
+        PlaySheet(
+            onCreate = {
+                showPlaySheet = false
+                onPlayCreate()
+            },
+            onJoin = {
+                showPlaySheet = false
+                onPlayJoin()
+            },
+            onDismiss = { showPlaySheet = false },
+        )
+    }
+}
+
+/** Raised, gradient-filled central FAB that launches the create/join sheet. */
+@Composable
+private fun PlayFab(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .shadow(10.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(GradientPrimary)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.PlayArrow,
+                contentDescription = S.current.play,
+                tint = Color.White,
+                modifier = Modifier.size(30.dp),
+            )
+        }
+        Text(
+            S.current.play,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = ColorPrimary,
+        )
+    }
+}
+
+/** Bottom sheet with the two play entry points (create vs. join a round). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaySheet(
+    onCreate: () -> Unit,
+    onJoin: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = ColorSurface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 24.dp)
+                .padding(top = 4.dp, bottom = 32.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            NavTab.entries.forEach { tab ->
-                val selected = tab == activeTab
-                NavBarItem(
-                    tab = tab,
-                    selected = selected,
-                    label = tab.label(),
-                    badgeCount = if (tab == NavTab.FRIENDS) friendsBadgeCount else 0,
-                    onClick = {
-                        if (AppSettings.getBoolean(SettingsKeys.HAPTIC_ENABLED, true)) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        }
-                        if (selected) {
-                            onActiveTabReselected(tab)
-                        } else {
-                            onTabSelected(tab)
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
+            Text(
+                S.current.play,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = ColorOnSurface,
+            )
+            Spacer(Modifier.height(4.dp))
+            GradientButton(
+                text = S.current.createRound,
+                onClick = onCreate,
+                modifier = Modifier.fillMaxWidth(),
+                gradientColors = GradientPrimary,
+                height = 58.dp,
+                fontSize = 17.sp,
+                leadingIcon = {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(22.dp), tint = Color.White)
+                },
+            )
+            OutlinedButton(
+                onClick = onJoin,
+                modifier = Modifier.fillMaxWidth().height(58.dp),
+                shape = RoundedCornerShape(29.dp),
+                border = BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.55f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Login,
+                    null,
+                    modifier = Modifier.size(20.dp),
+                    tint = ColorPrimary,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    S.current.joinRound,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 17.sp,
+                    color = ColorOnSurface,
                 )
             }
         }

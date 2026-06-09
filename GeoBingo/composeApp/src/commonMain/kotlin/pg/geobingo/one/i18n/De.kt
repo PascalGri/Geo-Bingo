@@ -650,6 +650,7 @@ object De : StringRes {
 
     // ── Bottom Nav / Shop Tabs ───────────────────────────────────────────
     override val navHome = "Start"
+    override val play = "Spielen"
     override val shopTabStars = "Stars"
     override val shopTabCosmetics = "Kosmetik"
     override val bannerBackgrounds = "Banner-Hintergründe"

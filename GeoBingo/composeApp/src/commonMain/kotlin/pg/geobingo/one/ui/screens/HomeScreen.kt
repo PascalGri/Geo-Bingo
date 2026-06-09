@@ -142,17 +142,6 @@ fun HomeScreen(gameState: GameState) {
     }
 
     val anim = rememberStaggeredAnimation(count = 5)
-    val btnOffsets = (0..1).map { remember { Animatable(80f) } }
-    val btnAlphas = (0..1).map { remember { Animatable(0f) } }
-    LaunchedEffect(Unit) {
-        for (i in btnOffsets.indices) {
-            launch {
-                delay(180L + i * 100L)
-                launch { btnOffsets[i].animateTo(0f, tween(500)) }
-                btnAlphas[i].animateTo(1f, tween(500))
-            }
-        }
-    }
 
     fun Modifier.staggered(index: Int): Modifier = this.then(anim.modifier(index))
 
@@ -214,14 +203,6 @@ fun HomeScreen(gameState: GameState) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = ColorBackground,
-        bottomBar = {
-            HomeBottomBar(
-                btnOffsets = btnOffsets,
-                btnAlphas = btnAlphas,
-                onCreateRound = { nav.navigateTo(Screen.SELECT_MODE) },
-                onJoinRound = { nav.navigateTo(Screen.JOIN_GAME) },
-            )
-        },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // ── FULL-SCREEN BACKGROUND GRADIENT ──────────────────────────
@@ -526,65 +507,6 @@ private fun RejoinSoloDialog(
 }
 
 // ── HOME BOTTOM BAR ──────────────────────────────────────────────────────────
-
-@Composable
-private fun HomeBottomBar(
-    btnOffsets: List<Animatable<Float, *>>,
-    btnAlphas: List<Animatable<Float, *>>,
-    onCreateRound: () -> Unit,
-    onJoinRound: () -> Unit,
-) {
-    Surface(color = Color.Transparent) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = Spacing.screenHorizontal)
-                .padding(bottom = 12.dp, top = 8.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            GradientButton(
-                text = S.current.createRound,
-                onClick = onCreateRound,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = S.current.createRound }.graphicsLayer {
-                    translationY = btnOffsets[0].value
-                    alpha = btnAlphas[0].value
-                },
-                gradientColors = GradientPrimary,
-                height = 62.dp,
-                fontSize = 17.sp,
-                leadingIcon = {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(22.dp), tint = Color.White)
-                },
-            )
-
-            OutlinedButton(
-                onClick = onJoinRound,
-                modifier = Modifier.fillMaxWidth().height(62.dp).graphicsLayer {
-                    translationY = btnOffsets[1].value
-                    alpha = btnAlphas[1].value
-                },
-                shape = RoundedCornerShape(31.dp),
-                border = BorderStroke(1.5.dp, ColorPrimary.copy(alpha = 0.55f)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorOnSurface),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Login,
-                    null,
-                    modifier = Modifier.size(20.dp),
-                    tint = ColorPrimary,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    S.current.joinRound,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 17.sp,
-                    color = ColorOnSurface,
-                )
-            }
-        }
-    }
-}
 
 // ── DAILY CHALLENGE CARD ─────────────────────────────────────────────────────
 

@@ -98,6 +98,8 @@ fun App() {
                 BottomNavBar(
                     currentScreen = nav.currentScreen,
                     friendsBadgeCount = friendsBadge,
+                    onPlayCreate = { nav.navigateTo(Screen.SELECT_MODE) },
+                    onPlayJoin = { nav.navigateTo(Screen.JOIN_GAME) },
                     onTabSelected = { tab ->
                         nav.resetTo(tab.targetScreen)
                     },

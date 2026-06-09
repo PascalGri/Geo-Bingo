@@ -686,6 +686,7 @@ interface StringRes {
 
     // ── Bottom Nav / Shop Tabs ───────────────────────────────────────────
     val navHome: String
+    val play: String
     val shopTabStars: String
     val shopTabCosmetics: String
     val bannerBackgrounds: String
