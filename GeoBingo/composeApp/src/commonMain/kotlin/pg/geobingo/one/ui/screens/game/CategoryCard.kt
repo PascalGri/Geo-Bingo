@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -127,13 +128,8 @@ internal fun DarkBingoCategoryCard(
                         ),
                 )
                 // Category name overlay at bottom
-                Text(
-                    category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 12.sp,
+                AutoResizeCategoryName(
+                    text = category.name,
                     color = Color.White,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -166,7 +162,7 @@ internal fun DarkBingoCategoryCard(
                         Icon(imageVector = getCategoryIcon(category.id), contentDescription = null, modifier = Modifier.size(26.dp).rotate(getCategoryIconRotation(category.id)), tint = if (isCaptured) playerColor else ColorOnSurfaceVariant)
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text(category.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 12.sp)
+                    AutoResizeCategoryName(text = category.name, modifier = Modifier.fillMaxWidth())
                     if (isCaptured) Icon(Icons.Default.Check, null, modifier = Modifier.size(12.dp), tint = playerColor)
                 }
             }
@@ -193,4 +189,47 @@ internal fun DarkBingoCategoryCard(
             }
         }
     }
+}
+
+/**
+ * Category name that auto-shrinks to fit the bingo tile.
+ *
+ * A base iPhone (e.g. iPhone 16, 393pt wide) makes each tile only a few points
+ * narrower than a Pro (402pt). At a fixed font size that tiny per-tile delta tipped
+ * long German category names from one clean line into a crammed, mid-word-broken
+ * second line — fine on the wider device, "broken" on the narrower one. Shrinking
+ * the font to fit (down to a readable floor) makes every tile render the same way,
+ * independent of the exact device width.
+ */
+@Composable
+private fun AutoResizeCategoryName(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+) {
+    val baseStyle = MaterialTheme.typography.labelSmall
+    val minSize = 8f
+    // Start at labelSmall's size (11sp); fontSize overrides the style's own size
+    // while the style still supplies weight/letter-spacing.
+    var fontSize by remember(text) { mutableStateOf(11.sp) }
+    var readyToDraw by remember(text) { mutableStateOf(false) }
+    Text(
+        text = text,
+        color = color,
+        style = baseStyle,
+        fontSize = fontSize,
+        lineHeight = (fontSize.value * 1.15f).sp,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        softWrap = true,
+        overflow = TextOverflow.Clip,
+        modifier = modifier.drawWithContent { if (readyToDraw) drawContent() },
+        onTextLayout = { result ->
+            if (result.hasVisualOverflow && fontSize.value > minSize) {
+                fontSize = (fontSize.value * 0.9f).coerceAtLeast(minSize).sp
+            } else if (!readyToDraw) {
+                readyToDraw = true
+            }
+        },
+    )
 }
